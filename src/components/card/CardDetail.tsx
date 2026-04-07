@@ -134,7 +134,7 @@ export function CardDetail({
   return (
     <>
       <Modal open onClose={onClose} size="lg">
-        <div className="flex flex-col max-h-[90vh]">
+        <div className="flex min-h-0 flex-col">
           <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b-2 border-brand-text/10">
             {cardLabels.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
@@ -230,7 +230,7 @@ export function CardDetail({
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {activeTab === "details" ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
                 <div className="p-4 sm:p-6 space-y-6 border-b-2 lg:border-b-0 lg:border-r-2 border-brand-text/10 lg:col-span-2">
