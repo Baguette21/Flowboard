@@ -25,6 +25,7 @@ export function SortableCard(props: SortableCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    touchAction: "none" as const,
   };
 
   if (isDragging) {

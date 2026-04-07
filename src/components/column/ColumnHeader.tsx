@@ -39,9 +39,9 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
     }
     try {
       await updateColumn({ columnId: column._id, title: trimmed });
-      toast.success("Column renamed");
+      toast.success("Status renamed");
     } catch {
-      toast.error("Failed to rename column");
+      toast.error("Failed to rename status");
       setEditTitle(column.title);
     }
     setIsEditing(false);
@@ -51,9 +51,9 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
     setIsDeleting(true);
     try {
       await deleteColumn({ columnId: column._id, deleteCards: true });
-      toast.success(`Column "${column.title}" deleted`);
+      toast.success(`Status "${column.title}" deleted`);
     } catch {
-      toast.error("Failed to delete column");
+      toast.error("Failed to delete status");
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -72,12 +72,14 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
         style={column.color ? { borderBottomColor: `${column.color}40` } : {}}
       >
         {/* Drag handle */}
-        <button
-          {...dragHandleProps}
-          className="text-brand-text/20 hover:text-brand-text/50 transition-colors cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 flex-shrink-0"
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
+        {dragHandleProps ? (
+          <button
+            {...dragHandleProps}
+            className="hidden md:block text-brand-text/20 hover:text-brand-text/50 transition-colors cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 flex-shrink-0"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        ) : null}
 
         {/* Card count badge */}
         <div
@@ -127,7 +129,7 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
         {/* Actions menu */}
         <Dropdown
           trigger={
-            <button className="text-brand-text/30 hover:text-brand-text hover:bg-brand-text/10 p-1.5 rounded-xl transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0">
+            <button className="text-brand-text/30 hover:text-brand-text hover:bg-brand-text/10 p-1.5 rounded-xl transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 flex-shrink-0">
               <MoreHorizontal className="w-4 h-4" />
             </button>
           }
@@ -176,9 +178,9 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
-        title={`Delete "${column.title}"?`}
-        description="All tasks in this column will be permanently deleted. This cannot be undone."
-        confirmLabel="Delete Column"
+        title={`Delete status "${column.title}"?`}
+        description="All tasks in this status will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete Status"
         isDestructive
         isLoading={isDeleting}
       />

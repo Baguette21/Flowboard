@@ -134,8 +134,8 @@ export function CardDetail({
   return (
     <>
       <Modal open onClose={onClose} size="lg">
-        <div className="flex flex-col max-h-[85vh]">
-          <div className="px-6 pt-6 pb-4 border-b-2 border-brand-text/10">
+        <div className="flex flex-col max-h-[90vh]">
+          <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b-2 border-brand-text/10">
             {cardLabels.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {cardLabels.map((label) => (
@@ -165,12 +165,12 @@ export function CardDetail({
                     setIsEditingTitle(false);
                   }
                 }}
-                className="w-full text-2xl font-bold font-serif italic bg-brand-bg border-2 border-brand-text/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-brand-text"
+                className="w-full text-xl sm:text-2xl font-bold font-serif italic bg-brand-bg border-2 border-brand-text/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-brand-text"
                 rows={2}
               />
             ) : (
               <h2
-                className="select-none text-2xl font-bold font-serif italic cursor-pointer pr-8"
+                className="select-none text-xl sm:text-2xl font-bold font-serif italic cursor-pointer pr-8"
                 onClick={() => {
                   setTitleValue(card.title);
                   setIsEditingTitle(true);
@@ -180,7 +180,7 @@ export function CardDetail({
               </h2>
             )}
 
-            <div className="flex items-center gap-4 mt-3 text-xs font-mono text-brand-text/50">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-brand-text/50">
               {card.dueDate && (
                 <div
                   className={cn(
@@ -208,13 +208,13 @@ export function CardDetail({
             </div>
           </div>
 
-          <div className="flex border-b-2 border-brand-text/10 px-6">
+          <div className="flex border-b-2 border-brand-text/10 px-4 sm:px-6">
             {(["details", "activity"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-3 font-mono text-xs uppercase tracking-widest font-bold border-b-2 -mb-0.5 transition-colors",
+                  "flex flex-1 items-center justify-center gap-1.5 px-3 py-3 font-mono text-[11px] uppercase tracking-widest font-bold border-b-2 -mb-0.5 transition-colors sm:flex-none sm:justify-start sm:px-4 sm:text-xs",
                   activeTab === tab
                     ? "border-brand-text text-brand-text"
                     : "border-transparent text-brand-text/40 hover:text-brand-text",
@@ -232,8 +232,8 @@ export function CardDetail({
 
           <div className="flex-1 overflow-y-auto">
             {activeTab === "details" ? (
-              <div className="grid grid-cols-3 gap-0">
-                <div className="col-span-2 p-6 space-y-6 border-r-2 border-brand-text/10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+                <div className="p-4 sm:p-6 space-y-6 border-b-2 lg:border-b-0 lg:border-r-2 border-brand-text/10 lg:col-span-2">
                   <button
                     onClick={() => void handleToggleComplete()}
                     className={cn(
@@ -373,7 +373,7 @@ export function CardDetail({
                 </div>
               </div>
             ) : (
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <ActivityFeed cardId={cardId} boardId={boardId} mode="card" />
               </div>
             )}

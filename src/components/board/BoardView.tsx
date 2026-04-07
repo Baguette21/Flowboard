@@ -7,7 +7,8 @@ import {
   DragOverlay,
   closestCorners,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   defaultDropAnimationSideEffects,
@@ -21,18 +22,21 @@ import {
 } from "@dnd-kit/sortable";
 import { generateKeyBetween } from "fractional-indexing";
 import { SortableColumn } from "../column/SortableColumn";
+import { Column } from "../column/Column";
 import { Card as CardComponent } from "../card/Card";
 import { CreateColumn } from "../column/CreateColumn";
 import { CardDetail } from "../card/CardDetail";
 import { ColumnSkeleton } from "../ui/Skeleton";
 import { Layers } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 interface BoardViewProps {
   boardId: Id<"boards">;
 }
 
 export function BoardView({ boardId }: BoardViewProps) {
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
   const columns = useQuery(api.columns.listByBoard, { boardId });
   const cards = useQuery(api.cards.listByBoard, { boardId });
@@ -54,12 +58,22 @@ export function BoardView({ boardId }: BoardViewProps) {
   const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 180,
+        tolerance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const columnIds = useMemo(
     () => (displayColumns ?? []).map((c) => c._id),
+    [displayColumns],
+  );
+  const orderedColumns = useMemo(
+    () => [...(displayColumns ?? [])].sort((a, b) => a.order.localeCompare(b.order)),
     [displayColumns],
   );
   const membersById = useMemo(
@@ -225,11 +239,72 @@ export function BoardView({ boardId }: BoardViewProps) {
       <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
         <div className="flex flex-col items-center justify-center w-full py-24 text-center">
           <Layers className="w-12 h-12 text-brand-text/20 mb-4" />
-          <h3 className="font-serif italic font-bold text-xl mb-2">No columns yet</h3>
-          <p className="font-mono text-sm text-brand-text/50 mb-6">Add a column to start organizing work</p>
+          <h3 className="font-serif italic font-bold text-xl mb-2">No statuses yet</h3>
+          <p className="font-mono text-sm text-brand-text/50 mb-6">Add a status to start organizing work</p>
         </div>
         <CreateColumn boardId={boardId} />
       </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+        >
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-4">
+              {orderedColumns.map((column) => (
+                <Column
+                  key={column._id}
+                  column={column}
+                  labels={labels ?? []}
+                  members={members ?? []}
+                  cards={(displayCards ?? []).filter((card) => card.columnId === column._id)}
+                  onCardClick={(cardId: Id<"cards">) => setSelectedCardId(cardId)}
+                  fullWidth
+                />
+              ))}
+              <div className="pt-1">
+                <CreateColumn boardId={boardId} fullWidth />
+              </div>
+            </div>
+          </div>
+
+          <DragOverlay dropAnimation={dropAnimation}>
+            {activeCard && (
+              <CardComponent
+                card={activeCard}
+                labels={(labels ?? []).filter((l) =>
+                  activeCard.labelIds.includes(l._id),
+                )}
+                assignee={
+                  activeCard.assignedUserId
+                    ? membersById.get(activeCard.assignedUserId) ?? null
+                    : null
+                }
+                isDragging
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
+
+        {selectedCardId && (
+          <CardDetail
+            cardId={selectedCardId}
+            boardId={boardId}
+            labels={labels ?? []}
+            members={members ?? []}
+            canManageAssignees={accessInfo?.isOwner ?? false}
+            onClose={() => setSelectedCardId(null)}
+          />
+        )}
+      </>
     );
   }
 

@@ -3,6 +3,7 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableCard } from "../card/SortableCard";
+import { Card as CardComponent } from "../card/Card";
 import { ColumnHeader } from "./ColumnHeader";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -20,6 +21,8 @@ interface ColumnProps {
   onCardClick: (cardId: Id<"cards">) => void;
   dragHandleProps?: React.HTMLAttributes<HTMLElement>;
   isDragging?: boolean;
+  sortableCards?: boolean;
+  fullWidth?: boolean;
 }
 
 export function Column({
@@ -30,6 +33,8 @@ export function Column({
   onCardClick,
   dragHandleProps,
   isDragging,
+  sortableCards = true,
+  fullWidth = false,
 }: ColumnProps) {
   const createCard = useMutation(api.cards.create);
   const [isAdding, setIsAdding] = useState(false);
@@ -70,7 +75,9 @@ export function Column({
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 w-[85vw] max-w-80 max-h-full bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] overflow-hidden backdrop-blur-md transition-opacity ${
+      className={`flex flex-col ${
+        fullWidth ? "w-full max-w-none" : "flex-shrink-0 w-[85vw] max-w-80"
+      } max-h-full bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] overflow-hidden backdrop-blur-md transition-opacity ${
         isDragging ? "opacity-50" : ""
       }`}
     >
@@ -85,20 +92,30 @@ export function Column({
         className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[100px]"
       >
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-          {sortedCards.map((card) => (
-            <SortableCard
-              key={card._id}
-              card={card}
-              labels={labels.filter((l) => card.labelIds.includes(l._id))}
-              assignee={
-                card.assignedUserId
-                  ? members.find((member) => member.userId === card.assignedUserId) ??
-                    null
-                  : null
-              }
-              onClick={() => onCardClick(card._id)}
-            />
-          ))}
+          {sortedCards.map((card) => {
+            const assignee = card.assignedUserId
+              ? members.find((member) => member.userId === card.assignedUserId) ?? null
+              : null;
+            const cardLabels = labels.filter((l) => card.labelIds.includes(l._id));
+
+            return sortableCards ? (
+              <SortableCard
+                key={card._id}
+                card={card}
+                labels={cardLabels}
+                assignee={assignee}
+                onClick={() => onCardClick(card._id)}
+              />
+            ) : (
+              <CardComponent
+                key={card._id}
+                card={card}
+                labels={cardLabels}
+                assignee={assignee}
+                onClick={() => onCardClick(card._id)}
+              />
+            );
+          })}
         </SortableContext>
 
         {sortedCards.length === 0 && !isAdding && (

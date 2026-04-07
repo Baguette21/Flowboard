@@ -97,7 +97,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
           )}
 
           <div className="hidden md:flex items-center gap-3 font-mono text-xs text-brand-text/40">
-            <span>{columnCount} columns</span>
+            <span>{columnCount} statuses</span>
             <span>·</span>
             <span>{cardCount} tasks</span>
             {accessInfo && (
@@ -117,7 +117,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
 
         <div className="flex items-center justify-between gap-2 sm:justify-end">
           <div className="flex items-center gap-2 font-mono text-[11px] text-brand-text/45 md:hidden">
-            <span>{columnCount} columns</span>
+            <span>{columnCount} statuses</span>
             <span>·</span>
             <span>{cardCount} tasks</span>
           </div>
