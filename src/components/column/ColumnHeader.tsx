@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import {
-  MoreHorizontal,
   GripVertical,
   Check,
   X,
@@ -93,6 +92,32 @@ export function ColumnHeader({
 
   const BackwardIcon = reorderOrientation === "vertical" ? ChevronUp : ChevronLeft;
   const ForwardIcon = reorderOrientation === "vertical" ? ChevronDown : ChevronRight;
+  const actionItems = [
+    {
+      label: "Rename",
+      icon: <Pencil className="w-4 h-4" />,
+      onClick: () => {
+        setShowColorPicker(false);
+        setEditTitle(column.title);
+        setIsEditing(true);
+      },
+    },
+    {
+      label: "Change color",
+      icon: <Palette className="w-4 h-4" />,
+      onClick: () => setShowColorPicker((current) => !current),
+    },
+    {
+      label: "Delete column",
+      icon: <Trash2 className="w-4 h-4" />,
+      onClick: () => {
+        setShowColorPicker(false);
+        setConfirmDelete(true);
+      },
+      danger: true,
+      separator: true,
+    },
+  ];
 
   return (
     <>
@@ -180,35 +205,21 @@ export function ColumnHeader({
           >
             <ForwardIcon className="w-4 h-4" />
           </button>
+          {!isEditing && (
+            <Dropdown
+              trigger={
+                <button
+                  type="button"
+                  className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
+                  title="Edit status"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              }
+              items={actionItems}
+            />
+          )}
         </div>
-
-        {/* Actions menu */}
-        <Dropdown
-          trigger={
-            <button className="text-brand-text/30 hover:text-brand-text hover:bg-brand-text/10 p-1.5 rounded-xl transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 flex-shrink-0">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-          }
-          items={[
-            {
-              label: "Rename",
-              icon: <Pencil className="w-4 h-4" />,
-              onClick: () => { setEditTitle(column.title); setIsEditing(true); },
-            },
-            {
-              label: "Change color",
-              icon: <Palette className="w-4 h-4" />,
-              onClick: () => setShowColorPicker(!showColorPicker),
-            },
-            {
-              label: "Delete column",
-              icon: <Trash2 className="w-4 h-4" />,
-              onClick: () => setConfirmDelete(true),
-              danger: true,
-              separator: true,
-            },
-          ]}
-        />
       </div>
 
       {/* Color picker inline */}

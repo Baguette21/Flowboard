@@ -86,6 +86,10 @@ export function BoardView({ boardId }: BoardViewProps) {
       ),
     [members],
   );
+  const columnsById = useMemo(
+    () => new Map((displayColumns ?? []).map((column) => [column._id, column])),
+    [displayColumns],
+  );
 
   const onDragStart = useCallback((event: DragStartEvent) => {
     const type = event.active.data.current?.type;
@@ -309,6 +313,7 @@ export function BoardView({ boardId }: BoardViewProps) {
                 labels={(labels ?? []).filter((l) =>
                   activeCard.labelIds.includes(l._id),
                 )}
+                statusColor={columnsById.get(activeCard.columnId)?.color}
                 assignee={
                   activeCard.assignedUserId
                     ? membersById.get(activeCard.assignedUserId) ?? null
@@ -371,6 +376,7 @@ export function BoardView({ boardId }: BoardViewProps) {
               labels={(labels ?? []).filter((l) =>
                 activeCard.labelIds.includes(l._id),
               )}
+              statusColor={columnsById.get(activeCard.columnId)?.color}
               assignee={
                 activeCard.assignedUserId
                   ? membersById.get(activeCard.assignedUserId) ?? null

@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import type { HTMLAttributes } from "react";
+import type { CSSProperties } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/utils";
 import { AlignLeft, Clock, CheckCircle2 } from "lucide-react";
@@ -10,6 +11,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   card: Doc<"cards">;
   labels: Doc<"labels">[];
   assignee?: BoardMemberSummary | null;
+  statusColor?: string;
   isDragging?: boolean;
 }
 
@@ -28,7 +30,7 @@ const priorityDots: Record<string, string> = {
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ card, labels, assignee, isDragging, className, onClick, ...props }, ref) => {
+  ({ card, labels, assignee, statusColor, isDragging, className, onClick, style, ...props }, ref) => {
     const isOverdue = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
     const assigneeLabel = assignee?.name ?? assignee?.email ?? "Assigned";
     const assigneeInitials = assigneeLabel
@@ -38,12 +40,25 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("");
 
+    const surfaceStyle: CSSProperties = {
+      ...style,
+      ...(statusColor
+        ? {
+            backgroundColor: `${statusColor}12`,
+            borderColor: `${statusColor}38`,
+            boxShadow: `inset 0 0 0 1px ${statusColor}1A`,
+          }
+        : null),
+    };
+
     return (
       <div
         ref={ref}
         onClick={onClick}
+        style={surfaceStyle}
         className={cn(
-          "w-full select-none bg-brand-primary border-2 border-brand-text/10 rounded-[1.5rem] p-4 shadow-sm group hover:border-brand-text/30 interactive-lift cursor-pointer",
+          "w-full select-none border-2 rounded-[1.5rem] p-4 shadow-sm group hover:border-brand-text/30 interactive-lift cursor-pointer",
+          statusColor ? "bg-brand-primary/90" : "bg-brand-primary border-brand-text/10",
           card.isComplete && "opacity-60",
           isOverdue && "border-l-4 border-l-brand-accent",
           isDragging && "opacity-40 border-brand-accent rotate-1 scale-105 shadow-2xl cursor-grabbing",
@@ -65,7 +80,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           </div>
         )}
 
-        {/* Title */}
         <h3
           className={cn(
             "select-none text-[15px] font-bold leading-snug mb-2.5 font-sans",
@@ -75,16 +89,13 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           {card.title}
         </h3>
 
-        {/* Footer row */}
         <div className="flex items-center gap-2.5 text-xs font-mono text-brand-text/50 flex-wrap">
-          {/* Description indicator */}
           {card.description && (
             <div className="flex items-center gap-1" title="Has description">
               <AlignLeft className="w-3 h-3" />
             </div>
           )}
 
-          {/* Due date */}
           {card.dueDate && (
             <div
               className={cn(
@@ -97,7 +108,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             </div>
           )}
 
-          {/* Priority */}
           {card.priority && (
             <div
               className={cn(
@@ -113,7 +123,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             </div>
           )}
 
-          {/* Complete check */}
           {card.isComplete && (
             <div className="flex items-center gap-1 text-green-600">
               <CheckCircle2 className="w-3 h-3" />

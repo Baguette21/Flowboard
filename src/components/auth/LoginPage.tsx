@@ -3,9 +3,10 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/utils";
+import { useTheme } from "../../hooks/useTheme";
 
 type Flow = "signIn" | "signUp";
 
@@ -40,6 +41,7 @@ function getErrorMessage(error: unknown) {
 export function LoginPage() {
   const { signIn } = useAuthActions();
   const navigate = useNavigate();
+  const { theme, toggle } = useTheme();
 
   const [flow, setFlow] = useState<Flow>("signIn");
   const [email, setEmail] = useState("");
@@ -134,7 +136,16 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-brand-bg flex">
+    <div className="relative min-h-screen w-full bg-brand-bg flex">
+      <button
+        type="button"
+        onClick={toggle}
+        className="absolute right-4 top-4 z-10 inline-flex items-center gap-2 rounded-2xl border border-brand-text/10 bg-brand-primary/85 px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-brand-text transition-colors hover:bg-brand-primary sm:right-6 sm:top-6"
+      >
+        {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+        {theme === "dark" ? "Light" : "Dark"}
+      </button>
+
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-brand-dark p-12 text-brand-bg">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded bg-brand-accent" />

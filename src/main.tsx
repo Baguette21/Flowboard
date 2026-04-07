@@ -6,8 +6,11 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
 import "./index.css";
 import App from "./App.tsx";
+import { ThemeProvider, initializeTheme } from "./hooks/useTheme";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
+
+initializeTheme();
 
 // Show a setup guide if Convex is not yet configured
 if (!convexUrl || convexUrl.includes("your-deployment")) {
@@ -35,24 +38,26 @@ if (!convexUrl || convexUrl.includes("your-deployment")) {
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <App />
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: "var(--color-brand-text)",
-                color: "var(--color-brand-bg)",
-                border: "2px solid var(--color-brand-text)",
-                borderRadius: "1rem",
-                fontFamily: "Space Mono, monospace",
-                fontSize: "13px",
-              },
-            }}
-          />
-        </BrowserRouter>
-      </ConvexAuthProvider>
+      <ThemeProvider>
+        <ConvexAuthProvider client={convex}>
+          <BrowserRouter>
+            <App />
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: "var(--color-brand-text)",
+                  color: "var(--color-brand-bg)",
+                  border: "2px solid var(--color-brand-text)",
+                  borderRadius: "1rem",
+                  fontFamily: "Space Mono, monospace",
+                  fontSize: "13px",
+                },
+              }}
+            />
+          </BrowserRouter>
+        </ConvexAuthProvider>
+      </ThemeProvider>
     </StrictMode>,
   );
 }

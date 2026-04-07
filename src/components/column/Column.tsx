@@ -119,6 +119,7 @@ export function Column({
                 card={card}
                 labels={cardLabels}
                 assignee={assignee}
+                statusColor={column.color}
                 onClick={() => onCardClick(card._id)}
               />
             ) : (
@@ -127,6 +128,7 @@ export function Column({
                 card={card}
                 labels={cardLabels}
                 assignee={assignee}
+                statusColor={column.color}
                 onClick={() => onCardClick(card._id)}
               />
             );
