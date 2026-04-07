@@ -258,7 +258,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                                 )}
                               >
                                 <ShieldCheck className="w-3 h-3" />
-                                {member.canBeAssigned ? "Assignable" : "Not assignable"}
+                                {member.canBeAssigned ? "Can assign" : "Cannot assign"}
                               </span>
                             )
                           )}

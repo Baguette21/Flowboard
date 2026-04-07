@@ -301,7 +301,7 @@ export function BoardView({ boardId }: BoardViewProps) {
             boardId={boardId}
             labels={labels ?? []}
             members={members ?? []}
-            canManageAssignees={accessInfo?.isOwner ?? false}
+            canManageAssignees={accessInfo?.canManageAssignees ?? false}
             onClose={() => setSelectedCardId(null)}
           />
         )}
@@ -367,7 +367,7 @@ export function BoardView({ boardId }: BoardViewProps) {
           boardId={boardId}
           labels={labels ?? []}
           members={members ?? []}
-          canManageAssignees={accessInfo?.isOwner ?? false}
+          canManageAssignees={accessInfo?.canManageAssignees ?? false}
           onClose={() => setSelectedCardId(null)}
         />
       )}

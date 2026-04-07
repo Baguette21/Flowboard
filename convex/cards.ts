@@ -27,17 +27,18 @@ async function assertValidAssignee(
   if (!membership) {
     throw new Error("Assignee must be a member of this board");
   }
-
-  if (!(membership.canBeAssigned ?? false)) {
-    throw new Error("That member cannot be assigned tasks");
-  }
 }
 
-function requireOwnerForAssignment(
+function requireAssignmentAccess(
   role: "owner" | "member",
+  canAssign: boolean,
 ) {
-  if (role !== "owner") {
-    throw new Error("Only the board owner can assign tasks");
+  if (role === "owner") {
+    return;
+  }
+
+  if (!canAssign) {
+    throw new Error("You do not have permission to assign tasks");
   }
 }
 
@@ -163,7 +164,7 @@ export const create = mutation({
     const { userId } = access;
 
     if (assignedUserId !== undefined && assignedUserId !== null) {
-      requireOwnerForAssignment(access.role);
+      requireAssignmentAccess(access.role, access.membership?.canBeAssigned ?? false);
     }
 
     await assertValidAssignee(
@@ -246,7 +247,7 @@ export const update = mutation({
     if (fields.dueDate !== undefined) patch.dueDate = fields.dueDate;
     if (fields.labelIds !== undefined) patch.labelIds = fields.labelIds;
     if (fields.assignedUserId !== undefined) {
-      requireOwnerForAssignment(access.role);
+      requireAssignmentAccess(access.role, access.membership?.canBeAssigned ?? false);
       await assertValidAssignee(
         ctx,
         card.boardId,

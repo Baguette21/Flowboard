@@ -79,12 +79,7 @@ export function CardDetail({
   const selectedAssigneeId =
     card.assignedUserId === null ? "" : card.assignedUserId ?? "";
   const currentAssignee = members.find((member) => member.userId === card.assignedUserId) ?? null;
-  const assignableMembers = members.filter(
-    (member) =>
-      member.role === "owner" ||
-      member.canBeAssigned ||
-      member.userId === card.assignedUserId,
-  );
+  const assignableMembers = members;
 
   const handleToggleComplete = async () => {
     await toggleComplete({ cardId });
@@ -294,7 +289,7 @@ export function CardDetail({
                             "Unassigned"}
                         </p>
                         <p className="mt-1 font-mono text-[11px] text-brand-text/45">
-                          Only the board owner can change task assignees.
+                          Only the board owner or members with Allow assign can change task assignees.
                         </p>
                       </div>
                     )}

@@ -134,6 +134,8 @@ export const getAccessInfo = query({
     return {
       role: access.role,
       isOwner: access.role === "owner",
+      canManageAssignees:
+        access.role === "owner" || (access.membership?.canBeAssigned ?? false),
       ownerName: owner?.name ?? null,
       ownerEmail: owner?.email ?? null,
       memberCount: members.length + 1,
