@@ -49,7 +49,7 @@ export function LoginPage() {
   const normalizedEmail = email.trim().toLowerCase();
   const emailExists = useQuery(
     api.users.emailExists,
-    flow === "signUp" && !awaitingVerification && normalizedEmail
+    !awaitingVerification && normalizedEmail
       ? { email: normalizedEmail }
       : "skip",
   );
@@ -64,6 +64,10 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (flow === "signIn" && !awaitingVerification && emailExists === false) {
+        throw new Error("Invalid username");
+      }
+
       if (flow === "signUp" && !awaitingVerification && emailExists) {
         throw new Error("There is already an existing user with that email");
       }
