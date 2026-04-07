@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/utils";
 
 type Flow = "signIn" | "signUp";
@@ -40,6 +42,13 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const normalizedEmail = email.trim().toLowerCase();
+  const emailExists = useQuery(
+    api.users.emailExists,
+    flow === "signUp" && !awaitingVerification && normalizedEmail
+      ? { email: normalizedEmail }
+      : "skip",
+  );
   const otpDigits = useMemo(
     () => Array.from({ length: 6 }, (_, index) => verificationCode[index] ?? ""),
     [verificationCode],
@@ -51,6 +60,10 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (flow === "signUp" && !awaitingVerification && emailExists) {
+        throw new Error("There is already an existing user with that email");
+      }
+
       if (awaitingVerification) {
         const result = await signIn("password", {
           flow: "email-verification",
@@ -198,6 +211,11 @@ export function LoginPage() {
                   )}
                 />
               </div>
+              {flow === "signUp" && !awaitingVerification && emailExists && (
+                <p className="mt-2 text-brand-accent font-mono text-xs">
+                  There is already an existing user with that email
+                </p>
+              )}
             </div>
 
             {awaitingVerification ? (
@@ -263,9 +281,8 @@ export function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 8 characters"
+                    placeholder="Enter password"
                     required
-                    minLength={8}
                     className={cn(textInputClass, "pr-4 font-sans")}
                   />
                   <button
