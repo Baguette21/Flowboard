@@ -1,0 +1,69 @@
+"use node";
+
+import nodemailer from "nodemailer";
+import { v } from "convex/values";
+import { internalAction } from "./_generated/server";
+
+function requireEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable \`${name}\``);
+  }
+
+  return value;
+}
+
+function parsePort(value: string) {
+  const port = Number.parseInt(value, 10);
+  if (Number.isNaN(port)) {
+    throw new Error("SMTP_PORT must be a valid number");
+  }
+
+  return port;
+}
+
+export const sendVerificationEmail = internalAction({
+  args: {
+    to: v.string(),
+    code: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const host = requireEnv("SMTP_HOST");
+    const port = parsePort(process.env.SMTP_PORT ?? "587");
+    const from = requireEnv("SMTP_FROM");
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure =
+      process.env.SMTP_SECURE === "true" || process.env.SMTP_SECURE === "1"
+        ? true
+        : port === 465;
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      ...(user && pass
+        ? {
+            auth: {
+              user,
+              pass,
+            },
+          }
+        : {}),
+    });
+
+    await transporter.sendMail({
+      from,
+      to: args.to,
+      subject: "Your FlowBoard verification code",
+      text: `Your FlowBoard verification code is ${args.code}. It expires in 10 minutes.`,
+      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+<p>Your FlowBoard verification code is:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:0.3em;margin:20px 0">${args.code}</p>
+<p>This code expires in 10 minutes.</p>
+</div>`,
+    });
+
+    return null;
+  },
+});
