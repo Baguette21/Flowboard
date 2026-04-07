@@ -23,6 +23,10 @@ const secondaryButtonClass =
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
+    if (error.message === "InvalidAccountId") {
+      return "Invalid username";
+    }
+
     return error.message;
   }
 
