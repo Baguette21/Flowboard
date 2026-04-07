@@ -2,7 +2,19 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import { MoreHorizontal, GripVertical, Check, X, Trash2, Pencil, Palette } from "lucide-react";
+import {
+  MoreHorizontal,
+  GripVertical,
+  Check,
+  X,
+  Trash2,
+  Pencil,
+  Palette,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Dropdown } from "../ui/Dropdown";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -18,9 +30,23 @@ interface ColumnHeaderProps {
   column: Doc<"columns">;
   cardCount: number;
   dragHandleProps?: React.HTMLAttributes<HTMLElement>;
+  canMoveBackward?: boolean;
+  canMoveForward?: boolean;
+  onMoveBackward?: () => void;
+  onMoveForward?: () => void;
+  reorderOrientation?: "horizontal" | "vertical";
 }
 
-export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeaderProps) {
+export function ColumnHeader({
+  column,
+  cardCount,
+  dragHandleProps,
+  canMoveBackward = false,
+  canMoveForward = false,
+  onMoveBackward,
+  onMoveForward,
+  reorderOrientation = "horizontal",
+}: ColumnHeaderProps) {
   const updateColumn = useMutation(api.columns.update);
   const deleteColumn = useMutation(api.columns.remove);
 
@@ -65,66 +91,96 @@ export function ColumnHeader({ column, cardCount, dragHandleProps }: ColumnHeade
     setShowColorPicker(false);
   };
 
+  const BackwardIcon = reorderOrientation === "vertical" ? ChevronUp : ChevronLeft;
+  const ForwardIcon = reorderOrientation === "vertical" ? ChevronDown : ChevronRight;
+
   return (
     <>
       <div
         className="p-4 flex items-center gap-2 sticky top-0 bg-brand-bg/80 backdrop-blur-xl z-10 border-b-2 border-brand-text/10 group"
         style={column.color ? { borderBottomColor: `${column.color}40` } : {}}
       >
-        {/* Drag handle */}
-        {dragHandleProps ? (
-          <button
-            {...dragHandleProps}
-            className="hidden md:block text-brand-text/20 hover:text-brand-text/50 transition-colors cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 flex-shrink-0"
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
-        ) : null}
-
-        {/* Card count badge */}
         <div
-          className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-text text-brand-bg font-mono text-xs font-bold shadow-md flex-shrink-0"
-          style={column.color ? { backgroundColor: column.color } : {}}
+          {...(!isEditing ? dragHandleProps : undefined)}
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-2 rounded-xl",
+            !isEditing && dragHandleProps
+              ? "cursor-grab active:cursor-grabbing touch-none"
+              : "",
+          )}
         >
-          {cardCount}
+          {dragHandleProps ? (
+            <span className="text-brand-text/25 transition-colors group-hover:text-brand-text/45 flex-shrink-0">
+              <GripVertical className="w-4 h-4" />
+            </span>
+          ) : null}
+
+          {/* Card count badge */}
+          <div
+            className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-text text-brand-bg font-mono text-xs font-bold shadow-md flex-shrink-0"
+            style={column.color ? { backgroundColor: column.color } : {}}
+          >
+            {cardCount}
+          </div>
+
+          {/* Title */}
+          {isEditing ? (
+            <div className="flex-1 flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSave();
+                  if (e.key === "Escape") {
+                    setEditTitle(column.title);
+                    setIsEditing(false);
+                  }
+                }}
+                className="flex-1 text-base font-serif italic font-bold bg-brand-bg border-2 border-brand-text/20 rounded-xl px-2 py-0.5 focus:outline-none focus:border-brand-text"
+              />
+              <button onClick={handleSave} className="p-1 text-green-600 hover:bg-green-50 rounded-lg">
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { setEditTitle(column.title); setIsEditing(false); }}
+                className="p-1 text-brand-text/40 hover:bg-brand-text/10 rounded-lg"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <h2
+              className={cn(
+                "flex-1 min-w-0 select-none font-serif italic font-bold text-lg leading-none tracking-tight pt-1"
+              )}
+              onDoubleClick={() => { setEditTitle(column.title); setIsEditing(true); }}
+            >
+              {column.title}
+            </h2>
+          )}
         </div>
 
-        {/* Title */}
-        {isEditing ? (
-          <div className="flex-1 flex items-center gap-1.5">
-            <input
-              autoFocus
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
-                if (e.key === "Escape") {
-                  setEditTitle(column.title);
-                  setIsEditing(false);
-                }
-              }}
-              className="flex-1 text-base font-serif italic font-bold bg-brand-bg border-2 border-brand-text/20 rounded-xl px-2 py-0.5 focus:outline-none focus:border-brand-text"
-            />
-            <button onClick={handleSave} className="p-1 text-green-600 hover:bg-green-50 rounded-lg">
-              <Check className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { setEditTitle(column.title); setIsEditing(false); }}
-              className="p-1 text-brand-text/40 hover:bg-brand-text/10 rounded-lg"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <h2
-            className={cn(
-              "flex-1 select-none font-serif italic font-bold text-lg leading-none tracking-tight pt-1 cursor-pointer"
-            )}
-            onDoubleClick={() => { setEditTitle(column.title); setIsEditing(true); }}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onMoveBackward}
+            disabled={!canMoveBackward}
+            className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-brand-text/35"
+            title={reorderOrientation === "vertical" ? "Move up" : "Move left"}
           >
-            {column.title}
-          </h2>
-        )}
+            <BackwardIcon className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveForward}
+            disabled={!canMoveForward}
+            className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-brand-text/35"
+            title={reorderOrientation === "vertical" ? "Move down" : "Move right"}
+          >
+            <ForwardIcon className="w-4 h-4" />
+          </button>
+        </div>
 
         {/* Actions menu */}
         <Dropdown

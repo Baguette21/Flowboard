@@ -10,6 +10,10 @@ interface SortableColumnProps {
   labels: Doc<"labels">[];
   members: BoardMemberSummary[];
   onCardClick: (cardId: Id<"cards">) => void;
+  canMoveBackward?: boolean;
+  canMoveForward?: boolean;
+  onMoveBackward?: () => void;
+  onMoveForward?: () => void;
 }
 
 export function SortableColumn(props: SortableColumnProps) {

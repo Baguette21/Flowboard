@@ -136,6 +136,27 @@ export function BoardView({ boardId }: BoardViewProps) {
     }
   }, [localCards]);
 
+  const moveColumnByOffset = useCallback(async (columnId: Id<"columns">, offset: -1 | 1) => {
+    const cols = columns ?? [];
+    const sorted = [...cols].sort((a, b) => a.order.localeCompare(b.order));
+    const currentIndex = sorted.findIndex((column) => column._id === columnId);
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const targetIndex = currentIndex + offset;
+    if (targetIndex < 0 || targetIndex >= sorted.length) {
+      return;
+    }
+
+    const reordered = arrayMove(sorted, currentIndex, targetIndex);
+    const prev = reordered[targetIndex - 1]?.order ?? null;
+    const next = reordered[targetIndex + 1]?.order ?? null;
+    const newOrder = generateKeyBetween(prev, next);
+
+    await reorderColumnMutation({ columnId, newOrder });
+  }, [columns, reorderColumnMutation]);
+
   const onDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
@@ -269,6 +290,10 @@ export function BoardView({ boardId }: BoardViewProps) {
                   onCardClick={(cardId: Id<"cards">) => setSelectedCardId(cardId)}
                   sortableCards
                   fullWidth
+                  canMoveBackward={orderedColumns[0]?._id !== column._id}
+                  canMoveForward={orderedColumns[orderedColumns.length - 1]?._id !== column._id}
+                  onMoveBackward={() => void moveColumnByOffset(column._id, -1)}
+                  onMoveForward={() => void moveColumnByOffset(column._id, 1)}
                 />
               ))}
               <div className="pt-1">
@@ -328,6 +353,10 @@ export function BoardView({ boardId }: BoardViewProps) {
                 members={members ?? []}
                 cards={(displayCards ?? []).filter((c) => c.columnId === col._id)}
                 onCardClick={(cardId) => setSelectedCardId(cardId)}
+                canMoveBackward={orderedColumns[0]?._id !== col._id}
+                canMoveForward={orderedColumns[orderedColumns.length - 1]?._id !== col._id}
+                onMoveBackward={() => void moveColumnByOffset(col._id, -1)}
+                onMoveForward={() => void moveColumnByOffset(col._id, 1)}
               />
             ))}
           </SortableContext>

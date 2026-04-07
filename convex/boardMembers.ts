@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { getBoardAccess } from "./helpers/boardAccess";
+import { getBoardAccess, requireBoardAccess } from "./helpers/boardAccess";
 import { requireBoardOwner } from "./helpers/boardAccess";
 
 type MemberSummary = {
@@ -104,5 +104,60 @@ export const setAssignable = mutation({
       details: `${canBeAssigned ? "Enabled" : "Disabled"} task assignment for ${member?.name ?? member?.email ?? "a member"}`,
       createdAt: Date.now(),
     });
+  },
+});
+
+export const leaveBoard = mutation({
+  args: {
+    boardId: v.id("boards"),
+  },
+  handler: async (ctx, { boardId }) => {
+    const access = await requireBoardAccess(ctx, boardId);
+    const { userId, user, board, membership } = access;
+
+    if (access.role === "owner") {
+      throw new Error("The board owner cannot leave their own board");
+    }
+
+    if (!membership) {
+      throw new Error("Membership not found");
+    }
+
+    const assignedCards = await ctx.db
+      .query("cards")
+      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .collect();
+
+    for (const card of assignedCards) {
+      if (card.assignedUserId === userId) {
+        await ctx.db.patch(card._id, {
+          assignedUserId: null,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    const boardNotifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .collect();
+
+    for (const notification of boardNotifications) {
+      if (notification.recipientUserId === userId || notification.actorUserId === userId) {
+        await ctx.db.delete(notification._id);
+      }
+    }
+
+    await ctx.db.delete(membership._id);
+
+    await ctx.db.insert("activityLogs", {
+      boardId,
+      userId,
+      action: "left-board",
+      details: `${user.name ?? user.email ?? "A collaborator"} left the board`,
+      createdAt: Date.now(),
+    });
+
+    return { boardId: board._id };
   },
 });

@@ -4,7 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, Loader2, MailPlus, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { Check, Loader2, LogOut, MailPlus, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
@@ -27,6 +27,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const deleteBoard = useMutation(api.boards.remove);
   const createInvite = useMutation(api.boardInvites.create);
   const setAssignable = useMutation(api.boardMembers.setAssignable);
+  const leaveBoard = useMutation(api.boardMembers.leaveBoard);
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId: board._id });
   const members = useQuery(api.boardMembers.listForBoard, { boardId: board._id });
   const invites = useQuery(api.boardInvites.listForBoard, { boardId: board._id });
@@ -38,6 +39,8 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const [isInviting, setIsInviting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [updatingAssignableUserId, setUpdatingAssignableUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,6 +87,22 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    setIsLeaving(true);
+    try {
+      await leaveBoard({ boardId: board._id });
+      toast.success("You left the board");
+      onClose();
+      navigate("/");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to leave board";
+      toast.error(message);
+    } finally {
+      setIsLeaving(false);
+      setConfirmLeave(false);
     }
   };
 
@@ -345,6 +364,22 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
               </button>
             </div>
           )}
+
+          {!isOwner && (
+            <div className="border-t-2 border-brand-text/10 pt-5">
+              <p className="font-mono text-xs uppercase tracking-widest text-brand-text/40 mb-3">
+                Membership
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmLeave(true)}
+                className="flex items-center gap-2 px-4 py-2.5 border-2 border-brand-text/20 text-brand-text rounded-2xl font-mono font-bold text-sm hover:bg-brand-text/5 transition-colors w-full justify-center"
+              >
+                <LogOut className="w-4 h-4" />
+                Leave Board
+              </button>
+            </div>
+          )}
         </form>
       </Modal>
 
@@ -357,6 +392,17 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
         confirmLabel="Delete Board"
         isDestructive
         isLoading={isDeleting}
+      />
+
+      <ConfirmDialog
+        open={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        onConfirm={handleLeave}
+        title="Leave board"
+        description={`You will lose access to "${board.name}" until you are invited again.`}
+        confirmLabel="Leave Board"
+        isDestructive
+        isLoading={isLeaving}
       />
     </>
   );

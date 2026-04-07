@@ -23,6 +23,10 @@ interface ColumnProps {
   isDragging?: boolean;
   sortableCards?: boolean;
   fullWidth?: boolean;
+  canMoveBackward?: boolean;
+  canMoveForward?: boolean;
+  onMoveBackward?: () => void;
+  onMoveForward?: () => void;
 }
 
 export function Column({
@@ -35,6 +39,10 @@ export function Column({
   isDragging,
   sortableCards = true,
   fullWidth = false,
+  canMoveBackward = false,
+  canMoveForward = false,
+  onMoveBackward,
+  onMoveForward,
 }: ColumnProps) {
   const createCard = useMutation(api.cards.create);
   const [isAdding, setIsAdding] = useState(false);
@@ -85,6 +93,11 @@ export function Column({
         column={column}
         cardCount={sortedCards.length}
         dragHandleProps={dragHandleProps}
+        canMoveBackward={canMoveBackward}
+        canMoveForward={canMoveForward}
+        onMoveBackward={onMoveBackward}
+        onMoveForward={onMoveForward}
+        reorderOrientation={fullWidth ? "vertical" : "horizontal"}
       />
 
       <div
