@@ -27,6 +27,10 @@ function getErrorMessage(error: unknown) {
       return "Invalid username";
     }
 
+     if (error.message === "InvalidSecret" || error.message === "Invalid credentials") {
+      return "Invalid password";
+    }
+
     return error.message;
   }
 
@@ -208,7 +212,7 @@ export function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="Enter email"
                   required
                   readOnly={awaitingVerification}
                   className={cn(

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import {
   findUserByEmail,
   getBoardAccess,
@@ -147,6 +148,13 @@ export const create = mutation({
       action: "invited",
       details: `Invited ${invitedEmail} to collaborate on "${board.name}"`,
       createdAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.smtp.sendBoardInviteEmail, {
+      to: invitedEmail,
+      boardName: board.name,
+      inviterName: user.name ?? null,
+      inviterEmail: user.email ?? null,
     });
 
     return inviteId;
