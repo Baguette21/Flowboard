@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 
 export function UserMenu() {
@@ -53,18 +53,6 @@ export function UserMenu() {
               {secondaryIdentity}
             </p>
           </div>
-
-          <button
-            onClick={() => {
-              setOpen(false);
-              navigate("/");
-            }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-brand-bg transition-colors text-left"
-          >
-            <Settings className="w-4 h-4 text-brand-text/50" />
-            Settings
-          </button>
-
           <button
             onClick={() => void handleSignOut()}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-brand-accent/10 text-brand-accent transition-colors text-left"
