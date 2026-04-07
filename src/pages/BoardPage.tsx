@@ -94,7 +94,7 @@ export function BoardPage() {
       )}
 
       {/* Main board canvas */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 md:min-h-0 md:overflow-hidden">
         <BoardView boardId={boardId as Id<"boards">} />
       </div>
     </Layout>

@@ -77,7 +77,7 @@ export function Column({
     <div
       className={`flex flex-col ${
         fullWidth ? "w-full max-w-none" : "flex-shrink-0 w-[85vw] max-w-80"
-      } max-h-full bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] overflow-hidden backdrop-blur-md transition-opacity ${
+      } ${fullWidth ? "max-h-none overflow-visible" : "max-h-full overflow-hidden"} bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] backdrop-blur-md transition-opacity ${
         isDragging ? "opacity-50" : ""
       }`}
     >
@@ -89,7 +89,9 @@ export function Column({
 
       <div
         ref={setNodeRef}
-        className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[100px]"
+        className={`p-3 space-y-3 min-h-[100px] ${
+          fullWidth ? "overflow-visible" : "flex-1 overflow-y-auto"
+        }`}
       >
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
           {sortedCards.map((card) => {

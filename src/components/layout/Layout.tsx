@@ -24,13 +24,13 @@ export function Layout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-brand-bg text-brand-text">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-brand-bg text-brand-text md:h-screen md:overflow-hidden">
       <Sidebar
         activeBoardId={boardId}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-1 min-w-0 flex-col md:min-h-0 md:overflow-hidden">
         <Header
           boardName={boardName}
           onOpenSidebar={() => setMobileSidebarOpen(true)}
@@ -38,7 +38,7 @@ export function Layout({
           onSearchChange={onSearchChange}
           searchPlaceholder={searchPlaceholder}
         />
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col md:min-h-0 md:overflow-hidden">
           {children}
         </main>
       </div>

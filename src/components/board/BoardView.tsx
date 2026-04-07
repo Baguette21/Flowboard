@@ -257,7 +257,7 @@ export function BoardView({ boardId }: BoardViewProps) {
           onDragOver={onDragOver}
           onDragEnd={onDragEnd}
         >
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="px-4 py-4 pb-6">
             <div className="space-y-4">
               {orderedColumns.map((column) => (
                 <Column
@@ -267,6 +267,7 @@ export function BoardView({ boardId }: BoardViewProps) {
                   members={members ?? []}
                   cards={(displayCards ?? []).filter((card) => card.columnId === column._id)}
                   onCardClick={(cardId: Id<"cards">) => setSelectedCardId(cardId)}
+                  sortableCards
                   fullWidth
                 />
               ))}

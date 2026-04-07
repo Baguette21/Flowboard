@@ -51,7 +51,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         )}
         {...props}
       >
-        {/* Labels */}
         {labels.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2.5">
             {labels.map((label) => (
