@@ -91,7 +91,3 @@ The frontend local env typically includes:
 - [src](C:\Users\Guette\Desktop\BLOCKC\src): React app, pages, layout, auth UI, board UI, notifications
 - [convex](C:\Users\Guette\Desktop\BLOCKC\convex): backend schema, queries, mutations, auth, invites, notifications, SMTP action
 - [public](C:\Users\Guette\Desktop\BLOCKC\public): static assets
-
-## Current product language
-
-Internally, parts of the code still use the older `card` naming in filenames and Convex table names, but the user-facing product language is `task`.
