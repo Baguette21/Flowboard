@@ -44,27 +44,29 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 py-3 border-b-2 border-brand-text/10 bg-brand-bg flex-shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 border-b-2 border-brand-text/10 bg-brand-bg px-4 py-3 flex-shrink-0 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div
             className="w-3 h-3 rounded-full shadow-md flex-shrink-0"
             style={{ backgroundColor: board.color }}
           />
 
           {isEditingName ? (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <input
                 autoFocus
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Enter") {
+                    void handleSaveName();
+                  }
                   if (e.key === "Escape") {
                     setEditName(board.name);
                     setIsEditingName(false);
                   }
                 }}
-                className="text-xl font-serif italic font-bold bg-brand-primary border-2 border-brand-text/20 rounded-xl px-3 py-1 focus:outline-none focus:border-brand-text"
+                className="min-w-0 text-lg font-serif italic font-bold bg-brand-primary border-2 border-brand-text/20 rounded-xl px-3 py-1 focus:outline-none focus:border-brand-text sm:text-xl"
               />
               <button
                 onClick={() => void handleSaveName()}
@@ -88,13 +90,13 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
                 setEditName(board.name);
                 setIsEditingName(true);
               }}
-              className="select-none text-xl font-serif italic font-bold"
+              className="min-w-0 truncate select-none text-left text-lg font-serif italic font-bold sm:text-xl"
             >
               {board.name}
             </button>
           )}
 
-          <div className="hidden sm:flex items-center gap-3 font-mono text-xs text-brand-text/40">
+          <div className="hidden md:flex items-center gap-3 font-mono text-xs text-brand-text/40">
             <span>{columnCount} columns</span>
             <span>·</span>
             <span>{cardCount} tasks</span>
@@ -113,30 +115,38 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void handleFavorite()}
-            className={cn(
-              "p-2 rounded-xl transition-colors",
-              board.isFavorite
-                ? "text-yellow-500 hover:text-yellow-600"
-                : "text-brand-text/30 hover:text-yellow-400",
-            )}
-            title={board.isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star
-              className="w-4 h-4"
-              fill={board.isFavorite ? "currentColor" : "none"}
-            />
-          </button>
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-brand-text/45 md:hidden">
+            <span>{columnCount} columns</span>
+            <span>·</span>
+            <span>{cardCount} tasks</span>
+          </div>
 
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 rounded-xl text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
-            title="Board settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void handleFavorite()}
+              className={cn(
+                "p-2 rounded-xl transition-colors",
+                board.isFavorite
+                  ? "text-yellow-500 hover:text-yellow-600"
+                  : "text-brand-text/30 hover:text-yellow-400",
+              )}
+              title={board.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star
+                className="w-4 h-4"
+                fill={board.isFavorite ? "currentColor" : "none"}
+              />
+            </button>
+
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 rounded-xl text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
+              title="Board settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

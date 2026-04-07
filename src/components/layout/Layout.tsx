@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -20,12 +21,19 @@ export function Layout({
   onSearchChange,
   searchPlaceholder,
 }: LayoutProps) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-brand-bg text-brand-text">
-      <Sidebar activeBoardId={boardId} />
+      <Sidebar
+        activeBoardId={boardId}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header
           boardName={boardName}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
           searchValue={searchValue}
           onSearchChange={onSearchChange}
           searchPlaceholder={searchPlaceholder}

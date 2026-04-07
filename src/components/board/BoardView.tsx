@@ -212,7 +212,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
   if (columns === undefined || cards === undefined) {
     return (
-      <div className="flex gap-6 h-full p-2 overflow-x-auto pb-8 items-start">
+      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
         {[1, 2, 3, 4].map((i) => (
           <ColumnSkeleton key={i} />
         ))}
@@ -222,7 +222,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
   if (columns.length === 0) {
     return (
-      <div className="flex gap-6 h-full p-2 overflow-x-auto pb-8 items-start">
+      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
         <div className="flex flex-col items-center justify-center w-full py-24 text-center">
           <Layers className="w-12 h-12 text-brand-text/20 mb-4" />
           <h3 className="font-serif italic font-bold text-xl mb-2">No columns yet</h3>
@@ -242,7 +242,7 @@ export function BoardView({ boardId }: BoardViewProps) {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <div className="flex gap-6 h-full p-2 overflow-x-auto pb-8 items-start">
+        <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
           <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
             {(displayColumns ?? []).map((col) => (
               <SortableColumn
@@ -275,7 +275,7 @@ export function BoardView({ boardId }: BoardViewProps) {
             />
           )}
           {activeColumn && (
-            <div className="w-80 bg-brand-bg/90 border-2 border-brand-accent rounded-[2rem] p-4 flex items-center justify-center opacity-80 backdrop-blur-md shadow-2xl">
+            <div className="w-[85vw] max-w-80 bg-brand-bg/90 border-2 border-brand-accent rounded-[2rem] p-4 flex items-center justify-center opacity-80 backdrop-blur-md shadow-2xl">
               <h3 className="font-serif italic font-bold text-lg">
                 {activeColumn.title}
               </h3>

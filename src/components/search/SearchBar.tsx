@@ -34,7 +34,7 @@ export function SearchBar({
   }, []);
 
   return (
-    <div className={cn("relative group", className)}>
+    <div className={cn("relative group w-full", className)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text/40 group-focus-within:text-brand-text transition-colors" />
       <input
         ref={inputRef}
@@ -42,7 +42,7 @@ export function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 pl-10 pr-10 w-64 bg-brand-bg border-2 border-brand-text/20 text-sm font-sans placeholder:text-brand-text/30 rounded-2xl focus:outline-none focus:border-brand-text transition-all focus:w-80"
+        className="h-10 w-full min-w-0 bg-brand-bg border-2 border-brand-text/20 pl-10 pr-10 text-sm font-sans placeholder:text-brand-text/30 rounded-2xl focus:outline-none focus:border-brand-text transition-all lg:w-64 lg:focus:w-80"
       />
       {value ? (
         <button

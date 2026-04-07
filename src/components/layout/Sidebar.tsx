@@ -4,16 +4,22 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
-  LayoutDashboard, Plus, ChevronRight, Star, Users,
+  LayoutDashboard, Plus, ChevronRight, Star, Users, X,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { CreateBoardModal } from "../board/CreateBoardModal";
 
 interface SidebarProps {
   activeBoardId?: Id<"boards">;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ activeBoardId }: SidebarProps) {
+export function Sidebar({
+  activeBoardId,
+  mobileOpen = false,
+  onMobileClose,
+}: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const boards = useQuery(api.boards.list);
@@ -24,22 +30,50 @@ export function Sidebar({ activeBoardId }: SidebarProps) {
 
   return (
     <>
-      <aside className="w-60 flex-shrink-0 bg-brand-dark text-brand-bg flex flex-col h-full border-r-2 border-brand-text overflow-hidden">
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-brand-text/45 backdrop-blur-sm transition-opacity lg:hidden",
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={onMobileClose}
+      />
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-[17.5rem] max-w-[88vw] bg-brand-dark text-brand-bg flex flex-col h-full border-r-2 border-brand-text overflow-hidden transition-transform duration-300 lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         <div className="h-14 flex items-center px-5 border-b-2 border-white/10 flex-shrink-0">
           <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            onClick={() => {
+              navigate("/");
+              onMobileClose?.();
+            }}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0"
           >
             <div className="w-5 h-5 rounded bg-brand-accent" />
             <span className="font-serif italic font-bold text-lg tracking-tight leading-none pt-1">
               FlowBoard<span className="text-brand-accent">.</span>
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={onMobileClose}
+            className="ml-auto flex h-9 w-9 items-center justify-center rounded-xl text-brand-bg/55 transition-colors hover:bg-white/10 hover:text-brand-bg lg:hidden"
+            aria-label="Close navigation"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => {
+              navigate("/");
+              onMobileClose?.();
+            }}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
               isHome
@@ -82,7 +116,10 @@ export function Sidebar({ activeBoardId }: SidebarProps) {
                   boards.map((board) => (
                     <button
                       key={board._id}
-                      onClick={() => navigate(`/board/${board._id}`)}
+                      onClick={() => {
+                        navigate(`/board/${board._id}`);
+                        onMobileClose?.();
+                      }}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all text-left group",
                         activeBoardId === board._id

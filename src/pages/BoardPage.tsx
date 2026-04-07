@@ -41,11 +41,11 @@ export function BoardPage() {
   if (board === undefined) {
     return (
       <Layout>
-        <div className="p-8 space-y-4">
+        <div className="p-4 sm:p-8 space-y-4">
           <Skeleton className="h-8 w-48" />
-          <div className="flex gap-4">
+          <div className="flex gap-4 overflow-x-auto">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="w-72 h-96 rounded-[2rem]" />
+              <Skeleton key={i} className="w-[85vw] max-w-72 h-96 rounded-[2rem] flex-shrink-0" />
             ))}
           </div>
         </div>
@@ -56,7 +56,7 @@ export function BoardPage() {
   if (!board) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-full py-24">
+        <div className="flex flex-col items-center justify-center h-full px-4 py-24 text-center">
           <h2 className="font-serif italic font-bold text-2xl mb-2">Board not found</h2>
           <p className="text-brand-text/50 font-mono text-sm mb-6">
             This board doesn't exist or you don't have access.
@@ -84,7 +84,7 @@ export function BoardPage() {
 
       {/* Filter panel */}
       {(labels?.length ?? 0) > 0 && (
-        <div className="px-6 py-3 border-b-2 border-brand-text/10 bg-brand-bg/50 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-3 border-b-2 border-brand-text/10 bg-brand-bg/50 flex-shrink-0 overflow-x-auto">
           <FilterPanel
             filters={filters}
             onChange={setFilters}

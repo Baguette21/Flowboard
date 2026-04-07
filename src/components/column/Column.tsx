@@ -70,7 +70,7 @@ export function Column({
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 w-80 max-h-full bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] overflow-hidden backdrop-blur-md transition-opacity ${
+      className={`flex flex-col flex-shrink-0 w-[85vw] max-w-80 max-h-full bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] overflow-hidden backdrop-blur-md transition-opacity ${
         isDragging ? "opacity-50" : ""
       }`}
     >

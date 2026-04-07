@@ -16,7 +16,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
 
   if (boards === undefined) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[1, 2, 3].map((i) => (
             <ColumnSkeleton key={i} />
@@ -36,11 +36,11 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
 
   return (
     <>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-serif italic font-bold">Your Boards</h1>
+        <div className="flex flex-col gap-4 mb-6 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-serif italic font-bold">Your Boards</h1>
             <p className="font-mono text-sm text-brand-text/50 mt-1">
               {hasSearch
                 ? `${filteredBoards.length} match${filteredBoards.length !== 1 ? "es" : ""} for "${searchQuery.trim()}"`
@@ -49,7 +49,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 h-11 px-5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+            className="flex w-full sm:w-auto items-center justify-center gap-2 h-11 px-5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
           >
             <Plus className="w-4 h-4" />
             New Board
@@ -58,7 +58,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
 
         {boards.length === 0 ? (
           /* Empty state */
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-20 sm:py-24 text-center">
             <div className="w-16 h-16 rounded-[2rem] bg-brand-text/5 flex items-center justify-center mb-4">
               <LayoutGrid className="w-8 h-8 text-brand-text/20" />
             </div>
@@ -77,7 +77,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
             </button>
           </div>
         ) : filteredBoards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-20 sm:py-24 text-center">
             <div className="w-16 h-16 rounded-[2rem] bg-brand-text/5 flex items-center justify-center mb-4">
               <Search className="w-8 h-8 text-brand-text/20" />
             </div>
@@ -89,7 +89,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
             </p>
           </div>
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-8 sm:space-y-10">
             {/* Favorites */}
             {favorites.length > 0 && (
               <section>

@@ -65,7 +65,7 @@ export function Modal({
       {/* Panel */}
       <div
         className={cn(
-          "relative w-full bg-brand-bg border-2 border-brand-text/10 rounded-[2rem] shadow-2xl overflow-hidden",
+          "relative w-full max-h-[calc(100vh-2rem)] overflow-y-auto bg-brand-bg border-2 border-brand-text/10 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden",
           sizeClasses[size],
           className,
         )}

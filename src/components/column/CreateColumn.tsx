@@ -34,7 +34,7 @@ export function CreateColumn({ boardId }: CreateColumnProps) {
 
   if (isAdding) {
     return (
-      <div className="flex-shrink-0 w-80">
+      <div className="flex-shrink-0 w-[85vw] max-w-80">
         <form
           onSubmit={handleSubmit}
           className="bg-brand-primary border-2 border-brand-text/20 rounded-[2rem] p-4 space-y-3"
@@ -43,7 +43,7 @@ export function CreateColumn({ boardId }: CreateColumnProps) {
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Column title…"
+            placeholder="Column title..."
             maxLength={40}
             onKeyDown={(e) => e.key === "Escape" && setIsAdding(false)}
             className="w-full h-10 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
@@ -58,7 +58,10 @@ export function CreateColumn({ boardId }: CreateColumnProps) {
             </button>
             <button
               type="button"
-              onClick={() => { setIsAdding(false); setTitle(""); }}
+              onClick={() => {
+                setIsAdding(false);
+                setTitle("");
+              }}
               className="h-9 w-9 flex items-center justify-center border-2 border-brand-text/20 rounded-xl hover:border-brand-text transition-colors"
             >
               <X className="w-4 h-4" />
@@ -72,7 +75,7 @@ export function CreateColumn({ boardId }: CreateColumnProps) {
   return (
     <button
       onClick={() => setIsAdding(true)}
-      className="flex-shrink-0 w-72 h-14 bg-brand-bg/50 border-2 border-dashed border-brand-text/20 rounded-[2rem] hover:border-brand-text hover:bg-brand-primary font-mono text-sm font-bold text-brand-text/40 hover:text-brand-text flex items-center justify-center gap-2 transition-all group"
+      className="flex-shrink-0 w-[70vw] max-w-72 h-14 bg-brand-bg/50 border-2 border-dashed border-brand-text/20 rounded-[2rem] hover:border-brand-text hover:bg-brand-primary font-mono text-sm font-bold text-brand-text/40 hover:text-brand-text flex items-center justify-center gap-2 transition-all group"
     >
       <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
       Add Column
