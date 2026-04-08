@@ -9,6 +9,7 @@
   --color-brand-accent: #E63B2E;
   --color-brand-bg: #F5F3EE;
   --color-brand-header: #E9E4DC;
+  --color-brand-sidebar-text: #F5F3EE;
   --color-brand-text: #111111;
   --color-brand-dark: #1A1A1A;
 
@@ -30,6 +31,7 @@
     --color-brand-accent: #F05C4F;
     --color-brand-bg: #161215;
     --color-brand-header: #130F14;
+    --color-brand-sidebar-text: #F2EDF5;
     --color-brand-text: #F2EDF5;
     --color-brand-dark: #100D12;
     color-scheme: dark;
