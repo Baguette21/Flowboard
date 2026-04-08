@@ -152,12 +152,6 @@ export function BoardCalendarView({
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setSelectedMonth(startOfMonth(new Date()))}
-                  className="rounded-xl px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-brand-text/80 transition-colors hover:bg-brand-text/8 hover:text-brand-text"
-                >
-                  Today
-                </button>
-                <button
                   onClick={() => setSelectedMonth((current) => addMonths(current, 1))}
                   className="flex h-10 w-10 items-center justify-center rounded-xl text-brand-text/65 transition-colors hover:bg-brand-text/8 hover:text-brand-text"
                   title="Next month"
