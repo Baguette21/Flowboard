@@ -3,6 +3,7 @@ import { useConvexAuth } from "convex/react";
 import { HomePage } from "./pages/HomePage";
 import { BoardPage } from "./pages/BoardPage";
 import { NotesPage } from "./pages/NotesPage";
+import { DrawPage } from "./pages/DrawPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
@@ -86,6 +87,22 @@ export default function App() {
         element={
           <AuthGuard>
             <NotesPage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/draw"
+        element={
+          <AuthGuard>
+            <DrawPage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/draw/:drawingId"
+        element={
+          <AuthGuard>
+            <DrawPage />
           </AuthGuard>
         }
       />

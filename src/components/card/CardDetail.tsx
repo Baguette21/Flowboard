@@ -383,6 +383,7 @@ export function CardDetail({
               key={card._id}
               cardId={cardId}
               content={card.noteContent ?? card.description}
+              drawingDocument={card.drawingDocument}
             />
           </CardSectionErrorBoundary>
         </div>

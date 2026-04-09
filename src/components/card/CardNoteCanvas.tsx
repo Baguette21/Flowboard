@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useTheme } from "../../hooks/useTheme";
 import { fileToBase64, parseBlockNoteContent } from "../../lib/blocknote";
+import { ExcalidrawCanvas } from "../drawing/ExcalidrawCanvas";
 
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
@@ -15,9 +16,14 @@ import "../notes/noteEditorTheme.css";
 interface CardNoteCanvasProps {
   cardId: Id<"cards">;
   content?: string;
+  drawingDocument?: string;
 }
 
-export function CardNoteCanvas({ cardId, content }: CardNoteCanvasProps) {
+export function CardNoteCanvas({
+  cardId,
+  content,
+  drawingDocument,
+}: CardNoteCanvasProps) {
   const { theme } = useTheme();
   const updateCard = useMutation(api.cards.update);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,11 +84,25 @@ export function CardNoteCanvas({ cardId, content }: CardNoteCanvasProps) {
   }, [cardId, editor, updateCard]);
 
   return (
-    <div className="min-h-[clamp(34rem,72vh,52rem)]">
-      <BlockNoteView
-        editor={editor}
-        onChange={handleEditorChange}
-        theme={theme === "dark" ? "dark" : "light"}
+    <div className="space-y-6">
+      <div className="min-h-[clamp(34rem,72vh,52rem)]">
+        <BlockNoteView
+          editor={editor}
+          onChange={handleEditorChange}
+          theme={theme === "dark" ? "dark" : "light"}
+        />
+      </div>
+      <ExcalidrawCanvas
+        documentKey={`card-${cardId}`}
+        drawingDocument={drawingDocument}
+        onSave={(nextDrawingDocument) => {
+          void updateCard({
+            cardId,
+            drawingDocument: nextDrawingDocument,
+          });
+        }}
+        heightClassName="h-[340px]"
+        compact
       />
     </div>
   );

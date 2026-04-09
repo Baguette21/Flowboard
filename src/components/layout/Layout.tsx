@@ -9,6 +9,7 @@ interface LayoutProps {
   boardName?: string;
   boardId?: Id<"boards">;
   activeNoteId?: Id<"notes">;
+  activeDrawId?: Id<"drawings">;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -21,6 +22,7 @@ export function Layout({
   boardName,
   boardId,
   activeNoteId,
+  activeDrawId,
   searchValue,
   onSearchChange,
   searchPlaceholder,
@@ -62,6 +64,7 @@ export function Layout({
       <Sidebar
         activeBoardId={boardId}
         activeNoteId={activeNoteId}
+        activeDrawId={activeDrawId}
         mobileOpen={mobileSidebarOpen}
         desktopCollapsed={desktopSidebarCollapsed}
         onMobileClose={() => setMobileSidebarOpen(false)}

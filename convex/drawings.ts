@@ -7,26 +7,26 @@ export const list = query({
   handler: async (ctx) => {
     const { userId } = await requireCurrentUser(ctx);
 
-    const notes = await ctx.db
-      .query("notes")
+    const drawings = await ctx.db
+      .query("drawings")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return notes.sort((a, b) => b.updatedAt - a.updatedAt);
+    return drawings.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
 export const get = query({
-  args: { noteId: v.id("notes") },
-  handler: async (ctx, { noteId }) => {
+  args: { drawingId: v.id("drawings") },
+  handler: async (ctx, { drawingId }) => {
     const { userId } = await requireCurrentUser(ctx);
-    const note = await ctx.db.get(noteId);
+    const drawing = await ctx.db.get(drawingId);
 
-    if (!note || note.userId !== userId) {
+    if (!drawing || drawing.userId !== userId) {
       return null;
     }
 
-    return note;
+    return drawing;
   },
 });
 
@@ -38,30 +38,29 @@ export const create = mutation({
     const { userId } = await requireCurrentUser(ctx);
     const now = Date.now();
 
-    const noteId = await ctx.db.insert("notes", {
+    const drawingId = await ctx.db.insert("drawings", {
       userId,
       title: title ?? "Untitled",
       createdAt: now,
       updatedAt: now,
     });
 
-    return noteId;
+    return drawingId;
   },
 });
 
 export const update = mutation({
   args: {
-    noteId: v.id("notes"),
+    drawingId: v.id("drawings"),
     title: v.optional(v.string()),
-    content: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
   },
-  handler: async (ctx, { noteId, title, content, drawingDocument }) => {
+  handler: async (ctx, { drawingId, title, drawingDocument }) => {
     const { userId } = await requireCurrentUser(ctx);
-    const note = await ctx.db.get(noteId);
+    const drawing = await ctx.db.get(drawingId);
 
-    if (!note || note.userId !== userId) {
-      throw new Error("Note not found or access denied");
+    if (!drawing || drawing.userId !== userId) {
+      throw new Error("Drawing not found or access denied");
     }
 
     const patch: Record<string, unknown> = {
@@ -72,28 +71,24 @@ export const update = mutation({
       patch.title = title;
     }
 
-    if (content !== undefined) {
-      patch.content = content;
-    }
-
     if (drawingDocument !== undefined) {
       patch.drawingDocument = drawingDocument;
     }
 
-    await ctx.db.patch(noteId, patch);
+    await ctx.db.patch(drawingId, patch);
   },
 });
 
 export const remove = mutation({
-  args: { noteId: v.id("notes") },
-  handler: async (ctx, { noteId }) => {
+  args: { drawingId: v.id("drawings") },
+  handler: async (ctx, { drawingId }) => {
     const { userId } = await requireCurrentUser(ctx);
-    const note = await ctx.db.get(noteId);
+    const drawing = await ctx.db.get(drawingId);
 
-    if (!note || note.userId !== userId) {
-      throw new Error("Note not found or access denied");
+    if (!drawing || drawing.userId !== userId) {
+      throw new Error("Drawing not found or access denied");
     }
 
-    await ctx.db.delete(noteId);
+    await ctx.db.delete(drawingId);
   },
 });

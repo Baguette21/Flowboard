@@ -276,6 +276,7 @@ export const update = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     noteContent: v.optional(v.string()),
+    drawingDocument: v.optional(v.string()),
     priority: priorityValidator,
     dueDate: v.optional(v.number()),
     labelIds: v.optional(v.array(v.id("labels"))),
@@ -296,6 +297,9 @@ export const update = mutation({
     if (fields.noteContent !== undefined) {
       patch.noteContent = fields.noteContent;
       patch.description = deriveDescriptionPreview(fields.noteContent);
+    }
+    if (fields.drawingDocument !== undefined) {
+      patch.drawingDocument = fields.drawingDocument;
     }
     if (fields.priority !== undefined) patch.priority = fields.priority;
     if (fields.dueDate !== undefined) patch.dueDate = fields.dueDate;
@@ -333,6 +337,8 @@ export const update = mutation({
         ? "description"
         : fields.noteContent !== undefined
           ? "note"
+        : fields.drawingDocument !== undefined
+          ? "drawing"
         : fields.priority !== undefined
           ? "priority"
           : fields.dueDate !== undefined
