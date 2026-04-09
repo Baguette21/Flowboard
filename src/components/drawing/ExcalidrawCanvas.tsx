@@ -66,6 +66,7 @@ function createPersistedDrawingDocument(
       scrollX: appState.scrollX,
       scrollY: appState.scrollY,
       zoom: appState.zoom,
+      gridModeEnabled: appState.gridModeEnabled,
       gridSize: appState.gridSize,
     },
   };
@@ -147,6 +148,7 @@ export function ExcalidrawCanvas({
           <Excalidraw
             key={documentKey}
             initialData={initialData}
+            gridModeEnabled={true}
             onChange={(elements, appState, files) => {
               setIsReady(true);
               queueSave(elements, appState, files);
