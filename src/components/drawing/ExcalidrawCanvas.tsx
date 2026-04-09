@@ -6,10 +6,11 @@ import type {
   ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { PencilLine } from "lucide-react";
+import { Eye, EyeOff, PencilLine, RotateCcw, RotateCw } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 
 import "@excalidraw/excalidraw/index.css";
+import "./excalidrawCanvas.css";
 
 interface ExcalidrawCanvasProps {
   documentKey: string;
@@ -18,6 +19,9 @@ interface ExcalidrawCanvasProps {
   heightClassName?: string;
   compact?: boolean;
 }
+
+const PROPERTIES_VISIBILITY_STORAGE_KEY =
+  "flowboard.excalidraw.propertiesVisible";
 
 type PersistedDrawingDocument = {
   appState?: ExcalidrawInitialDataState["appState"];
@@ -83,8 +87,18 @@ export function ExcalidrawCanvas({
 }: ExcalidrawCanvasProps) {
   const { theme } = useTheme();
   const [isReady, setIsReady] = useState(false);
+  const [propertiesVisible, setPropertiesVisible] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    return (
+      window.localStorage.getItem(PROPERTIES_VISIBILITY_STORAGE_KEY) !== "false"
+    );
+  });
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestSavedDocumentRef = useRef(drawingDocument ?? "");
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const initialData = useMemo(
     () => parseDrawingDocument(drawingDocument),
     [drawingDocument],
@@ -93,6 +107,17 @@ export function ExcalidrawCanvas({
   useEffect(() => {
     latestSavedDocumentRef.current = drawingDocument ?? "";
   }, [drawingDocument]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      PROPERTIES_VISIBILITY_STORAGE_KEY,
+      propertiesVisible ? "true" : "false",
+    );
+  }, [propertiesVisible]);
 
   useEffect(() => {
     return () => {
@@ -135,8 +160,37 @@ export function ExcalidrawCanvas({
     ? "overflow-hidden rounded-[18px] border border-brand-text/10 bg-brand-bg/82"
     : "overflow-hidden rounded-[20px] border border-brand-text/10 bg-brand-bg/82 shadow-[0_18px_45px_rgba(17,17,17,0.04)]";
 
+  const triggerHistoryShortcut = useCallback((mode: "undo" | "redo") => {
+    const container = hostRef.current?.querySelector(
+      ".excalidraw",
+    ) as HTMLDivElement | null;
+
+    if (!container) {
+      return;
+    }
+
+    container.focus();
+
+    const isMac =
+      typeof navigator !== "undefined" &&
+      /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform);
+
+    const eventInit: KeyboardEventInit = {
+      key: "z",
+      code: "KeyZ",
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: !isMac,
+      metaKey: isMac,
+      shiftKey: mode === "redo",
+    };
+
+    container.dispatchEvent(new KeyboardEvent("keydown", eventInit));
+    container.dispatchEvent(new KeyboardEvent("keyup", eventInit));
+  }, []);
+
   return (
-    <section className="space-y-3">
+    <section className="space-y-3" ref={hostRef}>
       <div className="flex items-center gap-2 px-1 text-brand-text/42">
         <PencilLine className="h-3.5 w-3.5" />
         <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]">
@@ -144,7 +198,45 @@ export function ExcalidrawCanvas({
         </span>
       </div>
       <div className={frameClassName}>
-        <div className={`relative ${heightClassName}`}>
+        <div
+          className={`relative ${heightClassName} ${
+            propertiesVisible ? "" : "flowboard-excalidraw--properties-hidden"
+          }`}
+        >
+          <div className="flowboard-excalidraw-controls">
+            <button
+              type="button"
+              onClick={() => triggerHistoryShortcut("undo")}
+              className="flowboard-excalidraw-control"
+              aria-label="Undo"
+              title="Undo"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => triggerHistoryShortcut("redo")}
+              className="flowboard-excalidraw-control"
+              aria-label="Redo"
+              title="Redo"
+            >
+              <RotateCw className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPropertiesVisible((current) => !current)}
+              className="flowboard-excalidraw-control"
+              data-active={propertiesVisible ? "true" : "false"}
+              aria-label={propertiesVisible ? "Hide properties" : "Show properties"}
+              title={propertiesVisible ? "Hide properties" : "Show properties"}
+            >
+              {propertiesVisible ? (
+                <Eye className="h-4 w-4" />
+              ) : (
+                <EyeOff className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <Excalidraw
             key={documentKey}
             initialData={initialData}
