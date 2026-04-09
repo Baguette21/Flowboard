@@ -8,6 +8,7 @@ interface LayoutProps {
   children: ReactNode;
   boardName?: string;
   boardId?: Id<"boards">;
+  activeNoteId?: Id<"notes">;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -19,6 +20,7 @@ export function Layout({
   children,
   boardName,
   boardId,
+  activeNoteId,
   searchValue,
   onSearchChange,
   searchPlaceholder,
@@ -59,6 +61,7 @@ export function Layout({
     <div className="flex min-h-screen w-full overflow-x-hidden bg-brand-bg text-brand-text md:h-screen md:overflow-hidden">
       <Sidebar
         activeBoardId={boardId}
+        activeNoteId={activeNoteId}
         mobileOpen={mobileSidebarOpen}
         desktopCollapsed={desktopSidebarCollapsed}
         onMobileClose={() => setMobileSidebarOpen(false)}

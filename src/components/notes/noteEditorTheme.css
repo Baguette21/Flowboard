@@ -1,0 +1,285 @@
+/* ===================================================================
+   BlockNote Editor — FlowBoard Design System Overrides
+   =================================================================== */
+
+/* ---- Root editor container ---- */
+.bn-editor {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--color-brand-text);
+  background: transparent;
+}
+
+.bn-editor [class*="blockContent"] {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.flowboard-note-editor--compact {
+  min-height: clamp(34rem, 72vh, 52rem);
+}
+
+.flowboard-note-editor--compact .ProseMirror {
+  min-height: clamp(30rem, 68vh, 48rem);
+}
+
+.flowboard-note-editor--compact [class*="blockContent"] {
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+/* ---- Placeholder text ---- */
+.bn-editor .bn-is-empty .bn-inline-content::before,
+.bn-editor [data-placeholder]::before {
+  color: var(--color-brand-text);
+  opacity: 0.32;
+  font-style: italic;
+}
+
+/* ---- Headings ---- */
+.bn-editor h1,
+.bn-editor h2,
+.bn-editor h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-brand-text);
+}
+
+.bn-editor h1 { font-size: 2rem; line-height: 1.2; margin-top: 1.5rem; }
+.bn-editor h2 { font-size: 1.5rem; line-height: 1.3; margin-top: 1.25rem; }
+.bn-editor h3 { font-size: 1.2rem; line-height: 1.4; margin-top: 1rem; }
+
+/* ---- Inline code ---- */
+.bn-editor code {
+  font-family: "Space Mono", monospace;
+  background: var(--color-brand-primary);
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent);
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+  font-size: 0.88em;
+}
+
+/* ---- Code blocks ---- */
+.bn-editor pre {
+  font-family: "Space Mono", monospace;
+  background: var(--color-brand-primary);
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 10%, transparent);
+  border-radius: 12px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* ---- Checkboxes (to-do blocks) ---- */
+.bn-editor [data-content-type="checkListItem"] input[type="checkbox"] {
+  accent-color: var(--color-brand-accent);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+/* ---- Slash menu / suggestion menus ---- */
+.bn-suggestion-menu,
+.bn-slash-menu {
+  background: var(--color-brand-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  overflow: hidden;
+  font-family: "Space Grotesk", sans-serif;
+  padding: 4px !important;
+}
+
+.bn-suggestion-menu .bn-suggestion-menu-item,
+.bn-slash-menu [class*="item"] {
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--color-brand-text) !important;
+  transition: background-color 120ms ease;
+}
+
+.bn-suggestion-menu .bn-suggestion-menu-item:hover,
+.bn-suggestion-menu .bn-suggestion-menu-item.bn-is-selected,
+.bn-slash-menu [class*="item"]:hover {
+  background: color-mix(in srgb, var(--color-brand-text) 8%, transparent) !important;
+}
+
+.bn-suggestion-menu .bn-suggestion-menu-item .bn-suggestion-menu-item-section {
+  color: var(--color-brand-text) !important;
+  opacity: 0.5;
+  font-size: 0.8em;
+}
+
+/* ---- Formatting toolbar ---- */
+.bn-formatting-toolbar,
+.bn-toolbar {
+  background: var(--color-brand-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  padding: 2px 4px !important;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.bn-formatting-toolbar button,
+.bn-toolbar button {
+  border-radius: 6px !important;
+  color: var(--color-brand-text) !important;
+  transition: background-color 120ms ease;
+}
+
+.bn-formatting-toolbar button:hover,
+.bn-toolbar button:hover {
+  background: color-mix(in srgb, var(--color-brand-text) 8%, transparent) !important;
+}
+
+.bn-formatting-toolbar button[data-active="true"],
+.bn-toolbar button[data-active="true"] {
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent) !important;
+  color: var(--color-brand-accent) !important;
+}
+
+/* ---- Side menu (drag handle + plus button) ---- */
+.bn-side-menu {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.bn-editor [class*="blockOuter"]:hover .bn-side-menu,
+.bn-side-menu:hover {
+  opacity: 1;
+}
+
+.bn-side-menu button {
+  color: var(--color-brand-text) !important;
+  opacity: 0.3;
+  transition: opacity 150ms ease, background-color 150ms ease;
+  border-radius: 6px !important;
+}
+
+.bn-side-menu button:hover {
+  opacity: 0.7;
+  background: color-mix(in srgb, var(--color-brand-text) 8%, transparent) !important;
+}
+
+/* ---- Image blocks ---- */
+.bn-editor [data-content-type="image"] {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.bn-editor [data-content-type="image"] img {
+  border-radius: 12px;
+  transition: box-shadow 180ms ease;
+}
+
+.bn-editor [data-content-type="image"] img:hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-accent) 40%, transparent);
+}
+
+.bn-editor .bn-image-resize-handle {
+  background: var(--color-brand-accent) !important;
+  border-radius: 3px;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+/* ---- Selected block ---- */
+.bn-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--color-brand-accent) !important;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* ---- Lists ---- */
+.bn-editor ul, .bn-editor ol {
+  padding-left: 1.5em;
+}
+
+.bn-editor li::marker {
+  color: var(--color-brand-text);
+  opacity: 0.4;
+}
+
+/* ---- Links ---- */
+.bn-editor a {
+  color: var(--color-brand-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- Drag preview ---- */
+.bn-drag-preview {
+  background: var(--color-brand-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+  opacity: 0.9;
+}
+
+/* ---- Table blocks ---- */
+.bn-editor table {
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 10%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.bn-editor td, .bn-editor th {
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 10%, transparent);
+  padding: 8px 12px;
+}
+
+/* ---- Scrollbar inside editor ---- */
+.bn-editor::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bn-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bn-editor::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-brand-text) 15%, transparent);
+  border-radius: 3px;
+}
+
+.bn-editor::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-brand-text) 25%, transparent);
+}
+
+/* ---- Mantine menu overrides ---- */
+.mantine-Menu-dropdown,
+.mantine-Popover-dropdown {
+  background: var(--color-brand-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.mantine-Menu-item {
+  font-family: "Space Grotesk", sans-serif !important;
+  color: var(--color-brand-text) !important;
+  border-radius: 8px !important;
+}
+
+.mantine-Menu-item:hover,
+.mantine-Menu-item[data-hovered] {
+  background: color-mix(in srgb, var(--color-brand-text) 8%, transparent) !important;
+}
+
+/* ---- Image toolbar (caption/alignment popover) ---- */
+.bn-image-toolbar {
+  background: var(--color-brand-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--color-brand-text) 12%, transparent) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ---- Column blocks (text next to image) ---- */
+.bn-editor [data-content-type="column"] {
+  border-right: 1px solid color-mix(in srgb, var(--color-brand-text) 6%, transparent);
+  padding: 0 12px;
+}
+
+.bn-editor [data-content-type="column"]:last-child {
+  border-right: none;
+}

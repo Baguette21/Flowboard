@@ -76,6 +76,7 @@ export default defineSchema({
     boardId: v.id("boards"),
     title: v.string(),
     description: v.optional(v.string()),
+    noteContent: v.optional(v.string()),
     assignedUserId: v.optional(v.union(v.id("users"), v.null())),
     order: v.string(),
     labelIds: v.array(v.id("labels")),
@@ -129,6 +130,16 @@ export default defineSchema({
   })
     .index("by_boardId", ["boardId"])
     .index("by_cardId", ["cardId"]),
+
+  notes: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    content: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_updatedAt", ["userId", "updatedAt"]),
 
   notifications: defineTable({
     recipientUserId: v.id("users"),

@@ -1,0 +1,89 @@
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { useCreateBlockNote } from "@blocknote/react";
+import type { Block, PartialBlock } from "@blocknote/core";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { useTheme } from "../../hooks/useTheme";
+import { fileToBase64, parseBlockNoteContent } from "../../lib/blocknote";
+
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
+import "../notes/noteEditorTheme.css";
+
+interface CardNoteCanvasProps {
+  cardId: Id<"cards">;
+  content?: string;
+}
+
+export function CardNoteCanvas({ cardId, content }: CardNoteCanvasProps) {
+  const { theme } = useTheme();
+  const updateCard = useMutation(api.cards.update);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialLoadRef = useRef(true);
+  const latestSavedContentRef = useRef(content ?? "");
+
+  const initialContent = useMemo<PartialBlock[] | undefined>(() => {
+    return parseBlockNoteContent(content);
+  }, [content]);
+
+  const editor = useCreateBlockNote({
+    initialContent,
+    uploadFile: fileToBase64,
+    domAttributes: {
+      editor: {
+        class: "flowboard-note-editor flowboard-note-editor--compact",
+      },
+    },
+  });
+
+  useEffect(() => {
+    latestSavedContentRef.current = content ?? "";
+    isInitialLoadRef.current = true;
+  }, [cardId, content]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleEditorChange = useCallback(() => {
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      const blocks: Block[] = editor.document;
+      const nextContent = JSON.stringify(blocks);
+
+      if (nextContent === latestSavedContentRef.current) {
+        return;
+      }
+
+      latestSavedContentRef.current = nextContent;
+      void updateCard({
+        cardId,
+        noteContent: nextContent,
+      });
+    }, 700);
+  }, [cardId, editor, updateCard]);
+
+  return (
+    <div className="min-h-[clamp(34rem,72vh,52rem)]">
+      <BlockNoteView
+        editor={editor}
+        onChange={handleEditorChange}
+        theme={theme === "dark" ? "dark" : "light"}
+      />
+    </div>
+  );
+}

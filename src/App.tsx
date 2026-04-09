@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useConvexAuth } from "convex/react";
 import { HomePage } from "./pages/HomePage";
 import { BoardPage } from "./pages/BoardPage";
+import { NotesPage } from "./pages/NotesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
@@ -69,6 +70,22 @@ export default function App() {
         element={
           <AuthGuard>
             <HomePage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/notes"
+        element={
+          <AuthGuard>
+            <NotesPage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/notes/:noteId"
+        element={
+          <AuthGuard>
+            <NotesPage />
           </AuthGuard>
         }
       />

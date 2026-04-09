@@ -9,6 +9,55 @@ import {
   requireBoardAccess,
 } from "./helpers/boardAccess";
 
+function extractTextFragments(node: unknown, fragments: string[]) {
+  if (typeof node === "string") {
+    fragments.push(node);
+    return;
+  }
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      extractTextFragments(item, fragments);
+    }
+    return;
+  }
+
+  if (!node || typeof node !== "object") {
+    return;
+  }
+
+  const record = node as Record<string, unknown>;
+
+  if (typeof record.text === "string") {
+    fragments.push(record.text);
+  }
+
+  if ("content" in record) {
+    extractTextFragments(record.content, fragments);
+  }
+
+  if ("children" in record) {
+    extractTextFragments(record.children, fragments);
+  }
+}
+
+function deriveDescriptionPreview(content?: string) {
+  if (!content?.trim()) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    const fragments: string[] = [];
+    extractTextFragments(parsed, fragments);
+    const preview = fragments.join(" ").replace(/\s+/g, " ").trim();
+    return preview || undefined;
+  } catch {
+    const preview = content.replace(/\s+/g, " ").trim();
+    return preview || undefined;
+  }
+}
+
 async function assertValidAssignee(
   ctx: MutationCtx,
   boardId: Id<"boards">,
@@ -226,6 +275,7 @@ export const update = mutation({
     cardId: v.id("cards"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    noteContent: v.optional(v.string()),
     priority: priorityValidator,
     dueDate: v.optional(v.number()),
     labelIds: v.optional(v.array(v.id("labels"))),
@@ -243,6 +293,10 @@ export const update = mutation({
 
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;
+    if (fields.noteContent !== undefined) {
+      patch.noteContent = fields.noteContent;
+      patch.description = deriveDescriptionPreview(fields.noteContent);
+    }
     if (fields.priority !== undefined) patch.priority = fields.priority;
     if (fields.dueDate !== undefined) patch.dueDate = fields.dueDate;
     if (fields.labelIds !== undefined) patch.labelIds = fields.labelIds;
@@ -277,6 +331,8 @@ export const update = mutation({
       ? "title"
       : fields.description !== undefined
         ? "description"
+        : fields.noteContent !== undefined
+          ? "note"
         : fields.priority !== undefined
           ? "priority"
           : fields.dueDate !== undefined

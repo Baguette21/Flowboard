@@ -3,6 +3,7 @@ import { useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
+  Image,
   Loader2,
   Maximize2,
   Trash2,
@@ -322,9 +323,14 @@ export function CardImageGallery({
   return (
     <div className={embedded ? "" : "border-b border-brand-text/8 px-8 py-6"}>
       {!embedded && (
-        <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-brand-text/40">
-          Images
-        </h3>
+        <div className="mb-4">
+          <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-brand-text/40">
+            Gallery
+          </h3>
+          <p className="mt-1 font-mono text-[11px] leading-5 text-brand-text/28">
+            Paste, drop, or upload images that belong to this task.
+          </p>
+        </div>
       )}
 
       <input
@@ -356,7 +362,7 @@ export function CardImageGallery({
         onDrop={(event) => void handleDrop(event)}
         className={cn(
           embedded
-            ? "min-h-[120px] rounded-[12px] border border-dashed border-brand-text/10 bg-transparent px-0 py-2 outline-none transition-colors"
+            ? "min-h-[180px] rounded-[12px] border border-dashed border-brand-text/10 bg-transparent px-5 py-5 outline-none transition-colors"
             : "mt-4 min-h-[180px] rounded-[12px] border border-dashed border-brand-text/10 bg-transparent px-5 py-5 outline-none transition-colors",
           isPasteActive && "border-brand-text/28 bg-brand-primary/18",
           isUploading && "opacity-80",
@@ -372,92 +378,91 @@ export function CardImageGallery({
             )}
           </div>
         ) : attachments.length === 0 ? (
-          <div className={cn("flex flex-col justify-center", embedded ? "min-h-[110px]" : "min-h-[170px]")}>
-            <p className={cn("font-serif font-bold leading-none text-brand-text", embedded ? "text-[22px]" : "text-[26px]")}>
-              Paste an image
-            </p>
-            <p className="mt-3 max-w-lg font-mono text-[12px] leading-6 text-brand-text/30">
-              Drop a screenshot here or press{" "}
-              <span className="text-brand-text/52">Ctrl+V</span> /{" "}
-              <span className="text-brand-text/52">Cmd+V</span>.
-            </p>
-          </div>
+          embedded ? (
+            <div className="flex min-h-[170px] items-center justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-[22px] border border-dashed border-brand-text/12 bg-brand-primary/10 text-brand-text/24">
+                <Image className="h-10 w-10 stroke-[1.5]" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[170px] flex-col justify-center">
+              <p className="font-serif text-[26px] font-bold leading-none text-brand-text">
+                Start the gallery
+              </p>
+              <p className="mt-3 max-w-lg font-mono text-[12px] leading-6 text-brand-text/30">
+                Drop a screenshot here or press{" "}
+                <span className="text-brand-text/52">Ctrl+V</span> /{" "}
+                <span className="text-brand-text/52">Cmd+V</span>.
+              </p>
+            </div>
+          )
         ) : (
           <div className="space-y-4">
-            {attachments.map((attachment) => {
-              const previewUrl = imageUrls[attachment._id];
-              const isDeleting = deletingId === attachment._id;
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {attachments.map((attachment) => {
+                const previewUrl = imageUrls[attachment._id];
+                const isDeleting = deletingId === attachment._id;
 
-              return (
-                <div
-                  key={attachment._id}
-                  className="group overflow-hidden rounded-[12px] border border-brand-text/8 bg-brand-primary/14"
-                >
-                  <div className="relative overflow-hidden bg-brand-text/4">
-                    {previewUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => setActivePreviewId(attachment._id)}
-                        className="block w-full cursor-zoom-in"
-                        title="Open larger preview"
-                      >
-                        <img
-                          src={previewUrl}
-                          alt={attachment.fileName}
-                          className="max-h-[420px] w-full object-cover transition-transform duration-200 group-hover:scale-[1.01]"
-                        />
-                      </button>
-                    ) : (
-                      <div className="flex h-44 items-center justify-center text-brand-text/30">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      </div>
-                    )}
-
-                    <div className="absolute right-3 top-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                return (
+                  <div
+                    key={attachment._id}
+                    className="group overflow-hidden rounded-[12px] border border-brand-text/8 bg-brand-primary/14"
+                  >
+                    <div className="relative overflow-hidden bg-brand-text/4">
                       {previewUrl ? (
                         <button
                           type="button"
                           onClick={() => setActivePreviewId(attachment._id)}
-                          className="inline-flex items-center gap-1.5 rounded-[9px] bg-black/55 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-black/70"
+                          className="block w-full cursor-zoom-in"
                           title="Open larger preview"
                         >
-                          <Maximize2 className="h-3 w-3" />
-                          Preview
+                          <img
+                            src={previewUrl}
+                            alt={attachment.fileName}
+                            className="aspect-[4/3] w-full object-cover transition-transform duration-200 group-hover:scale-[1.01]"
+                          />
                         </button>
                       ) : (
-                        <span className="rounded-[9px] bg-black/45 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/72">
-                          Preparing
-                        </span>
+                        <div className="flex aspect-[4/3] items-center justify-center text-brand-text/30">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(attachment._id)}
-                        disabled={isDeleting}
-                        className="inline-flex items-center gap-1.5 rounded-[9px] bg-[#E63B2E]/88 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#E63B2E] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+
+                      <div className="absolute right-3 top-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                        {previewUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => setActivePreviewId(attachment._id)}
+                            className="inline-flex items-center gap-1.5 rounded-[9px] bg-black/55 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-black/70"
+                            title="Open larger preview"
+                          >
+                            <Maximize2 className="h-3 w-3" />
+                            Preview
+                          </button>
                         ) : (
-                          <Trash2 className="h-3 w-3" />
+                          <span className="rounded-[9px] bg-black/45 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/72">
+                            Preparing
+                          </span>
                         )}
-                        Delete
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(attachment._id)}
+                          disabled={isDeleting}
+                          className="inline-flex items-center gap-1.5 rounded-[9px] bg-[#E63B2E]/88 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#E63B2E] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="border-t border-brand-text/8 px-4 py-3">
-                    <p className="truncate font-mono text-[11px] text-brand-text/30">
-                      {attachment.fileName}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
-
-            <div className="pt-1">
-              <p className="font-mono text-[11px] leading-6 text-brand-text/26">
-                Paste or drop another image anywhere in this canvas.
-              </p>
+                );
+              })}
             </div>
           </div>
         )}

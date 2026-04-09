@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
 import type { BoardMemberSummary } from "../../lib/types";
-import { CardDescription } from "./CardDescription";
+import { CardNoteCanvas } from "./CardNoteCanvas";
 import { CardSectionErrorBoundary } from "./CardSectionErrorBoundary";
 import { CardImageGallery } from "./CardImageGallery";
 import { LabelPicker } from "../label/LabelPicker";
@@ -155,7 +155,7 @@ export function CardDetail({
         onClick={onClose}
       />
       {/* Panel */}
-      <div className="task-panel-slide absolute right-0 top-0 h-full w-full sm:max-w-[640px] flex flex-col bg-brand-bg border-l border-brand-text/10 shadow-2xl overflow-hidden">
+      <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col overflow-hidden border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:w-[50vw] sm:max-w-none">
         {content}
       </div>
     </div>
@@ -370,30 +370,44 @@ export function CardDetail({
 
         {/* ── Notes canvas ── */}
         <div className="border-b border-brand-text/8 px-8 py-6">
-          <div className="rounded-[14px] border border-brand-text/8 bg-brand-primary/10 px-5 py-5">
-            <CardDescription
+          <CardSectionErrorBoundary
+            fallback={
+              <div className="rounded-[14px] border border-brand-text/8 bg-brand-primary/10 px-5 py-5">
+                <p className="font-mono text-xs text-brand-text/35">
+                  The task note could not load right now.
+                </p>
+              </div>
+            }
+          >
+            <CardNoteCanvas
+              key={card._id}
               cardId={cardId}
-              description={card.description}
+              content={card.noteContent ?? card.description}
             />
+          </CardSectionErrorBoundary>
+        </div>
 
-            <div className="mt-5">
-              <CardSectionErrorBoundary
-                fallback={
-                  <div className="py-3">
-                    <p className="font-mono text-xs text-brand-text/35">
-                      Images could not load right now.
-                    </p>
-                  </div>
-                }
-              >
-                <CardImageGallery
-                  cardId={cardId}
-                  skipInitialLoad={card.title === "New task"}
-                  embedded
-                />
-              </CardSectionErrorBoundary>
-            </div>
+        <div className="border-b border-brand-text/8 px-8 py-6">
+          <div className="mb-4">
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/40">
+              Gallery
+            </p>
           </div>
+          <CardSectionErrorBoundary
+            fallback={
+              <div className="py-3">
+                <p className="font-mono text-xs text-brand-text/35">
+                  Images could not load right now.
+                </p>
+              </div>
+            }
+          >
+            <CardImageGallery
+              cardId={cardId}
+              skipInitialLoad={card.title === "New task"}
+              embedded
+            />
+          </CardSectionErrorBoundary>
         </div>
 
         {/* Meta */}
