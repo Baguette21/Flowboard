@@ -45,7 +45,7 @@ export function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-brand-primary border-2 border-brand-text/10 rounded-2xl shadow-xl overflow-hidden z-50 py-1">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-brand-primary border-2 border-brand-text/10 rounded-[12px] shadow-xl overflow-hidden z-50 py-1">
           <div className="px-4 py-3 border-b border-brand-text/10">
             <p className="font-mono text-xs uppercase tracking-widest text-brand-text/50 mb-0.5">
               Signed in

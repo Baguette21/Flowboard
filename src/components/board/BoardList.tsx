@@ -49,7 +49,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex w-full sm:w-auto items-center justify-center gap-2 h-11 px-5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+            className="flex w-full sm:w-auto items-center justify-center gap-2 h-11 px-5 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
           >
             <Plus className="w-4 h-4" />
             New Board
@@ -59,7 +59,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
         {boards.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-20 sm:py-24 text-center">
-            <div className="w-16 h-16 rounded-[2rem] bg-brand-text/5 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-[12px] bg-brand-text/5 flex items-center justify-center mb-4">
               <LayoutGrid className="w-8 h-8 text-brand-text/20" />
             </div>
             <h2 className="font-serif italic font-bold text-2xl mb-2">
@@ -70,7 +70,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
             </p>
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+              className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create First Board
@@ -78,7 +78,7 @@ export function BoardList({ searchQuery = "" }: BoardListProps) {
           </div>
         ) : filteredBoards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 sm:py-24 text-center">
-            <div className="w-16 h-16 rounded-[2rem] bg-brand-text/5 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-[12px] bg-brand-text/5 flex items-center justify-center mb-4">
               <Search className="w-8 h-8 text-brand-text/20" />
             </div>
             <h2 className="font-serif italic font-bold text-2xl mb-2">

@@ -62,7 +62,7 @@ export function BoardCard({ board }: BoardCardProps) {
     <>
       <div
         onClick={() => navigate(`/board/${board._id}`)}
-        className="group relative select-none bg-brand-primary border-2 border-brand-text/10 rounded-[2rem] p-6 cursor-pointer hover:border-brand-text/30 hover:-translate-y-0.5 transition-all"
+        className="group relative select-none bg-brand-primary border-2 border-brand-text/10 rounded-[14px] p-6 cursor-pointer hover:border-brand-text/30 hover:-translate-y-0.5 transition-all"
         style={{ borderTopColor: board.color, borderTopWidth: 4 }}
       >
         <div
@@ -77,7 +77,7 @@ export function BoardCard({ board }: BoardCardProps) {
                 {board.name}
               </h3>
               {board.role === "member" && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-bg border border-brand-text/10 font-mono text-[10px] uppercase tracking-widest text-brand-text/50">
+                <span className="inline-flex items-center gap-1 rounded-[10px] bg-brand-bg border border-brand-text/10 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-brand-text/50">
                   <Users className="w-3 h-3" />
                   Shared
                 </span>

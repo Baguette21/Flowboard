@@ -8,9 +8,7 @@ import { ColumnHeader } from "./ColumnHeader";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
-import { Plus, X } from "lucide-react";
-import { Input } from "../ui/Input";
-import { Button } from "../ui/Button";
+import { Plus, Loader2 } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
 
 interface ColumnProps {
@@ -23,10 +21,6 @@ interface ColumnProps {
   isDragging?: boolean;
   sortableCards?: boolean;
   fullWidth?: boolean;
-  canMoveBackward?: boolean;
-  canMoveForward?: boolean;
-  onMoveBackward?: () => void;
-  onMoveForward?: () => void;
 }
 
 export function Column({
@@ -39,15 +33,9 @@ export function Column({
   isDragging,
   sortableCards = true,
   fullWidth = false,
-  canMoveBackward = false,
-  canMoveForward = false,
-  onMoveBackward,
-  onMoveForward,
 }: ColumnProps) {
   const createCard = useMutation(api.cards.create);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newCardTitle, setNewCardTitle] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { setNodeRef } = useDroppable({
     id: column._id,
@@ -60,56 +48,63 @@ export function Column({
   );
   const cardIds = useMemo(() => sortedCards.map((c) => c._id), [sortedCards]);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newCardTitle.trim();
-    if (!trimmed) return;
-    setIsLoading(true);
+  const handleAddCard = async () => {
+    setIsCreating(true);
     try {
-      await createCard({
+      const newCardId = await createCard({
         columnId: column._id,
         boardId: column.boardId,
-        title: trimmed,
+        title: "New task",
       });
-      setNewCardTitle("");
-      setIsAdding(false);
-      toast.success("Task added");
+      onCardClick(newCardId);
     } catch {
-      toast.error("Failed to add task");
+      toast.error("Failed to create task");
     } finally {
-      setIsLoading(false);
+      setIsCreating(false);
     }
   };
 
   return (
     <div
-      className={`flex flex-col ${
-        fullWidth ? "w-full max-w-none" : "flex-shrink-0 w-[85vw] max-w-80"
-      } ${fullWidth ? "max-h-none overflow-visible" : "max-h-full overflow-hidden"} bg-brand-bg/50 border-2 border-brand-text/10 rounded-[2rem] backdrop-blur-md transition-opacity ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={[
+        "flex flex-col transition-opacity",
+        fullWidth ? "w-full max-w-none" : "flex-shrink-0 w-[85vw] max-w-[300px]",
+        isDragging ? "opacity-40" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
+      {/* Outer card envelope */}
+      <div
+        className="flex flex-col rounded-lg border border-brand-text/10 bg-brand-primary/60 p-3"
+        style={
+          column.color
+            ? { borderColor: `${column.color}30`, backgroundColor: `${column.color}0D` }
+            : undefined
+        }
+      >
+      {/* Column header — pill style */}
       <ColumnHeader
         column={column}
         cardCount={sortedCards.length}
         dragHandleProps={dragHandleProps}
-        canMoveBackward={canMoveBackward}
-        canMoveForward={canMoveForward}
-        onMoveBackward={onMoveBackward}
-        onMoveForward={onMoveForward}
-        reorderOrientation={fullWidth ? "vertical" : "horizontal"}
+        onAddCard={() => void handleAddCard()}
       />
 
+      {/* Card list — droppable zone */}
       <div
         ref={setNodeRef}
-        className={`p-3 space-y-3 min-h-[100px] ${
-          fullWidth ? "overflow-visible" : "flex-1 overflow-y-auto"
-        }`}
+        className={[
+          "space-y-2 min-h-[60px]",
+          fullWidth ? "overflow-visible" : "flex-1 overflow-y-auto",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
           {sortedCards.map((card) => {
             const assignee = card.assignedUserId
-              ? members.find((member) => member.userId === card.assignedUserId) ?? null
+              ? (members.find((m) => m.userId === card.assignedUserId) ?? null)
               : null;
             const cardLabels = labels.filter((l) => card.labelIds.includes(l._id));
 
@@ -135,49 +130,29 @@ export function Column({
           })}
         </SortableContext>
 
-        {sortedCards.length === 0 && !isAdding && (
-          <div className="flex items-center justify-center h-16 text-brand-text/20 font-mono text-xs text-center">
-            Drop tasks here
+        {sortedCards.length === 0 && (
+          <div className="flex items-center justify-center h-10 text-brand-text/15 font-mono text-xs">
+            Drop here
           </div>
         )}
-
-        {isAdding ? (
-          <form onSubmit={handleAdd} className="mt-1 space-y-2">
-            <Input
-              autoFocus
-              placeholder="What needs to be done?"
-              value={newCardTitle}
-              onChange={(e) => setNewCardTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Escape" && setIsAdding(false)}
-            />
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                size="sm"
-                className="flex-1"
-                disabled={isLoading || !newCardTitle.trim()}
-              >
-                Add Task
-              </Button>
-              <button
-                type="button"
-                onClick={() => { setIsAdding(false); setNewCardTitle(""); }}
-                className="p-2 rounded-xl hover:bg-brand-text/10 text-brand-text/40 hover:text-brand-text transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="w-full mt-1 py-2.5 px-4 rounded-[1.5rem] border-2 border-transparent hover:border-brand-text/20 hover:bg-brand-text/5 text-brand-text/40 hover:text-brand-text font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all group"
-          >
-            <Plus className="w-3.5 h-3.5 group-hover:scale-125 transition-transform" />
-            Add Task
-          </button>
-        )}
       </div>
+
+      {/* New card button */}
+      <div className="mt-2">
+        <button
+          onClick={() => void handleAddCard()}
+          disabled={isCreating}
+          className="w-full py-2 px-3 flex items-center gap-2 text-brand-text/35 hover:text-brand-text/65 font-mono text-[12px] transition-colors group/add rounded-xl hover:bg-brand-text/5 disabled:opacity-50"
+        >
+          {isCreating ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Plus className="w-3.5 h-3.5" />
+          )}
+          New card
+        </button>
+      </div>
+      </div> {/* end outer card envelope */}
     </div>
   );
 }

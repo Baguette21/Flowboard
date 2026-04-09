@@ -10,10 +10,6 @@ interface SortableColumnProps {
   labels: Doc<"labels">[];
   members: BoardMemberSummary[];
   onCardClick: (cardId: Id<"cards">) => void;
-  canMoveBackward?: boolean;
-  canMoveForward?: boolean;
-  onMoveBackward?: () => void;
-  onMoveForward?: () => void;
 }
 
 export function SortableColumn(props: SortableColumnProps) {
@@ -24,7 +20,6 @@ export function SortableColumn(props: SortableColumnProps) {
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({
     id: column._id,
@@ -32,9 +27,9 @@ export function SortableColumn(props: SortableColumnProps) {
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? undefined : "transform 200ms ease",
+    opacity: isDragging ? 0.35 : 1,
   };
 
   return (

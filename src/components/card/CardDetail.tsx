@@ -1,25 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
 import type { BoardMemberSummary } from "../../lib/types";
-import { Modal } from "../ui/Modal";
 import { CardDescription } from "./CardDescription";
-import { CardDueDate } from "./CardDueDate";
 import { LabelPicker } from "../label/LabelPicker";
-import { ActivityFeed } from "../activity/ActivityFeed";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import {
-  CheckSquare,
-  Square,
+  CheckCircle2,
+  Circle,
   Trash2,
   Flag,
-  AlignLeft,
   Tag,
   Calendar,
-  Activity,
   Loader2,
-  UserRound,
+  Users,
+  X,
+  Layers3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
@@ -27,14 +24,17 @@ import { format } from "date-fns";
 
 const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", color: "#E63B2E" },
-  { value: "high", label: "High", color: "#F97316" },
-  { value: "medium", label: "Medium", color: "#EAB308" },
-  { value: "low", label: "Low", color: "#3B82F6" },
+  { value: "high",   label: "High",   color: "#F97316" },
+  { value: "medium", label: "Medium", color: "#CA8A04" },
+  { value: "low",    label: "Low",    color: "#3B82F6" },
 ] as const;
+
+type CardPriority = Doc<"cards">["priority"];
 
 interface CardDetailProps {
   cardId: Id<"cards">;
   boardId: Id<"boards">;
+  columns: Doc<"columns">[];
   labels: Doc<"labels">[];
   members: BoardMemberSummary[];
   canManageAssignees: boolean;
@@ -44,62 +44,55 @@ interface CardDetailProps {
 export function CardDetail({
   cardId,
   boardId,
+  columns,
   labels,
   members,
   canManageAssignees,
   onClose,
 }: CardDetailProps) {
-  const card = useQuery(api.cards.get, { cardId });
-  const updateCard = useMutation(api.cards.update);
+  const card          = useQuery(api.cards.get, { cardId });
+  const updateCard    = useMutation(api.cards.update);
   const toggleComplete = useMutation(api.cards.toggleComplete);
-  const deleteCard = useMutation(api.cards.remove);
+  const deleteCard    = useMutation(api.cards.remove);
+  const moveCard      = useMutation(api.cards.move);
 
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState("");
-  const [activeTab, setActiveTab] = useState<"details" | "activity">("details");
+  const [confirmDelete,   setConfirmDelete]   = useState(false);
+  const [isDeleting,      setIsDeleting]      = useState(false);
+  const [titleValue,      setTitleValue]      = useState("");
+  const [isEditingTitle,  setIsEditingTitle]  = useState(false);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
-  if (card === undefined) {
-    return (
-      <Modal open onClose={onClose} size="lg">
-        <div className="p-8 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-brand-text/40" />
-        </div>
-      </Modal>
-    );
-  }
+  // Auto-resize textarea
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = "auto";
+      titleRef.current.style.height = `${titleRef.current.scrollHeight}px`;
+    }
+  }, [titleValue]);
 
-  if (!card) {
-    onClose();
-    return null;
-  }
+  // Auto-enter edit mode for freshly-created cards
+  useEffect(() => {
+    if (card && card.title === "New task") {
+      setTitleValue(card.title);
+      setIsEditingTitle(true);
+    }
+  }, [card?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cardLabels = labels.filter((label) => card.labelIds.includes(label._id));
-  const selectedAssigneeId =
-    card.assignedUserId === null ? "" : card.assignedUserId ?? "";
-  const currentAssignee = members.find((member) => member.userId === card.assignedUserId) ?? null;
-  const assignableMembers = members;
-
+  /* ── Handlers ── */
   const handleToggleComplete = async () => {
     await toggleComplete({ cardId });
-    toast.success(card.isComplete ? "Task reopened" : "Task completed");
+    toast.success(card?.isComplete ? "Task reopened" : "Task completed!");
   };
 
   const handleSaveTitle = async () => {
     const trimmed = titleValue.trim();
-    if (!trimmed || trimmed === card.title) {
-      setIsEditingTitle(false);
-      return;
-    }
-    await updateCard({ cardId, title: trimmed });
     setIsEditingTitle(false);
-    toast.success("Title updated");
+    if (!trimmed || trimmed === card?.title) return;
+    await updateCard({ cardId, title: trimmed });
   };
 
-  const handlePriority = async (priority: typeof card.priority) => {
+  const handlePriority = async (priority: CardPriority) => {
     await updateCard({ cardId, priority });
-    toast.success("Priority updated");
   };
 
   const handleLabelsChange = async (newLabelIds: Id<"labels">[]) => {
@@ -107,9 +100,28 @@ export function CardDetail({
   };
 
   const handleAssigneeChange = async (value: string) => {
-    const nextAssigneeId = value === "" ? null : (value as Id<"users">);
-    await updateCard({ cardId, assignedUserId: nextAssigneeId });
-    toast.success(nextAssigneeId ? "Task assigned" : "Assignee cleared");
+    const nextId = value === "" ? null : (value as Id<"users">);
+    await updateCard({ cardId, assignedUserId: nextId });
+    toast.success(nextId ? "Assigned" : "Assignee cleared");
+  };
+
+  const handleGroupChange = async (newColumnId: string) => {
+    if (!card || newColumnId === card.columnId) return;
+    const target = columns.find((c) => c._id === newColumnId);
+    if (!target) return;
+    // Place at the very end of the target column
+    const newOrder = `z${Date.now()}`;
+    await moveCard({
+      cardId,
+      targetColumnId: newColumnId as Id<"columns">,
+      newOrder,
+    });
+    toast.success(`Moved to ${target.title}`);
+  };
+
+  const handleDueDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    await updateCard({ cardId, dueDate: val ? new Date(val).getTime() : undefined });
   };
 
   const handleDelete = async () => {
@@ -126,266 +138,250 @@ export function CardDetail({
     }
   };
 
-  return (
+  /* ── Shell (always rendered so animation plays) ── */
+  const shell = (content: React.ReactNode) => (
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      {/* Backdrop */}
+      <div
+        className="task-panel-backdrop absolute inset-0 bg-black/50"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div className="task-panel-slide absolute right-0 top-0 h-full w-full sm:max-w-[640px] flex flex-col bg-brand-bg border-l border-brand-text/10 shadow-2xl overflow-hidden">
+        {content}
+      </div>
+    </div>
+  );
+
+  /* Loading */
+  if (card === undefined) {
+    return shell(
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-text/30" />
+      </div>,
+    );
+  }
+
+  if (!card) { onClose(); return null; }
+
+  const currentColumn   = columns.find((c) => c._id === card.columnId);
+  const cardLabels      = labels.filter((l) => card.labelIds.includes(l._id));
+  const currentAssignee = members.find((m) => m.userId === card.assignedUserId) ?? null;
+  const isOverdue       = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
+  const dueDateFormatted = card.dueDate
+    ? new Date(card.dueDate).toISOString().split("T")[0]
+    : "";
+
+  return shell(
     <>
-      <Modal open onClose={onClose} size="lg">
-        <div className="flex min-h-0 flex-col">
-          <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b-2 border-brand-text/10">
-            {cardLabels.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {cardLabels.map((label) => (
-                  <span
-                    key={label._id}
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold tracking-widest text-white"
-                    style={{ backgroundColor: label.color }}
-                  >
-                    {label.name}
-                  </span>
-                ))}
-              </div>
-            )}
+      {/* ── Top bar ── */}
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-brand-text/10 px-5 py-3">
+        <button
+          onClick={() => void handleToggleComplete()}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-1.5 font-mono text-xs font-bold transition-colors",
+            card.isComplete
+              ? "bg-green-500/15 text-green-500 hover:bg-green-500/25"
+              : "text-brand-text/40 hover:bg-brand-text/8 hover:text-brand-text",
+          )}
+        >
+          {card.isComplete
+            ? <CheckCircle2 className="h-4 w-4" />
+            : <Circle className="h-4 w-4" />}
+          {card.isComplete ? "Completed" : "Mark complete"}
+        </button>
 
-            {isEditingTitle ? (
-              <textarea
-                autoFocus
-                value={titleValue}
-                onChange={(e) => setTitleValue(e.target.value)}
-                onBlur={handleSaveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void handleSaveTitle();
-                  }
-                  if (e.key === "Escape") {
-                    setIsEditingTitle(false);
-                  }
-                }}
-                className="w-full text-xl sm:text-2xl font-bold font-serif italic bg-brand-bg border-2 border-brand-text/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-brand-text"
-                rows={2}
-              />
-            ) : (
-              <h2
-                className="select-none text-xl sm:text-2xl font-bold font-serif italic cursor-pointer pr-8"
-                onClick={() => {
-                  setTitleValue(card.title);
-                  setIsEditingTitle(true);
-                }}
-              >
-                {card.title}
-              </h2>
-            )}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-lg p-2 text-brand-text/30 transition-colors hover:bg-brand-accent/10 hover:text-brand-accent"
+            title="Delete task"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-brand-text/30 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
+            title="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-brand-text/50">
-              {card.dueDate && (
-                <div
-                  className={cn(
-                    "flex items-center gap-1.5",
-                    card.dueDate < Date.now() &&
-                      !card.isComplete &&
-                      "text-brand-accent font-bold",
-                  )}
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto">
+
+        {/* Title */}
+        <div className="px-8 pt-7 pb-3">
+          {isEditingTitle ? (
+            <textarea
+              ref={titleRef}
+              autoFocus
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              onBlur={() => void handleSaveTitle()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSaveTitle(); }
+                if (e.key === "Escape") setIsEditingTitle(false);
+              }}
+              rows={1}
+              placeholder="Task name"
+              className="w-full resize-none overflow-hidden bg-transparent text-[1.6rem] font-bold leading-tight text-brand-text focus:outline-none placeholder:text-brand-text/25"
+            />
+          ) : (
+            <h1
+              onClick={() => { setTitleValue(card.title); setIsEditingTitle(true); }}
+              className={cn(
+                "cursor-text text-[1.6rem] font-bold leading-tight transition-colors hover:opacity-80",
+                card.isComplete ? "line-through text-brand-text/40" : "text-brand-text",
+              )}
+            >
+              {card.title}
+            </h1>
+          )}
+
+          {cardLabels.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {cardLabels.map((label) => (
+                <span
+                  key={label._id}
+                  className="rounded-md px-2.5 py-0.5 text-[11px] font-medium text-white/90"
+                  style={{ backgroundColor: label.color }}
                 >
-                  <Calendar className="w-3.5 h-3.5" />
-                  {format(card.dueDate, "MMM d, yyyy")}
-                  {card.dueDate < Date.now() && !card.isComplete && " · Overdue"}
-                </div>
-              )}
-              {card.priority && (
-                <div className="flex items-center gap-1.5">
-                  <Flag className="w-3.5 h-3.5" />
-                  {card.priority.charAt(0).toUpperCase() + card.priority.slice(1)}{" "}
-                  priority
-                </div>
-              )}
-              <div className="ml-auto text-brand-text/30">
-                Created {format(card.createdAt, "MMM d")}
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Properties ── */}
+        <div className="border-b border-brand-text/8 px-8 pb-6 pt-1">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-5">
+
+            {/* Assignee */}
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-brand-text/40">
+                <Users className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Assignee</span>
               </div>
+              {canManageAssignees ? (
+                <select
+                  value={card.assignedUserId ?? ""}
+                  onChange={(e) => void handleAssigneeChange(e.target.value)}
+                  className="w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 text-sm text-brand-text focus:outline-none cursor-pointer"
+                >
+                  <option value="">Empty</option>
+                  {members.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.name ?? m.email ?? "Unknown"}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-brand-text/70">
+                  {currentAssignee?.name ?? currentAssignee?.email ?? <span className="text-brand-text/30">Empty</span>}
+                </p>
+              )}
+            </div>
+
+            {/* Group */}
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-brand-text/40">
+                <Layers3 className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Group</span>
+              </div>
+              <select
+                value={card.columnId}
+                onChange={(e) => void handleGroupChange(e.target.value)}
+                className="w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 text-sm focus:outline-none cursor-pointer"
+                style={currentColumn?.color ? { borderColor: `${currentColumn.color}55`, color: currentColumn.color } : { color: "inherit" }}
+              >
+                {columns.map((col) => (
+                  <option key={col._id} value={col._id}>{col.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Due date */}
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-brand-text/40">
+                <Calendar className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Due date</span>
+              </div>
+              <input
+                type="date"
+                value={dueDateFormatted}
+                onChange={handleDueDateChange}
+                className={cn(
+                  "w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 font-mono text-xs text-brand-text focus:outline-none cursor-pointer",
+                  isOverdue && "border-brand-accent/40 text-brand-accent",
+                )}
+              />
+              {card.dueDate && (
+                <p className={cn("mt-1 font-mono text-[10px]", isOverdue ? "text-brand-accent" : "text-brand-text/35")}>
+                  {isOverdue ? "Overdue" : format(card.dueDate, "EEE, MMM d")}
+                </p>
+              )}
+            </div>
+
+            {/* Priority */}
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-brand-text/40">
+                <Flag className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Priority</span>
+              </div>
+              <select
+                value={card.priority ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  void handlePriority(val === "" ? undefined : (val as typeof card.priority));
+                }}
+                className="w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 text-sm text-brand-text focus:outline-none cursor-pointer"
+              >
+                <option value="">None</option>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Labels */}
+            <div className="col-span-2">
+              <div className="mb-2 flex items-center gap-1.5 text-brand-text/40">
+                <Tag className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Labels</span>
+              </div>
+              <LabelPicker boardId={boardId} selectedIds={card.labelIds} onChange={handleLabelsChange} />
             </div>
           </div>
-
-          <div className="flex border-b-2 border-brand-text/10 px-4 sm:px-6">
-            {(["details", "activity"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 px-3 py-3 font-mono text-[11px] uppercase tracking-widest font-bold border-b-2 -mb-0.5 transition-colors sm:flex-none sm:justify-start sm:px-4 sm:text-xs",
-                  activeTab === tab
-                    ? "border-brand-text text-brand-text"
-                    : "border-transparent text-brand-text/40 hover:text-brand-text",
-                )}
-              >
-                {tab === "details" ? (
-                  <AlignLeft className="w-3.5 h-3.5" />
-                ) : (
-                  <Activity className="w-3.5 h-3.5" />
-                )}
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {activeTab === "details" ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-                <div className="p-4 sm:p-6 space-y-6 border-b-2 lg:border-b-0 lg:border-r-2 border-brand-text/10 lg:col-span-2">
-                  <button
-                    onClick={() => void handleToggleComplete()}
-                    className={cn(
-                      "flex items-center gap-3 w-full px-4 py-3 rounded-2xl border-2 font-mono font-bold text-sm transition-all",
-                      card.isComplete
-                        ? "border-green-500/30 bg-green-50 text-green-700"
-                        : "border-brand-text/10 hover:border-brand-text/30 text-brand-text/60",
-                    )}
-                  >
-                    {card.isComplete ? (
-                      <CheckSquare className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <Square className="w-5 h-5" />
-                    )}
-                    {card.isComplete ? "Completed" : "Mark as complete"}
-                  </button>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlignLeft className="w-4 h-4 text-brand-text/40" />
-                      <h3 className="font-mono text-xs uppercase tracking-widest font-bold text-brand-text/60">
-                        Description
-                      </h3>
-                    </div>
-                    <CardDescription cardId={cardId} description={card.description} />
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-5">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <UserRound className="w-3.5 h-3.5 text-brand-text/40" />
-                      <h3 className="font-mono text-[10px] uppercase tracking-widest font-bold text-brand-text/50">
-                        Assignee
-                      </h3>
-                    </div>
-                    {canManageAssignees ? (
-                      <div className="rounded-2xl border-2 border-brand-text/10 bg-brand-bg/60 px-3">
-                        <select
-                          value={selectedAssigneeId}
-                          onChange={(e) => void handleAssigneeChange(e.target.value)}
-                          className="h-11 w-full bg-transparent text-sm text-brand-text focus:outline-none"
-                        >
-                          <option value="">Unassigned</option>
-                          {assignableMembers.map((member) => (
-                            <option key={member.userId} value={member.userId}>
-                              {member.name ?? member.email ?? "Unknown member"}
-                              {member.role === "owner" ? " (Owner)" : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border-2 border-brand-text/10 bg-brand-bg/60 px-3 py-3">
-                        <p className="text-sm text-brand-text">
-                          {currentAssignee?.name ??
-                            currentAssignee?.email ??
-                            "Unassigned"}
-                        </p>
-                        <p className="mt-1 font-mono text-[11px] text-brand-text/45">
-                          Only the board owner or members with Allow assign can change task assignees.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Flag className="w-3.5 h-3.5 text-brand-text/40" />
-                      <h3 className="font-mono text-[10px] uppercase tracking-widest font-bold text-brand-text/50">
-                        Priority
-                      </h3>
-                    </div>
-                    <div className="space-y-1">
-                      {PRIORITY_OPTIONS.map((priority) => (
-                        <button
-                          key={priority.value}
-                          onClick={() => void handlePriority(priority.value)}
-                          className={cn(
-                            "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left",
-                            card.priority === priority.value
-                              ? "bg-brand-text text-brand-bg"
-                              : "hover:bg-brand-text/10",
-                          )}
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: priority.color }}
-                          />
-                          {priority.label}
-                        </button>
-                      ))}
-                      {card.priority && (
-                        <button
-                          onClick={() => void handlePriority(undefined)}
-                          className="w-full px-3 py-2 rounded-xl text-xs font-mono text-brand-text/40 hover:bg-brand-text/5 transition-colors text-left"
-                        >
-                          Clear priority
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-3.5 h-3.5 text-brand-text/40" />
-                      <h3 className="font-mono text-[10px] uppercase tracking-widest font-bold text-brand-text/50">
-                        Due Date
-                      </h3>
-                    </div>
-                    <CardDueDate cardId={cardId} dueDate={card.dueDate} />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag className="w-3.5 h-3.5 text-brand-text/40" />
-                      <h3 className="font-mono text-[10px] uppercase tracking-widest font-bold text-brand-text/50">
-                        Labels
-                      </h3>
-                    </div>
-                    <LabelPicker
-                      boardId={boardId}
-                      selectedIds={card.labelIds}
-                      onChange={handleLabelsChange}
-                    />
-                  </div>
-
-                  <div className="pt-2 border-t-2 border-brand-text/10">
-                    <button
-                      onClick={() => setConfirmDelete(true)}
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-brand-accent text-sm font-medium hover:bg-brand-accent/10 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete task
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 sm:p-6">
-                <ActivityFeed cardId={cardId} boardId={boardId} mode="card" />
-              </div>
-            )}
-          </div>
         </div>
-      </Modal>
+
+        {/* ── Description ── */}
+        <div className="border-b border-brand-text/8 px-8 py-6">
+          <h3 className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-brand-text/40">
+            Description
+          </h3>
+          <CardDescription cardId={cardId} description={card.description} />
+        </div>
+
+        {/* Meta */}
+        <div className="px-8 py-4 font-mono text-[11px] text-brand-text/25">
+          Created {format(card.createdAt, "MMM d, yyyy")}
+        </div>
+      </div>
 
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleDelete()}
         title="Delete task"
         description={`"${card.title}" will be permanently deleted.`}
         confirmLabel="Delete Task"
         isDestructive
         isLoading={isDeleting}
       />
-    </>
+    </>,
   );
 }

@@ -1,9 +1,8 @@
 import { forwardRef } from "react";
 import type { HTMLAttributes } from "react";
-import type { CSSProperties } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/utils";
-import { AlignLeft, Clock, CheckCircle2 } from "lucide-react";
+import { FileText, Pencil, MoreHorizontal, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import type { BoardMemberSummary } from "../../lib/types";
 
@@ -15,137 +14,148 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   isDragging?: boolean;
 }
 
-const priorityStyles: Record<string, string> = {
-  urgent: "bg-brand-accent/10 text-brand-accent border-brand-accent/20",
-  high: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  medium: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  low: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-};
-
-const priorityDots: Record<string, string> = {
+const priorityColors: Record<string, string> = {
   urgent: "#E63B2E",
-  high: "#F97316",
-  medium: "#EAB308",
-  low: "#3B82F6",
+  high:   "#F97316",
+  medium: "#CA8A04",
+  low:    "#3B82F6",
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ card, labels, assignee, statusColor, isDragging, className, onClick, style, ...props }, ref) => {
+  (
+    { card, labels, assignee, statusColor, isDragging, className, onClick, style, ...props },
+    ref,
+  ) => {
     const isOverdue = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
+
     const assigneeLabel = assignee?.name ?? assignee?.email ?? "Assigned";
     const assigneeInitials = assigneeLabel
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
+      .map((p) => p[0]?.toUpperCase() ?? "")
       .join("");
 
-    const surfaceStyle: CSSProperties = {
-      ...style,
-      ...(statusColor
-        ? {
-            backgroundColor: `${statusColor}12`,
-            borderColor: `${statusColor}38`,
-            boxShadow: `inset 0 0 0 1px ${statusColor}1A`,
-          }
-        : null),
-    };
+    const hasMetadata =
+      labels.length > 0 || card.priority || card.dueDate || card.isComplete || assignee;
 
     return (
       <div
         ref={ref}
         onClick={onClick}
-        style={surfaceStyle}
+        style={{
+          ...style,
+          ...(statusColor
+            ? {
+                backgroundColor: `${statusColor}16`,
+                borderColor: `${statusColor}24`,
+              }
+            : null),
+        }}
         className={cn(
-          "w-full select-none border-2 rounded-[1.5rem] p-4 shadow-sm group hover:border-brand-text/30 interactive-lift cursor-pointer",
-          statusColor ? "bg-brand-primary/90" : "bg-brand-primary border-brand-text/10",
-          card.isComplete && "opacity-60",
-          isOverdue && "border-l-4 border-l-brand-accent",
-          isDragging && "opacity-40 border-brand-accent rotate-1 scale-105 shadow-2xl cursor-grabbing",
+          "w-full select-none rounded-lg px-3.5 py-3 group cursor-pointer transition-all duration-150 relative",
+          "border",
+          !statusColor && "bg-brand-primary border-brand-text/8",
+          card.isComplete && "opacity-50",
+          isDragging &&
+            "opacity-30 rotate-1 scale-105 shadow-2xl cursor-grabbing",
+          "hover:border-brand-text/20 hover:-translate-y-px",
           className,
         )}
         {...props}
       >
-        {labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2.5">
+        {/* Hover action buttons — top right */}
+        <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="p-1.5 rounded-lg text-brand-text/30 hover:text-brand-text/70 hover:bg-brand-text/10 transition-colors"
+            title="Edit"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="p-1.5 rounded-lg text-brand-text/30 hover:text-brand-text/70 hover:bg-brand-text/10 transition-colors"
+            title="More options"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Title row */}
+        <div className="flex items-start gap-2.5 pr-12">
+          <FileText className="w-3.5 h-3.5 text-brand-text/28 mt-[1px] flex-shrink-0" />
+          <h3
+            className={cn(
+              "text-[13px] font-medium leading-snug text-brand-text/85",
+              card.isComplete && "line-through text-brand-text/35",
+            )}
+          >
+            {card.title}
+          </h3>
+        </div>
+
+        {/* Badge row */}
+        {hasMetadata && (
+          <div className="flex flex-col items-start gap-1.5 mt-2.5 ml-6">
             {labels.map((label) => (
               <span
                 key={label._id}
-                className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold tracking-widest text-white"
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-white/90"
                 style={{ backgroundColor: label.color }}
               >
                 {label.name}
               </span>
             ))}
-          </div>
-        )}
 
-        <h3
-          className={cn(
-            "select-none text-[15px] font-bold leading-snug mb-2.5 font-sans",
-            card.isComplete && "line-through",
-          )}
-        >
-          {card.title}
-        </h3>
-
-        <div className="flex items-center gap-2.5 text-xs font-mono text-brand-text/50 flex-wrap">
-          {card.description && (
-            <div className="flex items-center gap-1" title="Has description">
-              <AlignLeft className="w-3 h-3" />
-            </div>
-          )}
-
-          {card.dueDate && (
-            <div
-              className={cn(
-                "flex items-center gap-1",
-                isOverdue && "text-brand-accent font-bold",
-              )}
-            >
-              <Clock className="w-3 h-3" />
-              {format(card.dueDate, "MMM d")}
-            </div>
-          )}
-
-          {card.priority && (
-            <div
-              className={cn(
-                "flex items-center gap-1 px-1.5 py-0.5 rounded-md border",
-                priorityStyles[card.priority],
-              )}
-            >
+            {card.priority && (
               <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: priorityDots[card.priority] }}
-              />
-              {card.priority}
-            </div>
-          )}
+                className="px-2 py-0.5 rounded-md text-[11px] font-semibold text-white/90"
+                style={{ backgroundColor: priorityColors[card.priority] }}
+              >
+                {card.priority.charAt(0).toUpperCase() + card.priority.slice(1)}{" "}
+                Priority
+              </span>
+            )}
 
-          {card.isComplete && (
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle2 className="w-3 h-3" />
-              <span className="text-[10px]">done</span>
-            </div>
-          )}
+            {card.dueDate && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md",
+                  isOverdue
+                    ? "text-red-400 bg-red-500/12"
+                    : "text-brand-text/38",
+                )}
+              >
+                <Clock className="w-2.5 h-2.5" />
+                {format(card.dueDate, "MMM d")}
+              </span>
+            )}
 
-          {assignee && (
-            <div
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-brand-text/10 bg-brand-bg/70 px-1.5 py-0.5"
-              title={`Assigned to ${assigneeLabel}`}
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-text text-[9px] font-bold uppercase text-brand-bg">
+            {card.isComplete && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-green-500">
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                Done
+              </span>
+            )}
+
+            {assignee && (
+              <span
+                className="flex items-center justify-center h-5 w-5 rounded-full bg-brand-text/15 text-brand-text text-[9px] font-bold uppercase flex-shrink-0"
+                title={assigneeLabel}
+              >
                 {assigneeInitials || "?"}
               </span>
-              <span className="max-w-20 truncate text-[10px] text-brand-text/70">
-                {assigneeLabel}
-              </span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     );
   },
 );
+
 Card.displayName = "Card";

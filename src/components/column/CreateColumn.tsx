@@ -23,11 +23,11 @@ export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) 
     setIsLoading(true);
     try {
       await createColumn({ boardId, title: trimmed });
-      toast.success(`Status "${trimmed}" added`);
+      toast.success(`Group "${trimmed}" added`);
       setTitle("");
       setIsAdding(false);
     } catch {
-      toast.error("Failed to add status");
+      toast.error("Failed to add group");
     } finally {
       setIsLoading(false);
     }
@@ -38,24 +38,24 @@ export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) 
       <div className={fullWidth ? "w-full" : "flex-shrink-0 w-[85vw] max-w-80"}>
         <form
           onSubmit={handleSubmit}
-          className="bg-brand-primary border-2 border-brand-text/20 rounded-[2rem] p-4 space-y-3"
+          className="bg-brand-primary border-2 border-brand-text/20 rounded-lg p-4 space-y-3"
         >
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Status title..."
+            placeholder="Group title..."
             maxLength={40}
             onKeyDown={(e) => e.key === "Escape" && setIsAdding(false)}
-            className="w-full h-10 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
+            className="w-full h-10 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-md font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
           />
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={isLoading || !title.trim()}
-              className="flex-1 h-9 bg-brand-text text-brand-bg rounded-xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60"
+              className="flex-1 h-9 bg-brand-text text-brand-bg rounded-md font-mono font-bold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60"
             >
-              Add Status
+              Add Group
             </button>
             <button
               type="button"
@@ -63,7 +63,7 @@ export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) 
                 setIsAdding(false);
                 setTitle("");
               }}
-              className="h-9 w-9 flex items-center justify-center border-2 border-brand-text/20 rounded-xl hover:border-brand-text transition-colors"
+              className="h-9 w-9 flex items-center justify-center border-2 border-brand-text/20 rounded-md hover:border-brand-text transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -78,10 +78,10 @@ export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) 
       onClick={() => setIsAdding(true)}
       className={`${
         fullWidth ? "w-full" : "flex-shrink-0 w-[70vw] max-w-72"
-      } h-14 bg-brand-bg/50 border-2 border-dashed border-brand-text/20 rounded-[2rem] hover:border-brand-text hover:bg-brand-primary font-mono text-sm font-bold text-brand-text/40 hover:text-brand-text flex items-center justify-center gap-2 transition-all group`}
+      } h-14 bg-brand-bg/50 border-2 border-dashed border-brand-text/20 rounded-lg hover:border-brand-text hover:bg-brand-primary font-mono text-sm font-bold text-brand-text/40 hover:text-brand-text flex items-center justify-center gap-2 transition-all group`}
     >
       <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
-      Add Status
+      Add Group
     </button>
   );
 }

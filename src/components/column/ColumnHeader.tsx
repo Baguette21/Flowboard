@@ -3,16 +3,13 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import {
-  GripVertical,
   Check,
   X,
   Trash2,
   Pencil,
   Palette,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
+  Plus,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dropdown } from "../ui/Dropdown";
@@ -20,31 +17,30 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
 
 const COLUMN_COLORS = [
-  "#E63B2E", "#F97316", "#EAB308", "#22C55E",
-  "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899",
-  undefined, // no color
+  "#E63B2E",
+  "#F97316",
+  "#A16207",
+  "#16A34A",
+  "#0891B2",
+  "#2563EB",
+  "#7C3AED",
+  "#DB2777",
+  "#6B7280",
+  undefined, // no color / neutral
 ];
 
 interface ColumnHeaderProps {
   column: Doc<"columns">;
   cardCount: number;
   dragHandleProps?: React.HTMLAttributes<HTMLElement>;
-  canMoveBackward?: boolean;
-  canMoveForward?: boolean;
-  onMoveBackward?: () => void;
-  onMoveForward?: () => void;
-  reorderOrientation?: "horizontal" | "vertical";
+  onAddCard?: () => void;
 }
 
 export function ColumnHeader({
   column,
   cardCount,
   dragHandleProps,
-  canMoveBackward = false,
-  canMoveForward = false,
-  onMoveBackward,
-  onMoveForward,
-  reorderOrientation = "horizontal",
+  onAddCard,
 }: ColumnHeaderProps) {
   const updateColumn = useMutation(api.columns.update);
   const deleteColumn = useMutation(api.columns.remove);
@@ -64,9 +60,9 @@ export function ColumnHeader({
     }
     try {
       await updateColumn({ columnId: column._id, title: trimmed });
-      toast.success("Status renamed");
+      toast.success("Group renamed");
     } catch {
-      toast.error("Failed to rename status");
+      toast.error("Failed to rename group");
       setEditTitle(column.title);
     }
     setIsEditing(false);
@@ -76,9 +72,9 @@ export function ColumnHeader({
     setIsDeleting(true);
     try {
       await deleteColumn({ columnId: column._id, deleteCards: true });
-      toast.success(`Status "${column.title}" deleted`);
+      toast.success(`"${column.title}" deleted`);
     } catch {
-      toast.error("Failed to delete status");
+      toast.error("Failed to delete column");
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -90,8 +86,6 @@ export function ColumnHeader({
     setShowColorPicker(false);
   };
 
-  const BackwardIcon = reorderOrientation === "vertical" ? ChevronUp : ChevronLeft;
-  const ForwardIcon = reorderOrientation === "vertical" ? ChevronDown : ChevronRight;
   const actionItems = [
     {
       label: "Rename",
@@ -105,7 +99,7 @@ export function ColumnHeader({
     {
       label: "Change color",
       icon: <Palette className="w-4 h-4" />,
-      onClick: () => setShowColorPicker((current) => !current),
+      onClick: () => setShowColorPicker((v) => !v),
     },
     {
       label: "Delete column",
@@ -119,123 +113,113 @@ export function ColumnHeader({
     },
   ];
 
+  // Pill background: use column.color or a neutral fallback
+  const pillBg = column.color ?? "#555";
+
   return (
     <>
-      <div
-        className="p-4 flex items-center gap-2 sticky top-0 bg-brand-bg/80 backdrop-blur-xl z-10 border-b-2 border-brand-text/10 group"
-        style={column.color ? { borderBottomColor: `${column.color}40` } : {}}
-      >
-        <div
-          {...(!isEditing ? dragHandleProps : undefined)}
-          className={cn(
-            "flex min-w-0 flex-1 items-center gap-2 rounded-xl",
-            !isEditing && dragHandleProps
-              ? "cursor-grab active:cursor-grabbing touch-none"
-              : "",
-          )}
-        >
-          {dragHandleProps ? (
-            <span className="text-brand-text/25 transition-colors group-hover:text-brand-text/45 flex-shrink-0">
-              <GripVertical className="w-4 h-4" />
-            </span>
-          ) : null}
-
-          {/* Card count badge */}
-          <div
-            className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-text text-brand-bg font-mono text-xs font-bold shadow-md flex-shrink-0"
-            style={column.color ? { backgroundColor: column.color } : {}}
-          >
-            {cardCount}
-          </div>
-
-          {/* Title */}
+      {/* ── Header row ─────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-3 px-1 group/header">
+        {/* Left: pill title — pill IS the drag handle */}
+        <div className="flex items-center gap-2 min-w-0">
           {isEditing ? (
-            <div className="flex-1 flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               <input
                 autoFocus
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSave();
+                  if (e.key === "Enter") void handleSave();
                   if (e.key === "Escape") {
                     setEditTitle(column.title);
                     setIsEditing(false);
                   }
                 }}
-                className="flex-1 text-base font-serif italic font-bold bg-brand-bg border-2 border-brand-text/20 rounded-xl px-2 py-0.5 focus:outline-none focus:border-brand-text"
+                className="h-7 px-3 text-[12px] font-semibold rounded-full bg-brand-bg border-2 border-brand-text/25 focus:outline-none focus:border-brand-text text-brand-text"
+                style={{ minWidth: 80 }}
               />
-              <button onClick={handleSave} className="p-1 text-green-600 hover:bg-green-50 rounded-lg">
+              <button
+                onClick={() => void handleSave()}
+                className="p-1 text-green-500 hover:bg-green-500/10 rounded-md transition-colors"
+              >
                 <Check className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => { setEditTitle(column.title); setIsEditing(false); }}
-                className="p-1 text-brand-text/40 hover:bg-brand-text/10 rounded-lg"
+                onClick={() => {
+                  setEditTitle(column.title);
+                  setIsEditing(false);
+                }}
+                className="p-1 text-brand-text/35 hover:bg-brand-text/10 rounded-md transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
-            <h2
+            /* Colored pill — drag handle */
+            <button
+              type="button"
+              {...(!isEditing && dragHandleProps ? dragHandleProps : undefined)}
+              onDoubleClick={() => {
+                setEditTitle(column.title);
+                setIsEditing(true);
+              }}
               className={cn(
-                "flex-1 min-w-0 select-none font-serif italic font-bold text-lg leading-none tracking-tight pt-1"
+                "inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12px] font-semibold text-white/90 select-none transition-opacity hover:opacity-85",
+                dragHandleProps && "cursor-grab active:cursor-grabbing touch-none",
               )}
-              onDoubleClick={() => { setEditTitle(column.title); setIsEditing(true); }}
+              style={{ backgroundColor: pillBg }}
+              title="Drag to reorder · Double-click to rename"
             >
               {column.title}
-            </h2>
+              <span className="text-[10px] font-mono opacity-60">{cardCount}</span>
+            </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onMoveBackward}
-            disabled={!canMoveBackward}
-            className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-brand-text/35"
-            title={reorderOrientation === "vertical" ? "Move up" : "Move left"}
-          >
-            <BackwardIcon className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onMoveForward}
-            disabled={!canMoveForward}
-            className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-brand-text/35"
-            title={reorderOrientation === "vertical" ? "Move down" : "Move right"}
-          >
-            <ForwardIcon className="w-4 h-4" />
-          </button>
-          {!isEditing && (
+        {/* Right: menu + add */}
+        {!isEditing && (
+          <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
             <Dropdown
               trigger={
                 <button
                   type="button"
-                  className="p-1.5 rounded-xl text-brand-text/35 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
-                  title="Edit status"
+                  className="p-1.5 rounded-lg text-brand-text/30 hover:text-brand-text/70 hover:bg-brand-text/8 transition-colors"
+                  title="Group options"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <MoreHorizontal className="w-3.5 h-3.5" />
                 </button>
               }
               items={actionItems}
             />
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={onAddCard}
+              className="p-1.5 rounded-lg text-brand-text/30 hover:text-brand-text/70 hover:bg-brand-text/8 transition-colors"
+              title="Add card"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Color picker inline */}
+      {/* ── Inline color picker ─────────────────────────── */}
       {showColorPicker && (
-        <div className="flex flex-wrap gap-2 px-4 py-3 border-b-2 border-brand-text/10 bg-brand-bg/50">
+        <div className="flex flex-wrap gap-2 px-1 pb-3">
           {COLUMN_COLORS.map((c, i) => (
             <button
               key={i}
-              onClick={() => handleColorChange(c)}
+              type="button"
+              onClick={() => void handleColorChange(c)}
               className={cn(
-                "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
-                c === undefined ? "bg-brand-text/10 border-brand-text/20" : "border-transparent",
+                "w-5 h-5 rounded-full border-2 transition-all hover:scale-110",
+                c === undefined
+                  ? "bg-brand-text/15 border-brand-text/25"
+                  : "border-transparent",
                 column.color === c && "border-brand-text scale-110",
               )}
               style={c ? { backgroundColor: c } : {}}
-              title={c ?? "None"}
+              title={c ?? "Default"}
             />
           ))}
         </div>
@@ -244,10 +228,10 @@ export function ColumnHeader({
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
-        title={`Delete status "${column.title}"?`}
-        description="All tasks in this status will be permanently deleted. This cannot be undone."
-        confirmLabel="Delete Status"
+        onConfirm={() => void handleDelete()}
+        title={`Delete group "${column.title}"?`}
+        description="All tasks in this group will be permanently deleted."
+        confirmLabel="Delete Group"
         isDestructive
         isLoading={isDeleting}
       />

@@ -67,7 +67,7 @@ export function Dropdown({ trigger, items, align = "right", className }: Dropdow
           <div
             ref={menuRef}
             className={cn(
-              "fixed z-[100] bg-brand-primary border-2 border-brand-text/10 rounded-2xl shadow-xl overflow-hidden py-1 min-w-[180px]",
+              "fixed z-[100] bg-brand-primary border border-brand-text/12 rounded-md shadow-xl overflow-hidden py-1 min-w-[180px]",
               className,
             )}
             style={{

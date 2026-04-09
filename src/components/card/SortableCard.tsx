@@ -32,7 +32,7 @@ export function SortableCard(props: SortableCardProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className="w-full h-[100px] bg-brand-text/5 border-2 border-brand-text/20 border-dashed rounded-[1.5rem]"
+        className="w-full h-[52px] bg-brand-text/5 border border-brand-text/12 border-dashed rounded-lg"
       />
     );
   }
