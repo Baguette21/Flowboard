@@ -5,6 +5,8 @@ import type { Id, Doc } from "../../../convex/_generated/dataModel";
 import {
   DndContext,
   DragOverlay,
+  pointerWithin,
+  closestCenter,
   closestCorners,
   KeyboardSensor,
   MouseSensor,
@@ -102,16 +104,26 @@ export function BoardView({ boardId }: BoardViewProps) {
   }, [activeColumn, displayCards]);
 
   const collisionDetectionStrategy = useCallback<CollisionDetection>((args) => {
+    // ── Card dragging: pointer-first, fall back to closestCorners ──────
     if (args.active.data.current?.type !== "Column") {
+      const ptr = pointerWithin(args);
+      if (ptr.length > 0) return ptr;
       return closestCorners(args);
     }
 
-    return closestCorners({
+    // ── Column dragging: only consider column-type droppables ──────────
+    // pointerWithin is used because the drag overlay is a tiny pill — rect
+    // based strategies (closestCorners/rectIntersection) are unreliable when
+    // the dragged element doesn't match the droppable size.
+    const columnOnly = {
       ...args,
       droppableContainers: args.droppableContainers.filter(
-        (container) => container.data.current?.type === "Column",
+        (c) => c.data.current?.type === "Column",
       ),
-    });
+    };
+    const ptr = pointerWithin(columnOnly);
+    if (ptr.length > 0) return ptr;
+    return closestCenter(columnOnly);
   }, []);
 
   const onDragStart = useCallback((event: DragStartEvent) => {
@@ -134,7 +146,6 @@ export function BoardView({ boardId }: BoardViewProps) {
     if (!isActiveCard) return;
 
     const activeId = active.id as Id<"cards">;
-    const overId = over.id;
     const isOverCard = over.data.current?.type === "Card";
     const isOverColumn = over.data.current?.type === "Column";
 
@@ -151,7 +162,8 @@ export function BoardView({ boardId }: BoardViewProps) {
     }
 
     if (isOverColumn) {
-      const targetColumnId = overId as Id<"columns">;
+      // Read from data so it works for both `:drop` and sortable ids
+      const targetColumnId = over.data.current!.column._id as Id<"columns">;
       const activeCard = localCards.find((c) => c._id === activeId);
       if (activeCard && activeCard.columnId !== targetColumnId) {
         setLocalCards((prev) =>
@@ -180,12 +192,9 @@ export function BoardView({ boardId }: BoardViewProps) {
 
     // ── Column reorder ────────────────────────────────────────────────
     if (active.data.current?.type === "Column") {
-      const targetColumnId =
-        over.data.current?.type === "Card"
-          ? (over.data.current.card as Doc<"cards">).columnId
-          : (overId as Id<"columns">);
-
-      if (activeId === targetColumnId) { setLocalColumns(null); return; }
+      // Always read from data.current — works for both :drop and sortable ids
+      const targetColumnId = over.data.current?.column?._id as Id<"columns"> | undefined;
+      if (!targetColumnId || activeId === targetColumnId) { setLocalColumns(null); return; }
 
       // Use the sorted snapshot that was set in onDragStart
       const cols = [...(columns ?? [])].sort((a, b) => a.order.localeCompare(b.order));
@@ -212,8 +221,8 @@ export function BoardView({ boardId }: BoardViewProps) {
       let targetOrder: string;
 
       if (over.data.current?.type === "Column") {
-        // Dropped on column — place at end
-        targetColumnId = overId as Id<"columns">;
+        // Dropped on column — place at end; read id from data (handles :drop suffix)
+        targetColumnId = over.data.current.column._id as Id<"columns">;
         const colCards = (cards ?? [])
           .filter((c) => c.columnId === targetColumnId && c._id !== activeId)
           .sort((a, b) => a.order.localeCompare(b.order));

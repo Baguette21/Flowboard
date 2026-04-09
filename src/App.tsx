@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { BoardPage } from "./pages/BoardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LoginPage } from "./components/auth/LoginPage";
+import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 
 function AuthScreen({ message }: { message: string }) {
   return (
@@ -52,6 +53,14 @@ export default function App() {
         element={
           <GuestGuard>
             <LoginPage />
+          </GuestGuard>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <GuestGuard>
+            <ForgotPasswordPage />
           </GuestGuard>
         }
       />

@@ -37,8 +37,9 @@ export function Column({
   const createCard = useMutation(api.cards.create);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Use a distinct id so it doesn't conflict with the SortableColumn's useSortable id
   const { setNodeRef } = useDroppable({
-    id: column._id,
+    id: `${column._id}:drop`,
     data: { type: "Column", column },
   });
 

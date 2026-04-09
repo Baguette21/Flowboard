@@ -32,6 +32,7 @@ async function buildBoardListItem(
     name: board.name,
     slug: board.slug,
     color: board.color,
+    icon: board.icon ?? null,
     isFavorite: board.isFavorite,
     createdAt: board.createdAt,
     updatedAt: board.updatedAt,
@@ -147,8 +148,9 @@ export const create = mutation({
   args: {
     name: v.string(),
     color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
-  handler: async (ctx, { name, color }) => {
+  handler: async (ctx, { name, color, icon }) => {
     const { userId } = await requireCurrentUser(ctx);
     const now = Date.now();
     const slug = await generateUniqueSlug(ctx, name);
@@ -158,6 +160,7 @@ export const create = mutation({
       name,
       slug,
       color: color ?? "#E8E4DD",
+      icon,
       isFavorite: false,
       createdAt: now,
       updatedAt: now,
@@ -191,9 +194,10 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
   },
-  handler: async (ctx, { boardId, name, color, isFavorite }) => {
+  handler: async (ctx, { boardId, name, color, icon, isFavorite }) => {
     const { board, userId } = await requireBoardAccess(ctx, boardId);
     const patch: Partial<Doc<"boards">> = {
       updatedAt: Date.now(),
@@ -208,6 +212,10 @@ export const update = mutation({
       patch.color = color;
     }
 
+    if (icon !== undefined) {
+      patch.icon = icon;
+    }
+
     if (isFavorite !== undefined) {
       patch.isFavorite = isFavorite;
     }
@@ -217,6 +225,8 @@ export const update = mutation({
     let details = "Updated board settings";
     if (name !== undefined && name !== board.name) {
       details = `Renamed board to "${name}"`;
+    } else if (icon !== undefined && icon !== (board.icon ?? undefined)) {
+      details = "Changed board icon";
     } else if (color !== undefined && color !== board.color) {
       details = "Changed board color";
     } else if (isFavorite !== undefined && isFavorite !== board.isFavorite) {

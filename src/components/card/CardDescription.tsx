@@ -2,15 +2,20 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Check, X, Pencil } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface CardDescriptionProps {
   cardId: Id<"cards">;
   description?: string;
+  compact?: boolean;
 }
 
-export function CardDescription({ cardId, description }: CardDescriptionProps) {
+export function CardDescription({
+  cardId,
+  description,
+  compact = false,
+}: CardDescriptionProps) {
   const updateCard = useMutation(api.cards.update);
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(description ?? "");
@@ -28,27 +33,27 @@ export function CardDescription({ cardId, description }: CardDescriptionProps) {
 
   if (isEditing) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <textarea
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Add a description…"
-          className="w-full h-32 p-3 bg-brand-bg border-2 border-brand-text/20 rounded-md font-sans text-sm resize-y focus:outline-none focus:border-brand-text transition-colors"
+          placeholder="Write something..."
+          className="min-h-[120px] w-full resize-y bg-transparent p-0 font-sans text-sm leading-7 text-brand-text placeholder:text-brand-text/25 focus:outline-none"
         />
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-text text-brand-bg rounded-md font-mono font-bold text-xs hover:bg-brand-dark transition-colors"
+            className="flex items-center gap-1.5 rounded-[9px] border border-brand-text/14 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-brand-text/70 transition-colors hover:border-brand-text/24 hover:text-brand-text"
           >
-            <Check className="w-3.5 h-3.5" />
+            <Check className="h-3.5 w-3.5" />
             Save
           </button>
           <button
             onClick={handleCancel}
-            className="flex items-center gap-1.5 px-4 py-2 border-2 border-brand-text/20 rounded-md font-mono font-bold text-xs hover:border-brand-text transition-colors"
+            className="flex items-center gap-1.5 rounded-[9px] border border-brand-text/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-brand-text/45 transition-colors hover:border-brand-text/20 hover:text-brand-text/70"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="h-3.5 w-3.5" />
             Cancel
           </button>
         </div>
@@ -58,17 +63,25 @@ export function CardDescription({ cardId, description }: CardDescriptionProps) {
 
   return (
     <div
-      onClick={() => { setValue(description ?? ""); setIsEditing(true); }}
-      className="group relative cursor-text"
+      onClick={() => {
+        setValue(description ?? "");
+        setIsEditing(true);
+      }}
+      className="group cursor-text"
     >
       {description ? (
-        <div className="bg-brand-bg/50 rounded-md p-3 text-sm font-sans leading-relaxed whitespace-pre-wrap border-2 border-transparent group-hover:border-brand-text/20 transition-colors">
+        <div className="min-h-[36px] whitespace-pre-wrap rounded-[10px] px-0 py-0 text-sm leading-7 text-brand-text transition-colors group-hover:text-brand-text/88">
           {description}
-          <Pencil className="w-3 h-3 absolute top-2 right-2 opacity-0 group-hover:opacity-40 transition-opacity" />
         </div>
       ) : (
-        <div className="bg-brand-bg/50 rounded-md p-3 text-sm font-mono text-brand-text/30 border-2 border-dashed border-brand-text/10 group-hover:border-brand-text/30 transition-colors">
-          Click to add a description…
+        <div
+          className={
+            compact
+              ? "min-h-[36px] rounded-[10px] px-0 py-0 font-mono text-[12px] leading-7 text-brand-text/24 transition-colors group-hover:text-brand-text/40"
+              : "min-h-[80px] rounded-[10px] px-0 py-0 font-mono text-[12px] leading-7 text-brand-text/24 transition-colors group-hover:text-brand-text/40"
+          }
+        >
+          Start typing...
         </div>
       )}
     </div>

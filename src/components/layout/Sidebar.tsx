@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { CreateBoardModal } from "../board/CreateBoardModal";
+import { getBoardIconOption } from "../../lib/boardIcons";
 
 interface SidebarProps {
   activeBoardId?: Id<"boards">;
@@ -120,31 +121,42 @@ export function Sidebar({
                   <div className="px-3 py-2 text-brand-sidebar-text/30 font-mono text-xs">No boards yet</div>
                 ) : (
                   boards.map((board) => (
-                    <button
-                      key={board._id}
-                      onClick={() => {
-                        navigate(`/board/${board._id}`);
-                        onMobileClose?.();
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all text-left group",
-                        activeBoardId === board._id
-                          ? "bg-brand-primary text-brand-text"
-                          : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
-                      )}
-                    >
-                      <span
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: board.color }}
-                      />
-                      <span className="truncate flex-1">{board.name}</span>
-                      {board.role === "member" && (
-                        <Users className="w-3 h-3 text-brand-sidebar-text/50 flex-shrink-0" />
-                      )}
-                      {board.isFavorite && (
-                        <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" fill="currentColor" />
-                      )}
-                    </button>
+                    (() => {
+                      const boardIcon = getBoardIconOption(board.icon, board.color);
+
+                      return (
+                        <button
+                          key={board._id}
+                          onClick={() => {
+                            navigate(`/board/${board._id}`);
+                            onMobileClose?.();
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all text-left group",
+                            activeBoardId === board._id
+                              ? "bg-brand-primary text-brand-text"
+                              : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
+                          )}
+                        >
+                          <span
+                            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[8px]"
+                            style={{
+                              backgroundColor: `${board.color}22`,
+                              color: board.color,
+                            }}
+                          >
+                            <boardIcon.Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="truncate flex-1">{board.name}</span>
+                          {board.role === "member" && (
+                            <Users className="w-3 h-3 text-brand-sidebar-text/50 flex-shrink-0" />
+                          )}
+                          {board.isFavorite && (
+                            <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" fill="currentColor" />
+                          )}
+                        </button>
+                      );
+                    })()
                   ))
                 )}
               </div>

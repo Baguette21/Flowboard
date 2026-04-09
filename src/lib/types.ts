@@ -6,6 +6,7 @@ export type BoardListItem = {
   name: string;
   slug: string;
   color: string;
+  icon: string | null;
   isFavorite: boolean;
   createdAt: number;
   updatedAt: number;

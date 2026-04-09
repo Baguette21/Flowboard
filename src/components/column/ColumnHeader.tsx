@@ -178,7 +178,7 @@ export function ColumnHeader({
 
         {/* Right: menu + add */}
         {!isEditing && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5">
             <Dropdown
               trigger={
                 <button

@@ -6,13 +6,18 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
+    "convex:dev": "node scripts/sync-convex-env.mjs && npx convex dev",
+    "convex:env:sync": "node scripts/sync-convex-env.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@auth/core": "^0.37.0",
+    "@aws-sdk/client-s3": "^3.1027.0",
+    "@aws-sdk/s3-request-presigner": "^3.1027.0",
     "@convex-dev/auth": "^0.0.91",
+    "@convex-dev/r2": "^0.9.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

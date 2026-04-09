@@ -37,6 +37,16 @@ const sendSmtpVerificationRequest = (async (
   });
 }) as unknown as (params: VerificationRequestParams) => Promise<void>;
 
+const sendSmtpPasswordResetRequest = (async (
+  { identifier, token }: Pick<VerificationRequestParams, "identifier" | "token">,
+  ctx: GenericActionCtxWithAuthConfig<DataModel>,
+) => {
+  await ctx.runAction(internal.smtp.sendPasswordResetEmail, {
+    to: identifier,
+    code: token,
+  });
+}) as unknown as (params: VerificationRequestParams) => Promise<void>;
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
@@ -63,6 +73,14 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           return generateOtpCode();
         },
         sendVerificationRequest: sendSmtpVerificationRequest,
+      }),
+      reset: Email({
+        id: "password-reset",
+        maxAge: 10 * 60,
+        async generateVerificationToken() {
+          return generateOtpCode();
+        },
+        sendVerificationRequest: sendSmtpPasswordResetRequest,
       }),
     }),
   ],

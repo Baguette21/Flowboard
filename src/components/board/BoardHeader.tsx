@@ -6,6 +6,7 @@ import { Settings, Star, Check, X, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { BoardSettings } from "./BoardSettings";
+import { getBoardIconOption } from "../../lib/boardIcons";
 
 interface BoardHeaderProps {
   board: Doc<"boards">;
@@ -19,6 +20,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(board.name);
   const [showSettings, setShowSettings] = useState(false);
+  const boardIcon = getBoardIconOption(board.icon, board.color);
 
   const handleSaveName = async () => {
     const trimmed = editName.trim();
@@ -47,9 +49,11 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
       <div className="flex flex-col gap-3 border-b-2 border-brand-text/10 bg-brand-bg px-4 py-3 flex-shrink-0 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div
-            className="w-3 h-3 rounded-full shadow-md flex-shrink-0"
-            style={{ backgroundColor: board.color }}
-          />
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]"
+            style={{ backgroundColor: `${board.color}22`, color: board.color }}
+          >
+            <boardIcon.Icon className="h-4.5 w-4.5" />
+          </div>
 
           {isEditingName ? (
             <div className="flex min-w-0 items-center gap-2">

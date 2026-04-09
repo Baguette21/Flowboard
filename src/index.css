@@ -107,6 +107,17 @@
     @apply bg-brand-bg/60 backdrop-blur-xl border border-brand-primary shadow-sm;
   }
 
+  .themed-select-popup {
+    color-scheme: inherit;
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+  }
+
+  .themed-select-popup option {
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+  }
+
   @keyframes slideInFromRight {
     from { transform: translateX(100%); }
     to   { transform: translateX(0); }

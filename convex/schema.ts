@@ -10,6 +10,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     image: v.optional(v.string()),
     email: v.optional(v.string()),
+    role: v.optional(v.union(v.literal("USER"), v.literal("PRO"))),
     emailVerificationTime: v.optional(v.number()),
     phone: v.optional(v.string()),
     phoneVerificationTime: v.optional(v.number()),
@@ -24,6 +25,7 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     color: v.string(),
+    icon: v.optional(v.string()),
     isFavorite: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -102,6 +104,20 @@ export default defineSchema({
     name: v.string(),
     color: v.string(),
   }).index("by_boardId", ["boardId"]),
+
+  cardAttachments: defineTable({
+    boardId: v.id("boards"),
+    cardId: v.id("cards"),
+    key: v.string(),
+    fileName: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    uploadedByUserId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_cardId", ["cardId"])
+    .index("by_boardId", ["boardId"])
+    .index("by_uploadedByUserId_and_createdAt", ["uploadedByUserId", "createdAt"]),
 
   activityLogs: defineTable({
     boardId: v.id("boards"),

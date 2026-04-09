@@ -8,6 +8,7 @@ import { cn } from "../../lib/utils";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Dropdown } from "../ui/Dropdown";
 import type { BoardListItem } from "../../lib/types";
+import { getBoardIconOption } from "../../lib/boardIcons";
 
 interface BoardCardProps {
   board: BoardListItem;
@@ -19,6 +20,7 @@ export function BoardCard({ board }: BoardCardProps) {
   const deleteBoard = useMutation(api.boards.remove);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const boardIcon = getBoardIconOption(board.icon, board.color);
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,6 +75,15 @@ export function BoardCard({ board }: BoardCardProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
+              <div
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]"
+                style={{
+                  backgroundColor: `${board.color}22`,
+                  color: board.color,
+                }}
+              >
+                <boardIcon.Icon className="h-4.5 w-4.5" />
+              </div>
               <h3 className="font-serif italic font-bold text-xl leading-tight truncate">
                 {board.name}
               </h3>

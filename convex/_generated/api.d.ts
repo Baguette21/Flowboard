@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as boardInvites from "../boardInvites.js";
 import type * as boardMembers from "../boardMembers.js";
 import type * as boards from "../boards.js";
+import type * as cardAttachments from "../cardAttachments.js";
 import type * as cards from "../cards.js";
 import type * as columns from "../columns.js";
 import type * as helpers_boardAccess from "../helpers/boardAccess.js";
@@ -21,6 +22,7 @@ import type * as helpers_validators from "../helpers/validators.js";
 import type * as http from "../http.js";
 import type * as labels from "../labels.js";
 import type * as notifications from "../notifications.js";
+import type * as r2 from "../r2.js";
 import type * as smtp from "../smtp.js";
 import type * as users from "../users.js";
 
@@ -36,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   boardInvites: typeof boardInvites;
   boardMembers: typeof boardMembers;
   boards: typeof boards;
+  cardAttachments: typeof cardAttachments;
   cards: typeof cards;
   columns: typeof columns;
   "helpers/boardAccess": typeof helpers_boardAccess;
@@ -44,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   labels: typeof labels;
   notifications: typeof notifications;
+  r2: typeof r2;
   smtp: typeof smtp;
   users: typeof users;
 }>;

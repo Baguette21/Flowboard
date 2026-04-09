@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Modal } from "../ui/Modal";
+import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "../../lib/utils";
-
-const BOARD_COLORS = [
-  "#E63B2E", "#F97316", "#EAB308", "#22C55E",
-  "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899",
-  "#111111", "#6B7280",
-];
+import {
+  BOARD_ACCENT_OPTIONS,
+  BOARD_ICON_OPTIONS,
+  DEFAULT_BOARD_ACCENT,
+  DEFAULT_BOARD_ICON,
+} from "../../lib/boardIcons";
 
 interface CreateBoardModalProps {
   open: boolean;
@@ -22,99 +21,194 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
   const navigate = useNavigate();
   const createBoard = useMutation(api.boards.create);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(BOARD_COLORS[0]);
+  const [iconId, setIconId] = useState(DEFAULT_BOARD_ICON.id);
+  const [color, setColor] = useState(DEFAULT_BOARD_ACCENT.color);
   const [isLoading, setIsLoading] = useState(false);
+
+  const selectedIcon =
+    BOARD_ICON_OPTIONS.find((option) => option.id === iconId) ?? DEFAULT_BOARD_ICON;
+  const selectedAccent =
+    BOARD_ACCENT_OPTIONS.find((option) => option.color === color) ??
+    DEFAULT_BOARD_ACCENT;
+
+  useEffect(() => {
+    if (!open) {
+      setIsLoading(false);
+      setName("");
+      setIconId(DEFAULT_BOARD_ICON.id);
+      setColor(DEFAULT_BOARD_ACCENT.color);
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
+
     setIsLoading(true);
+
     try {
-      const boardId = await createBoard({ name: name.trim(), color });
+      const boardId = await createBoard({
+        name: name.trim(),
+        color,
+        icon: selectedIcon.id,
+      });
       toast.success(`Board "${name}" created!`);
       onClose();
-      setName("");
       navigate(`/board/${boardId}`);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to create board");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create board";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (!open) {
+    return null;
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="New Board" size="sm">
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block font-mono text-xs uppercase tracking-widest text-brand-text/60 mb-1.5">
-            Board Name
-          </label>
-          <input
-            autoFocus
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Website Redesign"
-            required
-            maxLength={60}
-            className="w-full h-12 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
-          />
-        </div>
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div
+        className="task-panel-backdrop absolute inset-0 bg-black/50"
+        onClick={onClose}
+      />
 
-        <div>
-          <label className="block font-mono text-xs uppercase tracking-widest text-brand-text/60 mb-3">
-            Accent Color
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {BOARD_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                className={cn(
-                  "w-8 h-8 rounded-full border-2 transition-all hover:scale-110",
-                  color === c
-                    ? "border-brand-text scale-110 shadow-md"
-                    : "border-transparent",
-                )}
-                style={{ backgroundColor: c }}
-              />
-            ))}
+      <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:max-w-[560px]">
+        <div className="flex items-center justify-between border-b border-brand-text/10 px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Plus className="h-4 w-4 text-brand-text/40" />
+            <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+              New Board
+            </span>
           </div>
-        </div>
-
-        {/* Preview */}
-        <div
-          className="rounded-2xl p-4 border-t-4"
-          style={{
-            backgroundColor: `${color}11`,
-            borderTopColor: color,
-          }}
-        >
-          <p className="font-serif italic font-bold text-lg">
-            {name || "Board Name"}
-          </p>
-          <p className="font-mono text-xs text-brand-text/40 mt-0.5">Preview</p>
-        </div>
-
-        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-11 border-2 border-brand-text/20 rounded-2xl font-mono font-bold text-sm hover:border-brand-text transition-colors"
+            className="rounded-lg p-2 text-brand-text/30 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
+            title="Close"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading || !name.trim()}
-            className="flex-1 h-11 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Create Board
+            <X className="h-4 w-4" />
           </button>
         </div>
-      </form>
-    </Modal>
+
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7">
+            <div className="rounded-[16px] border border-brand-text/10 bg-brand-primary/12 px-5 py-5">
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-[16px]"
+                  style={{
+                    backgroundColor: `${selectedAccent.color}22`,
+                    boxShadow: `inset 0 0 0 1px ${selectedAccent.color}22`,
+                    color: selectedAccent.color,
+                  }}
+                >
+                  <selectedIcon.Icon className="h-7 w-7" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-serif text-[28px] font-bold leading-none text-brand-text">
+                    {name || "Board Name"}
+                  </p>
+                  <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-text/34">
+                    Preview
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-7">
+              <label className="mb-2 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                Board Name
+              </label>
+              <input
+                autoFocus
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Website Redesign"
+                required
+                maxLength={60}
+                className="h-12 w-full rounded-[12px] border border-brand-text/12 bg-brand-primary/40 px-4 text-sm text-brand-text outline-none transition-colors placeholder:text-brand-text/26 focus:border-brand-text/28"
+              />
+            </div>
+
+            <div className="mt-7">
+              <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                Board Icon
+              </label>
+              <div className="grid grid-cols-7 gap-2 sm:grid-cols-8">
+                {BOARD_ICON_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setIconId(option.id)}
+                    className={cn(
+                      "flex h-11 items-center justify-center rounded-[10px] border transition-colors",
+                      iconId === option.id
+                        ? "border-brand-text/26 bg-brand-primary"
+                        : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
+                    )}
+                    title={option.label}
+                    aria-label={option.label}
+                  >
+                    <option.Icon className="h-5 w-5 text-brand-text/72" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-7">
+              <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                Accent Color
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {BOARD_ACCENT_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setColor(option.color)}
+                    className={cn(
+                      "flex h-11 items-center justify-center rounded-[12px] border transition-colors",
+                      color === option.color
+                        ? "border-brand-text/26 bg-brand-primary"
+                        : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
+                    )}
+                    title={option.label}
+                  >
+                    <span
+                      className="h-5 w-5 rounded-full"
+                      style={{ backgroundColor: option.color }}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-brand-text/10 px-8 py-4">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 flex-1 rounded-[12px] border border-brand-text/14 font-mono text-sm font-bold text-brand-text/72 transition-colors hover:border-brand-text/26 hover:text-brand-text"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || !name.trim()}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] bg-brand-text font-mono text-sm font-bold text-brand-bg transition-colors hover:bg-brand-dark disabled:opacity-60"
+              >
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create Board
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

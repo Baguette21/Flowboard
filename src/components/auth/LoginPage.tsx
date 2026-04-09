@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
@@ -320,6 +320,16 @@ export function LoginPage() {
                     )}
                   </button>
                 </div>
+                {flow === "signIn" && (
+                  <div className="mt-2 text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="font-mono text-[11px] uppercase tracking-[0.14em] text-brand-text/45 transition-colors hover:text-brand-accent"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

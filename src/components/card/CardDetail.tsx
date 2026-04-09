@@ -4,6 +4,8 @@ import { api } from "../../../convex/_generated/api";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
 import type { BoardMemberSummary } from "../../lib/types";
 import { CardDescription } from "./CardDescription";
+import { CardSectionErrorBoundary } from "./CardSectionErrorBoundary";
+import { CardImageGallery } from "./CardImageGallery";
 import { LabelPicker } from "../label/LabelPicker";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import {
@@ -77,6 +79,12 @@ export function CardDetail({
       setIsEditingTitle(true);
     }
   }, [card?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (card === null) {
+      onClose();
+    }
+  }, [card, onClose]);
 
   /* ── Handlers ── */
   const handleToggleComplete = async () => {
@@ -162,7 +170,9 @@ export function CardDetail({
     );
   }
 
-  if (!card) { onClose(); return null; }
+  if (!card) {
+    return null;
+  }
 
   const currentColumn   = columns.find((c) => c._id === card.columnId);
   const cardLabels      = labels.filter((l) => card.labelIds.includes(l._id));
@@ -358,12 +368,32 @@ export function CardDetail({
           </div>
         </div>
 
-        {/* ── Description ── */}
+        {/* ── Notes canvas ── */}
         <div className="border-b border-brand-text/8 px-8 py-6">
-          <h3 className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-brand-text/40">
-            Description
-          </h3>
-          <CardDescription cardId={cardId} description={card.description} />
+          <div className="rounded-[14px] border border-brand-text/8 bg-brand-primary/10 px-5 py-5">
+            <CardDescription
+              cardId={cardId}
+              description={card.description}
+            />
+
+            <div className="mt-5">
+              <CardSectionErrorBoundary
+                fallback={
+                  <div className="py-3">
+                    <p className="font-mono text-xs text-brand-text/35">
+                      Images could not load right now.
+                    </p>
+                  </div>
+                }
+              >
+                <CardImageGallery
+                  cardId={cardId}
+                  skipInitialLoad={card.title === "New task"}
+                  embedded
+                />
+              </CardSectionErrorBoundary>
+            </div>
+          </div>
         </div>
 
         {/* Meta */}

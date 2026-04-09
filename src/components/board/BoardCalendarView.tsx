@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -19,15 +19,9 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/utils";
 import { CardDetail } from "../card/CardDetail";
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Layers3,
-  Palette,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
+import { toast } from "sonner";
 
 interface BoardCalendarViewProps {
   boardId: Id<"boards">;
@@ -39,17 +33,16 @@ interface BoardCalendarViewProps {
 
 type DueCard = Doc<"cards"> & { dueDate: number };
 
-// Preset accent colors for the calendar (independent of board color)
 const CALENDAR_COLORS = [
-  "#3B82F6", // blue (default)
-  "#8B5CF6", // purple
-  "#06B6D4", // cyan
-  "#22C55E", // green
-  "#F97316", // orange
-  "#E63B2E", // red
-  "#EC4899", // pink
-  "#EAB308", // yellow
-  "#6B7280", // gray
+  "#3B82F6",
+  "#8B5CF6",
+  "#06B6D4",
+  "#22C55E",
+  "#F97316",
+  "#E63B2E",
+  "#EC4899",
+  "#EAB308",
+  "#6B7280",
 ];
 
 export function BoardCalendarView({
@@ -61,16 +54,14 @@ export function BoardCalendarView({
 }: BoardCalendarViewProps) {
   const members = useQuery(api.boardMembers.listForBoard, { boardId });
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
+  const createCard = useMutation(api.cards.create);
 
   const [selectedMonth, setSelectedMonth] = useState(() =>
     startOfMonth(new Date()),
   );
-  const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(
-    null,
-  );
+  const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
-  // Calendar accent color — stored per board in localStorage, independent of board color
   const [calendarColor, setCalendarColor] = useState<string>(() => {
     return (
       localStorage.getItem(`flowboard-cal-color-${boardId}`) ??
@@ -129,16 +120,16 @@ export function BoardCalendarView({
     () => new Map(columns.map((col) => [col._id, col])),
     [columns],
   );
+  const sortedColumns = useMemo(
+    () => [...columns].sort((a, b) => a.order.localeCompare(b.order)),
+    [columns],
+  );
 
-  // Hex → rgba helper (no gradient, flat tint only)
   const tint = (color: string, opacity: number) => {
     const hex = color.trim().replace("#", "");
     const full =
       hex.length === 3
-        ? hex
-            .split("")
-            .map((v) => `${v}${v}`)
-            .join("")
+        ? hex.split("").map((v) => `${v}${v}`).join("")
         : hex;
     if (full.length === 6) {
       const r = parseInt(full.slice(0, 2), 16);
@@ -149,133 +140,135 @@ export function BoardCalendarView({
     return color;
   };
 
+  const handleDateCreate = async (day: Date) => {
+    const targetColumn = sortedColumns[0];
+    if (!targetColumn) {
+      toast.error("Add a group first");
+      return;
+    }
+    try {
+      const newCardId = await createCard({
+        boardId,
+        columnId: targetColumn._id,
+        title: "New task",
+        dueDate: startOfDay(day).getTime(),
+      });
+      setSelectedCardId(newCardId);
+    } catch {
+      toast.error("Failed to create task");
+    }
+  };
+
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   return (
     <>
-      <div className="h-full overflow-auto bg-brand-bg px-3 py-3 sm:px-6 sm:py-5">
-        <div className="mx-auto max-w-[1400px]">
+      <div className="h-full overflow-auto bg-brand-bg">
+        <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6">
 
-          {/* ── Calendar header ─────────────────────────── */}
-          <div className="mb-4 rounded-md border border-brand-text/10 bg-brand-primary px-4 py-4 sm:px-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* ── Header ─────────────────────────────────── */}
+          <div className="mb-4 flex items-center justify-between">
+            {/* Left: month name + due count */}
+            <div
+              className="flex items-center gap-3 pl-3"
+              style={{ borderLeft: `3px solid ${calendarColor}` }}
+            >
               <div>
-                <div className="flex items-center gap-2 text-brand-text/50">
-                  <CalendarDays className="h-4 w-4" />
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.26em]">
-                    Due Calendar
-                  </span>
-                </div>
-                <h2 className="mt-2 font-serif text-2xl font-bold tracking-tight sm:text-3xl">
+                <h2 className="text-xl font-bold leading-none text-brand-text sm:text-2xl">
                   {format(selectedMonth, "MMMM yyyy")}
                 </h2>
-                <p className="mt-1 font-mono text-xs text-brand-text/45 sm:text-sm">
-                  {dueThisMonth.length} scheduled due item
-                  {dueThisMonth.length === 1 ? "" : "s"} this month
-                </p>
+                {dueThisMonth.length > 0 && (
+                  <p className="mt-1 text-xs text-brand-text/50">
+                    {dueThisMonth.length} task{dueThisMonth.length !== 1 ? "s" : ""} due
+                  </p>
+                )}
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 self-start">
-                {/* Accent color picker */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowColorPicker((v) => !v)}
-                    className="flex h-9 w-9 items-center justify-center border border-brand-text/15 bg-brand-bg/60 text-brand-text/45 hover:text-brand-text hover:border-brand-text/30 transition-colors"
-                    title="Calendar accent color"
-                  >
-                    <Palette className="h-4 w-4" />
-                  </button>
+            {/* Right: color picker + nav */}
+            <div className="flex items-center gap-2">
+              {/* Color picker — shows live color, hard to miss */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowColorPicker((v) => !v)}
+                  className="flex items-center gap-2 rounded-lg border border-brand-text/15 bg-brand-primary px-3 py-1.5 text-sm font-medium text-brand-text/70 hover:border-brand-text/30 hover:text-brand-text transition-colors"
+                  title="Change calendar accent color"
+                >
+                  <span
+                    className="h-3.5 w-3.5 rounded-full ring-2 ring-white/30"
+                    style={{ backgroundColor: calendarColor }}
+                  />
+                  Accent
+                </button>
 
-                  {showColorPicker && (
-                    <div className="absolute top-11 right-0 z-20 flex flex-wrap gap-2 p-3 border border-brand-text/12 bg-brand-primary shadow-xl w-[148px]">
+                {showColorPicker && (
+                  <div className="absolute right-0 top-10 z-20 rounded-xl border border-brand-text/12 bg-brand-primary p-3 shadow-xl">
+                    <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-brand-text/35">
+                      Pick a color
+                    </p>
+                    <div className="flex gap-2">
                       {CALENDAR_COLORS.map((c) => (
                         <button
                           key={c}
                           type="button"
                           onClick={() => handleCalendarColorChange(c)}
                           className={cn(
-                            "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
+                            "h-6 w-6 rounded-full transition-all hover:scale-110",
                             calendarColor === c
-                              ? "border-brand-text scale-110"
-                              : "border-transparent",
+                              ? "ring-2 ring-brand-text ring-offset-2 ring-offset-brand-primary scale-110"
+                              : "",
                           )}
                           style={{ backgroundColor: c }}
                           title={c}
                         />
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
-                {/* Month nav */}
-                <div className="flex items-center gap-1 border border-brand-text/12 bg-brand-bg/60 p-1">
-                  <button
-                    onClick={() =>
-                      setSelectedMonth((cur) => subMonths(cur, 1))
-                    }
-                    className="flex h-9 w-9 items-center justify-center text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
-                    title="Previous month"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      setSelectedMonth((cur) => addMonths(cur, 1))
-                    }
-                    className="flex h-9 w-9 items-center justify-center text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
-                    title="Next month"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
+              {/* Month nav */}
+              <div className="flex items-center gap-0.5 rounded-lg border border-brand-text/12 bg-brand-primary p-0.5">
+                <button
+                  onClick={() => setSelectedMonth((cur) => subMonths(cur, 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
+                  title="Previous month"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setSelectedMonth((cur) => addMonths(cur, 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
+                  title="Next month"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
 
-          {/* ── Loading / Empty ──────────────────────────── */}
+          {/* ── Grid ──────────────────────────────────── */}
           {cards === undefined ? (
-            <div className="border border-brand-text/10 bg-brand-primary p-10 text-center">
-              <p className="font-mono text-sm text-brand-text/40">
-                Loading due dates…
-              </p>
-            </div>
-          ) : dueCards.length === 0 ? (
-            <div className="border border-brand-text/10 bg-brand-primary px-6 py-14 text-center">
-              <div
-                className="mx-auto flex h-14 w-14 items-center justify-center"
-                style={{ backgroundColor: tint(calendarColor, 0.12) }}
-              >
-                <Layers3 className="h-7 w-7 text-brand-text/20" />
-              </div>
-              <h3 className="mt-5 font-serif text-xl font-bold">
-                No due dates yet
-              </h3>
-              <p className="mx-auto mt-2 max-w-sm font-mono text-sm text-brand-text/40">
-                Add due dates to cards and they'll appear here.
-              </p>
+            <div className="rounded-xl border border-brand-text/10 bg-brand-primary p-10 text-center">
+              <p className="text-sm text-brand-text/40">Loading…</p>
             </div>
           ) : (
-            /* ── Calendar grid ──────────────────────────── */
-            <div className="overflow-hidden rounded-md border border-brand-text/10 bg-brand-primary">
-              {/* Day-of-week header */}
-              <div
-                className="grid grid-cols-7 border-b border-brand-text/10"
-                style={{ backgroundColor: tint(calendarColor, 0.06) }}
-              >
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                  (day) => (
+            <div className="overflow-hidden rounded-xl border border-brand-text/12 bg-brand-primary">
+              {/* Day-of-week row */}
+              <div className="grid grid-cols-7" style={{ borderBottom: `2px solid ${tint(calendarColor, 0.25)}` }}>
+                {DAYS.map((day, i) => {
+                  const isWeekend = i === 0 || i === 6;
+                  return (
                     <div
                       key={day}
-                      className={cn(
-                        "px-2 py-3 text-center font-mono text-[10px] font-bold uppercase tracking-[0.22em] sm:px-4",
-                        day === "Sun" || day === "Sat"
-                          ? "text-brand-text/20"
-                          : "text-brand-text/38",
-                      )}
+                      className="py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider"
+                      style={{ color: isWeekend ? tint(calendarColor, 0.35) : tint(calendarColor, 0.65) }}
                     >
                       {day}
                     </div>
-                  ),
-                )}
+                  );
+                })}
               </div>
 
               {/* Day cells */}
@@ -285,47 +278,45 @@ export function BoardCalendarView({
                   const dayCards = cardsByDay.get(key) ?? [];
                   const isCurrentMonth = isSameMonth(day, selectedMonth);
                   const isCurrentDay = isToday(day);
-                  const isWeekend =
-                    getDay(day) === 0 || getDay(day) === 6;
+                  const isWeekend = getDay(day) === 0 || getDay(day) === 6;
 
                   return (
                     <div
                       key={key}
+                      onClick={() => void handleDateCreate(day)}
                       className={cn(
-                        "min-h-36 border-b border-r border-brand-text/8 px-2 py-2 align-top sm:min-h-44 sm:px-3 sm:py-3",
-                        !isCurrentMonth && "opacity-40",
-                        isCurrentMonth && isWeekend && "bg-brand-bg/25",
+                        "group/cell relative min-h-32 cursor-pointer border-b border-r border-brand-text/8 px-2 py-2 align-top transition-colors sm:min-h-40 sm:px-2.5 sm:py-2.5",
+                        isCurrentDay && "bg-brand-text/[0.025]",
+                        !isCurrentMonth && "opacity-35",
+                        isWeekend && isCurrentMonth && !isCurrentDay && "bg-brand-text/[0.015]",
                       )}
+                      style={isCurrentDay ? { boxShadow: `inset 0 2px 0 ${calendarColor}` } : undefined}
                     >
-                      {/* Date number */}
-                      <div className="mb-2 flex items-center justify-between">
+                      {/* Date number row */}
+                      <div className="mb-1.5 flex items-start justify-between">
                         <span
                           className={cn(
-                            "flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold",
-                            isCurrentMonth
-                              ? "text-brand-text"
-                              : "text-brand-text/25",
+                            "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold leading-none",
+                            isCurrentDay ? "text-white" : isCurrentMonth ? "text-brand-text/70" : "text-brand-text/30",
                           )}
-                          style={
-                            isCurrentDay
-                              ? {
-                                  backgroundColor: tint(calendarColor, 0.20),
-                                  outline: `1.5px solid ${tint(calendarColor, 0.55)}`,
-                                }
-                              : undefined
-                          }
+                          style={isCurrentDay ? { backgroundColor: calendarColor } : undefined}
                         >
                           {format(day, "d")}
                         </span>
-                        {dayCards.length > 0 && (
-                          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-brand-text/28">
-                            {dayCards.length}
-                          </span>
-                        )}
+
+                        {/* Quick-add button on hover */}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); void handleDateCreate(day); }}
+                          className="opacity-0 group-hover/cell:opacity-100 flex h-5 w-5 items-center justify-center rounded text-brand-text/40 hover:bg-brand-text/10 hover:text-brand-text/70 transition-all"
+                          title={`Add task on ${format(day, "MMM d")}`}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
                       </div>
 
-                      {/* Cards */}
-                      <div className="space-y-1.5">
+                      {/* Task cards */}
+                      <div className="space-y-1">
                         {dayCards.slice(0, 4).map((card) => {
                           const assignee = card.assignedUserId
                             ? (membersById.get(card.assignedUserId) ?? null)
@@ -333,47 +324,41 @@ export function BoardCalendarView({
                           const assigneeName =
                             assignee?.name ?? assignee?.email ?? null;
                           const overdue =
-                            isBefore(
-                              startOfDay(card.dueDate),
-                              startOfDay(new Date()),
-                            ) && !card.isComplete;
+                            isBefore(startOfDay(card.dueDate), startOfDay(new Date())) &&
+                            !card.isComplete;
                           const status = columnsById.get(card.columnId);
                           const statusColor = status?.color ?? "#6B7280";
 
                           return (
                             <button
                               key={card._id}
-                              onClick={() => setSelectedCardId(card._id)}
-                              className="block w-full overflow-hidden rounded-sm border text-left transition-transform hover:-translate-y-px"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCardId(card._id);
+                              }}
+                              className="block w-full overflow-hidden rounded text-left transition-all hover:-translate-y-px hover:shadow-sm"
                               style={{
                                 backgroundColor: overdue
-                                  ? tint(statusColor, 0.18)
-                                  : tint(statusColor, 0.12),
-                                borderColor: tint(statusColor, 0.22),
-                                boxShadow: `inset 3px 0 0 ${statusColor}`,
+                                  ? tint(statusColor, 0.15)
+                                  : tint(statusColor, 0.1),
+                                borderLeft: `2px solid ${statusColor}`,
                               }}
                             >
-                              <div className="px-2.5 py-2">
-                                <div className="flex items-start gap-1.5">
-                                  <div
-                                    className="mt-0.5 inline-flex h-2 w-2 flex-shrink-0"
-                                    style={{ backgroundColor: statusColor }}
-                                  />
-                                  <p className="min-w-0 flex-1 truncate font-sans text-[11px] font-medium text-brand-text/85">
-                                    {card.title}
-                                  </p>
-                                </div>
-                                <div className="mt-1 flex items-center justify-between gap-2">
-                                  <span className="truncate font-mono text-[9px] uppercase tracking-[0.12em] text-brand-text/45">
-                                    {status?.title ?? "Group"}
+                              <div className="px-2 py-1.5">
+                                <p className="truncate text-[11px] font-medium leading-tight text-brand-text/80">
+                                  {card.title}
+                                </p>
+                                <div className="mt-0.5 flex items-center justify-between gap-1">
+                                  <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-brand-text/40">
+                                    {status?.title ?? "—"}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 font-mono text-[9px] text-brand-text/40">
-                                    <Clock className="h-2.5 w-2.5" />
+                                  <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] text-brand-text/35">
+                                    <Clock className="h-2 w-2" />
                                     {format(card.dueDate, "h:mm a")}
                                   </span>
                                 </div>
                                 {assigneeName && (
-                                  <p className="mt-0.5 truncate font-mono text-[9px] text-brand-text/35">
+                                  <p className="mt-0.5 truncate text-[9px] text-brand-text/30">
                                     {assigneeName}
                                   </p>
                                 )}
@@ -383,7 +368,7 @@ export function BoardCalendarView({
                         })}
 
                         {dayCards.length > 4 && (
-                          <p className="px-1 font-mono text-[10px] tracking-[0.14em] text-brand-text/28">
+                          <p className="pl-1 text-[10px] font-medium text-brand-text/35">
                             +{dayCards.length - 4} more
                           </p>
                         )}
@@ -392,6 +377,22 @@ export function BoardCalendarView({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {cards !== undefined && dueCards.length === 0 && (
+            <div className="mt-0 rounded-b-xl border-x border-b border-brand-text/12 bg-brand-primary px-6 py-10 text-center">
+              <div
+                className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{ backgroundColor: tint(calendarColor, 0.12) }}
+              >
+                <Clock className="h-5 w-5" style={{ color: tint(calendarColor, 0.7) }} />
+              </div>
+              <p className="font-semibold text-brand-text/60">No due dates yet</p>
+              <p className="mt-1 text-sm text-brand-text/35">
+                Click any date to create a task
+              </p>
             </div>
           )}
         </div>
