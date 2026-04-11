@@ -44,22 +44,34 @@ export function LabelPicker({ boardId, selectedIds, onChange }: LabelPickerProps
     const trimmed = newName.trim();
     if (!trimmed) return;
     try {
-      await createLabel({ boardId, name: trimmed, color: newColor });
+      const labelId = await createLabel({ boardId, name: trimmed, color: newColor });
+      if (!selectedIds.includes(labelId)) {
+        onChange([...selectedIds, labelId]);
+      }
       setNewName("");
       setNewColor(LABEL_COLORS[0]);
       setIsCreating(false);
-      toast.success("Label created");
-    } catch {
-      toast.error("Failed to create label");
+      toast.success("Label saved");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create label";
+      toast.error(message);
     }
   };
 
   const handleUpdate = async (labelId: Id<"labels">) => {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.error("Label name is required");
+      return;
+    }
+
     try {
-      await updateLabel({ labelId, name: editName.trim(), color: editColor });
+      await updateLabel({ labelId, name: trimmed, color: editColor });
       setEditingId(null);
-    } catch {
-      toast.error("Failed to update label");
+      toast.success("Label updated");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update label";
+      toast.error(message);
     }
   };
 
@@ -69,8 +81,9 @@ export function LabelPicker({ boardId, selectedIds, onChange }: LabelPickerProps
       await deleteLabel({ labelId });
       onChange(selectedIds.filter((id) => id !== labelId));
       toast.success("Label deleted");
-    } catch {
-      toast.error("Failed to delete label");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete label";
+      toast.error(message);
     }
   };
 

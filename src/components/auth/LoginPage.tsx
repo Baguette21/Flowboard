@@ -146,7 +146,7 @@ export function LoginPage() {
         {theme === "dark" ? "Light" : "Dark"}
       </button>
 
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-brand-dark p-12 text-brand-bg">
+      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-brand-dark p-12 text-brand-sidebar-text">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded bg-brand-accent" />
           <span className="font-serif italic font-bold text-2xl tracking-tight leading-none pt-1">
@@ -155,10 +155,10 @@ export function LoginPage() {
         </div>
 
         <div>
-          <blockquote className="font-serif italic text-4xl font-bold leading-tight mb-6 text-brand-primary">
+          <blockquote className="font-serif italic text-4xl font-bold leading-tight mb-6 text-brand-sidebar-text/80">
             "Clarity in chaos.<br />Progress in motion."
           </blockquote>
-          <p className="font-mono text-sm text-brand-bg/50 uppercase tracking-widest">
+          <p className="font-mono text-sm text-brand-sidebar-text/50 uppercase tracking-widest">
             Real-time Kanban for focused teams
           </p>
         </div>

@@ -1,6 +1,25 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { getBoardAccess, requireBoardAccess } from "./helpers/boardAccess";
+
+function normalizeLabelName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+async function findLabelByName(
+  ctx: MutationCtx,
+  boardId: Id<"boards">,
+  name: string,
+) {
+  const normalizedName = normalizeLabelName(name);
+  const labels = await ctx.db
+    .query("labels")
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+    .collect();
+
+  return labels.find((label) => normalizeLabelName(label.name) === normalizedName) ?? null;
+}
 
 export const listByBoard = query({
   args: { boardId: v.id("boards") },
@@ -25,7 +44,17 @@ export const create = mutation({
   },
   handler: async (ctx, { boardId, name, color }) => {
     await requireBoardAccess(ctx, boardId);
-    return await ctx.db.insert("labels", { boardId, name, color });
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new Error("Label name is required");
+    }
+
+    const existing = await findLabelByName(ctx, boardId, trimmedName);
+    if (existing) {
+      return existing._id;
+    }
+
+    return await ctx.db.insert("labels", { boardId, name: trimmedName, color });
   },
 });
 
@@ -43,7 +72,19 @@ export const update = mutation({
 
     await requireBoardAccess(ctx, label.boardId);
     const patch: Record<string, unknown> = {};
-    if (name !== undefined) patch.name = name;
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        throw new Error("Label name is required");
+      }
+
+      const existing = await findLabelByName(ctx, label.boardId, trimmedName);
+      if (existing && existing._id !== labelId) {
+        throw new Error("A label with that name already exists");
+      }
+
+      patch.name = trimmedName;
+    }
     if (color !== undefined) patch.color = color;
     await ctx.db.patch(labelId, patch);
   },

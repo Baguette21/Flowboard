@@ -114,7 +114,13 @@
   }
 
   .themed-select-popup option {
-    background-color: var(--color-brand-bg);
+    background-color: var(--color-brand-header);
+    color: var(--color-brand-text);
+    padding: 4px 8px;
+  }
+
+  .themed-select-popup option:checked {
+    background-color: var(--color-brand-primary);
     color: var(--color-brand-text);
   }
 

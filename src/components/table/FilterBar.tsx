@@ -228,7 +228,8 @@ function FilterPanel({
                       value: "",
                     });
                   }}
-                  className="rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                  className="themed-select-popup rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                  style={{ colorScheme: "inherit" }}
                 >
                   {columns.map((entry) => (
                     <option key={entry.id} value={entry.id}>
@@ -244,7 +245,8 @@ function FilterPanel({
                       operator: event.target.value as FilterOperator,
                     })
                   }
-                  className="rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                  className="themed-select-popup rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                  style={{ colorScheme: "inherit" }}
                 >
                   {FILTER_OPERATORS.map((operator) => (
                     <option key={operator.value} value={operator.value}>
@@ -263,7 +265,8 @@ function FilterPanel({
                     onChange={(event) =>
                       actions.updateFilter(filter.id, { value: event.target.value })
                     }
-                    className="rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                    className="themed-select-popup rounded-2xl border border-brand-text/10 bg-brand-bg/90 px-3 py-2 text-sm text-brand-text outline-none"
+                    style={{ colorScheme: "inherit" }}
                   >
                     <option value="">Empty</option>
                     {valueOptions.map((option) => (
