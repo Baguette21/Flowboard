@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
+import { format as fmtDate } from "date-fns";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/utils";
@@ -1176,7 +1177,8 @@ function CellRenderer({
               onCommitBuiltIn(e.target.value);
               onStopEditing();
             }}
-            className="w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            className="themed-select-popup w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            style={{ colorScheme: "inherit" }}
           >
             {sortedBoardColumns.map((col) => (
               <option key={col._id} value={col._id}>
@@ -1209,7 +1211,8 @@ function CellRenderer({
               onStopEditing();
             }}
             onBlur={onStopEditing}
-            className="w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            className="themed-select-popup w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            style={{ colorScheme: "inherit" }}
           >
             <option value="">Empty</option>
             {(colDef.options ?? []).map((o) => (
@@ -1224,7 +1227,7 @@ function CellRenderer({
       case "dueDate":
         return (
           <input
-            type="date"
+            type="datetime-local"
             value={String(value ?? "")}
             onClick={stop}
             onChange={(e) => {
@@ -1259,7 +1262,8 @@ function CellRenderer({
               onStopEditing();
             }}
             onBlur={onStopEditing}
-            className="w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none disabled:cursor-not-allowed disabled:text-brand-text/30"
+            className="themed-select-popup w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none disabled:cursor-not-allowed disabled:text-brand-text/30"
+            style={{ colorScheme: "inherit" }}
           >
             <option value="">Empty</option>
             {members.map((m) => (
@@ -1296,7 +1300,8 @@ function CellRenderer({
               onStopEditing();
             }}
             onBlur={onStopEditing}
-            className="w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            className="themed-select-popup w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
+            style={{ colorScheme: "inherit" }}
           >
             {statusOpts.map((o) => (
               <option key={o.id} value={o.id}>
@@ -1880,10 +1885,7 @@ function GalleryView({
                 </span>
                 {card.dueDate && (
                   <span className="font-mono text-[10px] text-brand-text/30">
-                    {new Date(card.dueDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {fmtDate(card.dueDate, "MMM d, h:mm a")}
                   </span>
                 )}
               </div>

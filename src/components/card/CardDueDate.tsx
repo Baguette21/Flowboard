@@ -33,14 +33,14 @@ export function CardDueDate({ cardId, dueDate }: CardDueDateProps) {
 
   const isOverdue = dueDate && dueDate < Date.now();
   const formatted = dueDate
-    ? new Date(dueDate).toISOString().split("T")[0]
+    ? format(dueDate, "yyyy-MM-dd'T'HH:mm")
     : "";
 
   return (
     <div className="space-y-2">
       <div className="relative">
         <input
-          type="date"
+          type="datetime-local"
           value={formatted}
           onChange={handleChange}
           className={cn(
@@ -55,7 +55,7 @@ export function CardDueDate({ cardId, dueDate }: CardDueDateProps) {
             "font-mono text-xs",
             isOverdue ? "text-brand-accent font-bold" : "text-brand-text/50",
           )}>
-            {isOverdue ? "Overdue" : format(dueDate, "EEE, MMM d")}
+            {isOverdue ? "Overdue" : format(dueDate, "EEE, MMM d 'at' h:mm a")}
           </span>
           <button
             onClick={handleClear}

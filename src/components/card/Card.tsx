@@ -103,7 +103,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
                 )}
               >
                 <Clock className="h-2.5 w-2.5" />
-                {format(card.dueDate, "MMM d")}
+                {format(card.dueDate, "MMM d, h:mm a")}
               </span>
             )}
 

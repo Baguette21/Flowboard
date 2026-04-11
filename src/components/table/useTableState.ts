@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { format } from "date-fns";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
 import type {
   TableState,
@@ -386,7 +387,7 @@ export function useTableState(
           case "priority":
             return card.priority ?? "";
           case "dueDate":
-            return card.dueDate ? new Date(card.dueDate).toISOString().split("T")[0] : "";
+            return card.dueDate ? format(card.dueDate, "yyyy-MM-dd'T'HH:mm") : "";
           case "assignee":
             return card.assignedUserId ?? "";
           case "status":

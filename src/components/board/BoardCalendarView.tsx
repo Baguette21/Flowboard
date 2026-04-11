@@ -3,14 +3,13 @@ import { useMutation, useQuery } from "convex/react";
 import {
   addMonths,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
   getDay,
-  isBefore,
   isSameMonth,
   isToday,
-  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -151,7 +150,7 @@ export function BoardCalendarView({
         boardId,
         columnId: targetColumn._id,
         title: "New task",
-        dueDate: startOfDay(day).getTime(),
+        dueDate: endOfDay(day).getTime(),
       });
       setSelectedCardId(newCardId);
     } catch {
@@ -324,7 +323,7 @@ export function BoardCalendarView({
                           const assigneeName =
                             assignee?.name ?? assignee?.email ?? null;
                           const overdue =
-                            isBefore(startOfDay(card.dueDate), startOfDay(new Date())) &&
+                            card.dueDate < Date.now() &&
                             !card.isComplete;
                           const status = columnsById.get(card.columnId);
                           const statusColor = status?.color ?? "#6B7280";

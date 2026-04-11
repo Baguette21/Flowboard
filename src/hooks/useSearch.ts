@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type { FilterState } from "../components/search/FilterPanel";
-import { isToday, isThisWeek, isPast } from "date-fns";
+import { isToday, isThisWeek } from "date-fns";
 
 export function useSearch(cards: Doc<"cards">[] | undefined) {
   const [query, setQuery] = useState("");
@@ -37,7 +37,7 @@ export function useSearch(cards: Doc<"cards">[] | undefined) {
       result = result.filter((c) => {
         if (!c.dueDate) return false;
         const date = new Date(c.dueDate);
-        if (filters.dueFilter === "overdue") return isPast(date) && !isToday(date);
+        if (filters.dueFilter === "overdue") return c.dueDate < Date.now();
         if (filters.dueFilter === "today") return isToday(date);
         if (filters.dueFilter === "week") return isThisWeek(date);
         return true;

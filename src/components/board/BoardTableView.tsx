@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
+import { format } from "date-fns";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -418,8 +419,8 @@ export function BoardTableView({
       case "dueDate":
         return (
           <input
-            type="date"
-            value={card.dueDate ? new Date(card.dueDate).toISOString().split("T")[0] : ""}
+            type="datetime-local"
+            value={card.dueDate ? format(card.dueDate, "yyyy-MM-dd'T'HH:mm") : ""}
             onClick={stopRowClick}
             onChange={(event) =>
               void updateCard({

@@ -179,7 +179,7 @@ export function CardDetail({
   const currentAssignee = members.find((m) => m.userId === card.assignedUserId) ?? null;
   const isOverdue       = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
   const dueDateFormatted = card.dueDate
-    ? new Date(card.dueDate).toISOString().split("T")[0]
+    ? format(card.dueDate, "yyyy-MM-dd'T'HH:mm")
     : "";
 
   return shell(
@@ -321,7 +321,7 @@ export function CardDetail({
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Due date</span>
               </div>
               <input
-                type="date"
+                type="datetime-local"
                 value={dueDateFormatted}
                 onChange={handleDueDateChange}
                 className={cn(
@@ -331,7 +331,7 @@ export function CardDetail({
               />
               {card.dueDate && (
                 <p className={cn("mt-1 font-mono text-[10px]", isOverdue ? "text-brand-accent" : "text-brand-text/35")}>
-                  {isOverdue ? "Overdue" : format(card.dueDate, "EEE, MMM d")}
+                  {isOverdue ? "Overdue" : format(card.dueDate, "EEE, MMM d 'at' h:mm a")}
                 </p>
               )}
             </div>
