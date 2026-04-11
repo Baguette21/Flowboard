@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FlowBoard Documentation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12pt;
+      color: #111;
+      background: #fff;
+    }
+
+    /* ── Page wrapper ── */
+    .page {
+      width: 816px;
+      min-height: 1056px;
+      margin: 0 auto;
+      padding: 96px 96px 80px 96px;
+      background: #fff;
+    }
+
+    @media print {
+      .page { width: 100%; padding: 1in 1in 0.8in 1in; page-break-after: always; }
+      .no-break { page-break-inside: avoid; }
+    }
+
+    /* ── Cover page ── */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 900px;
+      text-align: center;
+      gap: 0;
+    }
+
+    .cover-title {
+      font-size: 48pt;
+      font-style: italic;
+      font-weight: bold;
+      margin: 40px 0 6px 0;
+      letter-spacing: -1px;
+    }
+
+    .cover-subtitle {
+      font-weight: bold;
+      font-size: 12pt;
+      margin-bottom: 4px;
+    }
+
+    .cover-description {
+      font-size: 12pt;
+      margin-bottom: 60px;
+    }
+
+    .cover-by {
+      font-size: 12pt;
+      margin-bottom: 30px;
+    }
+
+    .cover-section-label {
+      font-weight: bold;
+      font-size: 12pt;
+      margin-bottom: 6px;
+    }
+
+    .cover-member {
+      font-size: 12pt;
+      line-height: 1.8;
+    }
+
+    .cover-date {
+      margin-top: 50px;
+      font-size: 12pt;
+    }
+
+    /* ── Body typography ── */
+    h2 {
+      font-size: 14pt;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+
+    p {
+      text-align: justify;
+      line-height: 1.8;
+      margin-bottom: 14px;
+      text-indent: 48px;
+    }
+
+    ul {
+      margin-left: 60px;
+      margin-bottom: 14px;
+    }
+
+    ul li {
+      line-height: 1.8;
+      margin-bottom: 4px;
+      text-align: justify;
+    }
+
+    .section-number {
+      display: inline-block;
+      width: 46px;
+    }
+
+    /* ── SDG headings ── */
+    .sdg-title {
+      text-indent: 48px;
+      font-weight: normal;
+      line-height: 1.8;
+      margin-bottom: 14px;
+      text-align: justify;
+    }
+
+    .sdg-title u { font-weight: normal; }
+
+    /* ── Requirements table ── */
+    .req-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 11pt;
+    }
+
+    .req-table th {
+      background: #fff;
+      border: 1px solid #333;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: bold;
+    }
+
+    .req-table td {
+      border: 1px solid #333;
+      padding: 10px 12px;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .req-table .category-row td {
+      background: #1B4F8A;
+      color: #fff;
+      font-weight: bold;
+      padding: 8px 12px;
+    }
+
+    .req-table .name-col { width: 38%; }
+    .req-table .req-col  { width: 62%; }
+
+    /* ── Database section ── */
+    .db-table-name {
+      font-weight: bold;
+    }
+
+    /* ── Sitemap list ── */
+    .sitemap-section {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .sitemap-sub {
+      margin-left: 24px;
+    }
+
+    /* ── Divider between pages ── */
+    .page-break {
+      border: none;
+      page-break-after: always;
+      margin: 0;
+      height: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     COVER PAGE
+════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-title">FlowBoard</div>
+    <div class="cover-subtitle">Documentation</div>
+    <div class="cover-description">A Kanban-Style Task Management Web Application</div>
+
+    <div class="cover-by">By Eugene Carl Dela Cruz</div>
+
+    <div class="cover-date">April 8, 2026</div>
+  </div>
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     I. INTRODUCTION
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">I.</span> Introduction</h2>
+
+  <p>
+    FlowBoard is a personal Kanban-style task management web application designed to help
+    individuals and teams organize, prioritize, and track their work through an intuitive
+    visual board system. Managing tasks across multiple projects often becomes
+    difficult when relying on fragmented tools such as spreadsheets, messaging apps, or
+    basic to-do lists. These tools typically lack real-time collaboration, visual workflow
+    representation, and the flexibility to reflect individual work styles. FlowBoard was
+    developed to address these pain points by providing a clean, structured, and
+    responsive environment where work can be visualized, filtered, and managed with
+    minimal friction.
+  </p>
+
+  <p>
+    The application is built around the core Kanban concept of boards, columns, and cards.
+    Users can create multiple boards — each representing a distinct project or area of
+    responsibility — and organize tasks as cards within customizable columns such as
+    "To Do," "In Progress," "Review," and "Done." Cards can be enriched with descriptions,
+    priority levels (Urgent, High, Medium, Low), due dates, color-coded labels, and
+    assignees. Drag-and-drop reordering is supported for both cards and columns using a
+    fractional indexing system, ensuring stable and precise ordering without full
+    re-indexing.
+  </p>
+
+  <p>
+    FlowBoard uses Convex as its real-time backend, which enables live synchronization
+    of all board data across multiple users and browser sessions. Authentication is handled
+    through a secure email-and-password flow with email OTP (one-time password) verification
+    via SMTP. Board owners can invite collaborators by email, manage their membership
+    status, and control assignment permissions. When a task is assigned to another user,
+    a notification is automatically generated and delivered within the application.
+    An activity log records every action taken on a board, providing a transparent history
+    of task creation, movement, updates, and deletions. FlowBoard also includes a
+    search and filter panel for quick access to specific tasks, along with keyboard shortcuts
+    and a toggleable light/dark theme for a comfortable and efficient user experience.
+  </p>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     II. PROBLEM STATEMENT & OBJECTIVES
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">II.</span> Problem Statement &amp; Objectives</h2>
+
+  <p>
+    Individuals and teams frequently struggle to manage tasks effectively when their
+    workflow is spread across multiple disconnected tools — from handwritten notes and
+    chat messages to generic spreadsheets. Without a centralized system, tasks are
+    easily forgotten, priorities become unclear, and deadlines are missed. Manual approaches
+    also make it difficult to visualize the overall state of a project or to understand
+    where bottlenecks occur. When teams collaborate, the absence of real-time updates
+    forces members to rely on manual status checks and constant communication to stay
+    aligned, which is both time-consuming and error-prone.
+  </p>
+
+  <p>
+    Furthermore, existing generic task tools often lack features tailored for Kanban-style
+    workflows — such as drag-and-drop column and card ordering, per-board label systems,
+    priority-based filtering, and built-in assignment notifications. Users either resort to
+    overly complex enterprise tools with steep learning curves or settle for bare-bones
+    applications that fail to support productive, focused work. FlowBoard was built to fill
+    this gap by providing a focused, fast, and feature-rich Kanban board application that
+    is simple enough for personal use yet powerful enough for small team collaboration.
+  </p>
+
+  <p>
+    To improve task organization and team productivity, the following objectives shall be
+    achieved upon completion of the system:
+  </p>
+
+  <ul>
+    <li>Create a secure web-based Kanban board application with user registration and login using email and password, verified through OTP.</li>
+    <li>Allow users to create and manage multiple boards, each with a custom name and accent color, and mark boards as favorites.</li>
+    <li>Allow users to create, rename, recolor, reorder, and delete columns within their boards.</li>
+    <li>Allow users to create task cards with titles, descriptions, priority levels, due dates, color-coded labels, and assignees.</li>
+    <li>Implement drag-and-drop reordering of both cards and columns using fractional indexing for precise and stable ordering.</li>
+    <li>Provide real-time synchronization of all board data across users and browser sessions through Convex.</li>
+    <li>Allow board owners to invite collaborators by email, and manage their membership status and assignment permissions.</li>
+    <li>Implement a notification system that alerts users when a task is assigned to them.</li>
+    <li>Maintain a per-board activity log that records all significant actions such as card creation, movement, updates, and deletions.</li>
+    <li>Include a search and filter panel allowing users to search cards by text and filter by priority, label, and due date.</li>
+    <li>Support keyboard shortcuts for efficient navigation and quick actions within the application.</li>
+    <li>Provide a toggleable light and dark theme that persists across sessions using local storage.</li>
+  </ul>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     III. UN SDGs ADDRESSED
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">III.</span> UN SDGs Addressed</h2>
+
+  <p>
+    According to the United Nations Sustainable Development Goals (SDGs), technology and
+    innovation play a central role in building more productive, inclusive, and sustainable
+    societies. FlowBoard, as a personal project focused on productivity and collaboration,
+    supports several SDGs by improving how individuals and teams organize work, reducing
+    inefficiencies, and promoting transparent and accountable workflows through digital
+    tools.
+  </p>
+
+  <p class="sdg-title">
+    <u>Goal 8: Decent Work and Economic Growth</u> – This goal promotes productive
+    employment, efficient work environments, and sustained economic growth. FlowBoard
+    directly supports this goal by giving individuals and teams a tool to organize their
+    tasks more effectively, minimize wasted time, and focus on meaningful work. By replacing
+    manual and fragmented task-tracking methods with a structured Kanban board, users can
+    reduce repetitive coordination overhead, improve output quality, and complete projects
+    more efficiently — contributing to better personal and professional productivity.
+  </p>
+
+  <p class="sdg-title">
+    <u>Goal 9: Industry, Innovation, and Infrastructure</u> – This goal emphasizes
+    the importance of technological innovation and resilient digital infrastructure.
+    FlowBoard embodies this principle through its use of modern technologies such as
+    React, TypeScript, Convex real-time backend, and fractional indexing for drag-and-drop
+    ordering. The application demonstrates how thoughtful software engineering and
+    purpose-built tooling can modernize everyday workflows and support innovation at
+    both the individual and organizational levels.
+  </p>
+
+  <p class="sdg-title">
+    <u>Goal 17: Partnerships for the Goals</u> – This goal encourages collaboration,
+    knowledge sharing, and the use of technology to strengthen cooperative efforts.
+    FlowBoard supports this through its board membership and collaboration features,
+    which allow multiple users to work together on shared boards. Board owners can
+    invite collaborators, assign tasks, receive notifications, and review shared activity
+    logs — fostering a transparent and cooperative environment that mirrors the spirit
+    of Goal 17.
+  </p>
+
+  <p>
+    Although FlowBoard is a personal project primarily focused on task management,
+    it contributes to broader sustainable development aims by promoting efficient work
+    practices, leveraging modern digital infrastructure, and enabling meaningful
+    collaboration. Through these contributions, FlowBoard supports the development of
+    more productive and accountable digital work environments.
+  </p>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     IV. SCOPE OF THE PROJECT
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">IV.</span> Scope of the Project</h2>
+
+  <p>
+    FlowBoard is a web-based Kanban task management application that provides
+    users with a visual, board-centered interface for organizing and tracking their
+    work. The system allows authenticated users to create and manage multiple boards,
+    each representing a distinct project or workflow. Within each board, users can
+    define columns that represent the stages of their workflow and populate them
+    with task cards that move across stages as work progresses. Users can access
+    the application from any modern web browser on desktop or mobile devices, and
+    all board data is synchronized in real time across sessions using Convex.
+  </p>
+
+  <p>
+    The operations of the application are centered around two user roles: board
+    owners and board members. Board owners have full control over their boards,
+    including the ability to create, edit, and delete columns and cards; manage
+    labels; invite and remove members; and delete the board entirely. Board members
+    can view and interact with boards they have been invited to, and may be granted
+    permission to assign tasks to other members by the board owner. Each user has an
+    individual account secured through email-and-password authentication with OTP
+    email verification, ensuring that only authorized users can access private board
+    data.
+  </p>
+
+  <p>
+    For the features of the application, users can create task cards with rich
+    details including titles, descriptions, priority levels, labels, due dates, and
+    assignees. Cards and columns can be reordered via drag-and-drop using a
+    fractional indexing system. The search and filter panel allows users to quickly
+    locate cards by text content, priority flag, label, or due date range. An
+    activity log records all significant board and card actions for full transparency.
+    Notifications are generated when tasks are assigned to users, keeping team
+    members informed without manual follow-up. The application also supports keyboard
+    shortcuts for power users and a toggleable light/dark theme that is persisted
+    locally. The scope does not currently include time tracking, file attachments,
+    recurring tasks, or external calendar integrations.
+  </p>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     V. FUNCTIONAL / NON-FUNCTIONAL REQUIREMENTS
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">V.</span> Functional / Non-functional Requirements</h2>
+
+  <table class="req-table">
+    <thead>
+      <tr>
+        <th class="name-col">Name</th>
+        <th class="req-col">Requirements</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- FUNCTIONAL -->
+      <tr class="category-row">
+        <td colspan="2">Functional Requirements</td>
+      </tr>
+
+      <tr>
+        <td>Landing &amp; Authentication Page</td>
+        <td>The application should have a login page where users can register a new account or sign in using their email and password. New users must verify their email address via a one-time password (OTP) sent through SMTP before gaining access to the system.</td>
+      </tr>
+
+      <tr>
+        <td>Board Management</td>
+        <td>Authenticated users must be able to create new boards with a custom name and accent color. Users should be able to rename, recolor, and delete boards they own. Users should also be able to mark or unmark boards as favorites for quick access.</td>
+      </tr>
+
+      <tr>
+        <td>Column Management</td>
+        <td>Users must be able to add new columns to a board, rename existing columns, assign an optional color to each column, reorder columns via drag-and-drop, and delete columns with the option to either delete or migrate their associated cards.</td>
+      </tr>
+
+      <tr>
+        <td>Card / Task Management</td>
+        <td>Users must be able to create task cards within columns, providing a title, optional description, priority level (Urgent, High, Medium, or Low), due date, and label assignments. Cards must be movable across columns via drag-and-drop and reorderable within their column. Users should be able to mark cards as complete or reopen them.</td>
+      </tr>
+
+      <tr>
+        <td>Label Management</td>
+        <td>Users must be able to create custom labels per board, each with a name and a color. Labels should be assignable to multiple cards. Users should be able to update or delete labels, with automatic removal of deleted labels from all associated cards.</td>
+      </tr>
+
+      <tr>
+        <td>Board Members &amp; Invitations</td>
+        <td>Board owners must be able to invite collaborators by email address. Invited users should receive and be able to accept or decline pending invitations. Board owners should be able to manage members, including updating their assignment permissions or removing them from the board.</td>
+      </tr>
+
+      <tr>
+        <td>Task Assignment &amp; Notifications</td>
+        <td>Board owners and members with assignment permission must be able to assign a card to any member of the board. When a task is assigned to a user, an in-app notification should be created for the recipient. Users should be able to view and mark notifications as read.</td>
+      </tr>
+
+      <tr>
+        <td>Activity Log</td>
+        <td>The system must automatically record all significant actions performed on a board, including card and column creation, updates, moves, completions, and deletions. The activity log should be viewable per board and per card, ordered from most recent to oldest.</td>
+      </tr>
+
+      <tr>
+        <td>Search &amp; Filter Panel</td>
+        <td>Users must be able to search for cards within a board by typing keywords that match the card title or description. Users should also be able to filter cards by priority level, assigned label, or due date range (overdue, due today, due this week). Multiple filters should be applicable simultaneously, and a clear-all option must be provided.</td>
+      </tr>
+
+      <tr>
+        <td>Theme Toggle</td>
+        <td>The application should provide a toggleable light and dark theme. The user's chosen theme must be persisted in local storage so it is remembered across sessions.</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<hr class="page-break"/>
+
+<div class="page">
+
+  <table class="req-table">
+    <thead>
+      <tr>
+        <th class="name-col">Name</th>
+        <th class="req-col">Requirements</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- NON-FUNCTIONAL: PRODUCT -->
+      <tr class="category-row">
+        <td colspan="2">Non-Functional Requirements — Product Requirements</td>
+      </tr>
+
+      <tr>
+        <td>Usability</td>
+        <td>The application should be intuitive and visually clear, allowing users to navigate boards, manage tasks, and use filtering tools with minimal guidance. Board and card interactions should feel immediate and responsive, with clear visual feedback for drag-and-drop, form submissions, and state changes.</td>
+      </tr>
+
+      <tr>
+        <td>Performance</td>
+        <td>The application should load quickly, and all real-time updates — including card moves, column reorders, and activity log entries — should be reflected immediately without noticeable delay. Convex real-time subscriptions must ensure low-latency data propagation across all connected sessions.</td>
+      </tr>
+
+      <tr>
+        <td>Compatibility</td>
+        <td>The application should be compatible with all modern web browsers, including Google Chrome, Mozilla Firefox, Microsoft Edge, and Apple Safari. Core functionality must be accessible on both desktop and mobile screen sizes.</td>
+      </tr>
+
+      <tr>
+        <td>Maintainability</td>
+        <td>The codebase should follow consistent TypeScript conventions with well-defined types and interfaces. Backend logic in Convex should be modular and separated by domain (boards, cards, columns, labels, etc.) to simplify future updates and feature additions.</td>
+      </tr>
+
+      <tr>
+        <td>Mobile Responsiveness</td>
+        <td>The application should be optimized for mobile devices with a responsive layout that adapts to different screen sizes, ensuring that board navigation, card management, and filtering features remain accessible on smaller screens.</td>
+      </tr>
+
+      <!-- NON-FUNCTIONAL: DEPENDABILITY -->
+      <tr class="category-row">
+        <td colspan="2">Dependability Requirements</td>
+      </tr>
+
+      <tr>
+        <td>Reliability</td>
+        <td>
+          Inputting incorrect login credentials should alert the user with a clear error message and keep them on the login page.<br/><br/>
+          Email OTP verification must be validated before a new account is granted access to any board features.<br/><br/>
+          All board mutations — such as card moves, column deletions, and member updates — must be handled through validated Convex mutations to prevent partial or corrupt data states.
+        </td>
+      </tr>
+
+      <tr>
+        <td>Availability</td>
+        <td>All board management and task tracking features must only be accessible to authenticated users. Board data should only be visible to the board owner and invited members with accepted membership status.</td>
+      </tr>
+
+      <!-- NON-FUNCTIONAL: SECURITY -->
+      <tr class="category-row">
+        <td colspan="2">Security Requirements</td>
+      </tr>
+
+      <tr>
+        <td>Integrity</td>
+        <td>All mutations that modify board data — including card updates, column reorders, label deletions, and member changes — must validate user authorization through board access checks before committing changes to the database.</td>
+      </tr>
+
+      <tr>
+        <td>Confidentiality</td>
+        <td>User passwords must be securely hashed and never exposed in plaintext. Board data, card contents, and member information must only be accessible to users who are the board owner or an accepted board member.</td>
+      </tr>
+
+      <tr>
+        <td>Authentication</td>
+        <td>
+          Users must successfully verify their email address via OTP before their account is activated.<br/><br/>
+          Actions that modify board membership, assign tasks, or delete boards must only be executable by users with the appropriate role (owner or authorized member).
+        </td>
+      </tr>
+
+      <!-- NON-FUNCTIONAL: EXTERNAL -->
+      <tr class="category-row">
+        <td colspan="2">External Requirements</td>
+      </tr>
+
+      <tr>
+        <td>Legislative Requirements</td>
+        <td>
+          The application shall protect the personal information of its users — including email addresses and account details — in accordance with applicable data privacy regulations.<br/><br/>
+          User data stored in Convex shall be handled securely, and no personally identifiable information shall be exposed to unauthorized parties through the application's API or user interface.
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     VI. DATABASE DESIGN
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">VI.</span> Database Design (Schema)</h2>
+
+  <p>
+    For the database design, FlowBoard uses Convex as its backend platform. Convex is
+    a reactive Backend-as-a-Service (BaaS) built on top of a document database, providing
+    real-time queries, type-safe mutations, and serverless functions. The schema is
+    defined using Convex's <code>defineSchema</code> and <code>defineTable</code> utilities
+    and consists of nine tables that collectively manage user accounts, board
+    structures, task data, collaboration features, and system events.
+  </p>
+
+  <p>
+    The <span class="db-table-name">users</span> table stores registered user accounts. Each record contains
+    an optional authentication ID (authId), display name, profile image, email address,
+    email verification timestamp, and an anonymity flag. Indexes are defined on the
+    email, phone, and authId fields to support fast lookups during login and profile
+    retrieval.
+  </p>
+
+  <p>
+    The <span class="db-table-name">boards</span> table is the top-level organizational entity of the
+    application. Each board record stores the owning user's ID, the board name, a
+    URL-friendly slug, an accent color, a favorite flag, and creation and update
+    timestamps. Boards are indexed by their owner's user ID and by slug to support
+    fast board listing and slug-based navigation.
+  </p>
+
+  <p>
+    The <span class="db-table-name">boardMembers</span> table manages the collaborative membership of
+    boards. Each record links a board and a user, storing the ID of the user who
+    sent the invitation, the timestamp of when the user joined, and an optional
+    flag indicating whether the member has permission to assign tasks. This table
+    is indexed by boardId and userId to support efficient membership lookups.
+  </p>
+
+  <p>
+    The <span class="db-table-name">boardInvites</span> table tracks pending and responded invitations.
+    Each invite record stores the board and invited email address, the ID of the
+    inviting user, the current status of the invitation (pending, accepted, or
+    declined), and both creation and response timestamps. Multiple indexes allow
+    the system to efficiently query invitations by board, email, and status.
+  </p>
+
+  <p>
+    The <span class="db-table-name">columns</span> table represents the workflow stages within a board.
+    Each column record stores the parent board ID, a title, a fractional order key
+    used for drag-and-drop sorting, an optional accent color, and a creation
+    timestamp. Columns are indexed by boardId for fast retrieval of all stages
+    belonging to a board.
+  </p>
+
+  <p>
+    The <span class="db-table-name">cards</span> table holds the individual task records of the application.
+    Each card stores its parent column and board IDs, a title, an optional description,
+    an optional assigned user ID, a fractional order key, an array of associated
+    label IDs, an optional due date timestamp, a completion flag, and an optional
+    priority level (low, medium, high, or urgent). Cards support a full-text search
+    index on the title field, filtered by boardId, to enable fast in-board search.
+  </p>
+
+  <p>
+    The <span class="db-table-name">labels</span> table stores per-board custom labels. Each label record
+    contains the parent board ID, a name, and a color string. Labels are indexed
+    by boardId and can be attached to any number of cards within the same board.
+  </p>
+
+  <p>
+    The <span class="db-table-name">activityLogs</span> table records all significant actions taken on a
+    board. Each log entry stores the board ID, an optional card ID, the acting
+    user's ID, an action keyword (such as "created," "moved," "updated," or "deleted"),
+    a human-readable details string, and a creation timestamp. Logs are indexed by
+    both boardId and cardId to support board-level and card-level activity feeds.
+  </p>
+
+  <p>
+    The <span class="db-table-name">notifications</span> table stores in-app notifications sent to users
+    when tasks are assigned to them. Each notification record links the recipient
+    user, the actor user, the relevant board and card, the notification type
+    (currently "taskAssigned"), the task title, a read flag, and a creation
+    timestamp. Indexes on recipientUserId, isRead, boardId, and cardId support
+    efficient notification retrieval and unread-count queries.
+  </p>
+
+  <p>
+    Overall, the FlowBoard schema is designed to support efficient real-time data
+    access, role-based authorization, and a rich task management experience while
+    maintaining clear data relationships and minimal redundancy across all tables.
+  </p>
+
+</div>
+
+<hr class="page-break"/>
+
+<!-- ═══════════════════════════════════════════════
+     VII. FEATURES OF THE SYSTEM
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <h2><span class="section-number">VII.</span> Features of the System</h2>
+
+  <h3 style="font-size:13pt; font-weight:bold; margin-bottom:12px;">Sitemap</h3>
+
+  <p>
+    The FlowBoard sitemap describes the structure and navigation flow of the entire
+    web application. The sitemap is organized into two main sections: the
+    authentication entry point and the authenticated application area. All routes
+    within the authenticated area are protected by an AuthGuard that redirects
+    unauthenticated users to the login page.
+  </p>
+
+  <p>
+    The entry point of the application is the <strong>Login Page</strong>, where
+    users can either sign in with an existing account or register a new one using
+    their email address and password. New users receive a six-digit OTP via email
+    to verify their address before their account is activated. Once authenticated,
+    users are redirected to the Home Page.
+  </p>
+
+  <p>
+    The <strong>Home Page</strong> serves as the user's central dashboard, displaying
+    all boards they own or have been added to as a member. From this page, users can
+    search for a board by name, create a new board through the Create Board Modal,
+    mark boards as favorites, or click into a board to open its full view. Boards
+    are sorted by their most recent update time, and owned versus shared boards are
+    visually distinguished.
+  </p>
+
+  <p>
+    The <strong>Board Page</strong> is the primary workspace of the application.
+    It presents all columns of the selected board in a horizontal Kanban layout,
+    with cards organized within their respective columns. From this page, users can
+    perform the following actions: add new columns; rename, recolor, or delete
+    existing columns; add new cards to any column; drag and drop cards between
+    columns or reorder them within a column; and drag and drop columns to rearrange
+    the workflow stages. Clicking a card opens the Card Detail view, where users can
+    edit the card's title, description, priority, due date, labels, and assignee, and
+    view the card's activity history. The board toolbar includes a search bar for
+    filtering cards by text content and a Filter Panel for filtering by priority,
+    label, and due date. An Activity Feed panel can be toggled to view the board's
+    full action history. The board settings allow the owner to rename the board,
+    change its accent color, manage labels, manage members and invitations, and
+    delete the board.
+  </p>
+
+  <p>
+    The <strong>Not Found Page</strong> is displayed when a user navigates to a
+    route that does not exist within the application, providing a clear error
+    message and a link to return to the Home Page.
+  </p>
+
+</div>
+
+<hr class="page-break"/>
+
+<div class="page">
+
+  <h3 style="font-size:13pt; font-weight:bold; margin-bottom:14px;">Sitemap Description</h3>
+
+  <p>
+    Below is a structured breakdown of all pages and components within the
+    FlowBoard application, organized by user state and access level.
+  </p>
+
+  <p style="text-indent:0; margin-bottom:6px;"><strong>Unauthenticated Users</strong></p>
+  <ul>
+    <li><strong>Login Page</strong> – Email/password sign-in form; OTP email verification step for new accounts; redirect to Home Page upon successful authentication.</li>
+  </ul>
+
+  <p style="text-indent:0; margin-top:10px; margin-bottom:6px;"><strong>Authenticated Users – Home Page</strong></p>
+  <ul>
+    <li><strong>Board List</strong> – Displays all boards owned by or shared with the user; sorted by last updated; searchable by board name.</li>
+    <li><strong>Create Board Modal</strong> – Form for creating a new board with a name and accent color selection; live board preview.</li>
+    <li><strong>Favorite Boards</strong> – Boards marked as favorites appear prominently for quick access.</li>
+  </ul>
+
+  <p style="text-indent:0; margin-top:10px; margin-bottom:6px;"><strong>Authenticated Users – Board Page</strong></p>
+  <ul>
+    <li><strong>Column List</strong> – Horizontally scrollable list of columns; drag-and-drop reordering supported.</li>
+    <li><strong>Add Column</strong> – Inline form to create a new column at the end of the board.</li>
+    <li><strong>Column Context Menu</strong> – Rename column, change column color, delete column (with card disposition choice).</li>
+    <li><strong>Card List (per Column)</strong> – Vertically stacked cards within a column; drag-and-drop reordering and cross-column movement supported.</li>
+    <li><strong>Add Card</strong> – Quick-add form at the bottom of each column for creating new cards.</li>
+    <li><strong>Card Detail Modal</strong> – Full view of a card's title, description, priority, due date, labels, assignee, completion status, and card-level activity log; all fields editable.</li>
+    <li><strong>Search Bar</strong> – Real-time text filtering of cards across all columns by title and description.</li>
+    <li><strong>Filter Panel</strong> – Filter cards by priority level, label, or due date range (overdue, due today, due this week); supports combined filters and a clear-all action.</li>
+    <li><strong>Activity Feed Panel</strong> – Toggleable side panel showing the full chronological activity log for the board.</li>
+    <li><strong>Board Settings</strong> – Rename board, change accent color, manage labels (create, update, delete), manage members (view members, update assignment permissions, remove members), manage invitations (invite by email, view pending/accepted/declined invites), and delete the board.</li>
+    <li><strong>Notifications</strong> – In-app notification bell displaying unread task-assignment notifications; mark as read functionality.</li>
+    <li><strong>Theme Toggle</strong> – Switch between light and dark themes; preference persisted in local storage.</li>
+    <li><strong>Keyboard Shortcuts</strong> – Registered shortcuts for quick actions such as opening search (/) and other board-level commands.</li>
+  </ul>
+
+  <p style="text-indent:0; margin-top:10px; margin-bottom:6px;"><strong>Error State</strong></p>
+  <ul>
+    <li><strong>Not Found Page (404)</strong> – Displayed for any unrecognized route; includes a link back to the Home Page.</li>
+  </ul>
+
+  <p>
+    Through this structure, FlowBoard ensures that all features are logically
+    organized and easily accessible to users, providing a smooth and efficient
+    workflow from authentication through task creation, collaboration, and completion.
+  </p>
+
+</div>
+
+</body>
+</html>
