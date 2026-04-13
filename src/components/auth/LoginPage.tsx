@@ -156,10 +156,10 @@ export function LoginPage() {
 
         <div>
           <blockquote className="font-serif italic text-4xl font-bold leading-tight mb-6 text-brand-sidebar-text/80">
-            "Clarity in chaos.<br />Progress in motion."
+            Track progress without losing focus.
           </blockquote>
           <p className="font-mono text-sm text-brand-sidebar-text/50 uppercase tracking-widest">
-            Real-time Kanban for focused teams
+            Kanban built for focused work
           </p>
         </div>
 
