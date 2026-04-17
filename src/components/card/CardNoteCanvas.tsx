@@ -49,13 +49,20 @@ export function CardNoteCanvas({
     isInitialLoadRef.current = true;
   }, [cardId, content]);
 
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
-  }, []);
+  const persistCurrentContent = useCallback(() => {
+    const blocks: Block[] = editor.document;
+    const nextContent = JSON.stringify(blocks);
+
+    if (nextContent === latestSavedContentRef.current) {
+      return;
+    }
+
+    latestSavedContentRef.current = nextContent;
+    void updateCard({
+      cardId,
+      noteContent: nextContent,
+    });
+  }, [cardId, editor, updateCard]);
 
   const handleEditorChange = useCallback(() => {
     if (isInitialLoadRef.current) {
@@ -68,20 +75,18 @@ export function CardNoteCanvas({
     }
 
     saveTimerRef.current = setTimeout(() => {
-      const blocks: Block[] = editor.document;
-      const nextContent = JSON.stringify(blocks);
-
-      if (nextContent === latestSavedContentRef.current) {
-        return;
-      }
-
-      latestSavedContentRef.current = nextContent;
-      void updateCard({
-        cardId,
-        noteContent: nextContent,
-      });
+      persistCurrentContent();
     }, 700);
-  }, [cardId, editor, updateCard]);
+  }, [persistCurrentContent]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      persistCurrentContent();
+    };
+  }, [persistCurrentContent]);
 
   return (
     <div className="space-y-6">

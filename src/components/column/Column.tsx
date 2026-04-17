@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
 
+export type ColumnCountMode = "all" | "remaining";
+
 interface ColumnProps {
   column: Doc<"columns">;
   cards: Doc<"cards">[];
@@ -21,6 +23,7 @@ interface ColumnProps {
   isDragging?: boolean;
   sortableCards?: boolean;
   fullWidth?: boolean;
+  countMode?: ColumnCountMode;
 }
 
 export function Column({
@@ -33,6 +36,7 @@ export function Column({
   isDragging,
   sortableCards = true,
   fullWidth = false,
+  countMode = "all",
 }: ColumnProps) {
   const createCard = useMutation(api.cards.create);
   const [isCreating, setIsCreating] = useState(false);
@@ -48,6 +52,13 @@ export function Column({
     [cards],
   );
   const cardIds = useMemo(() => sortedCards.map((c) => c._id), [sortedCards]);
+  const displayedCount = useMemo(
+    () =>
+      countMode === "remaining"
+        ? sortedCards.filter((card) => !card.isComplete).length
+        : sortedCards.length,
+    [sortedCards, countMode],
+  );
 
   const handleAddCard = async () => {
     setIsCreating(true);
@@ -76,18 +87,11 @@ export function Column({
         .join(" ")}
     >
       {/* Outer card envelope */}
-      <div
-        className="flex flex-col rounded-lg border border-brand-text/10 bg-brand-primary/60 p-3"
-        style={
-          column.color
-            ? { borderColor: `${column.color}30`, backgroundColor: `${column.color}0D` }
-            : undefined
-        }
-      >
+      <div className="flex flex-col rounded-[10px] card-whisper bg-brand-primary/60 p-3">
       {/* Column header — pill style */}
       <ColumnHeader
         column={column}
-        cardCount={sortedCards.length}
+        cardCount={displayedCount}
         dragHandleProps={dragHandleProps}
         onAddCard={() => void handleAddCard()}
       />
@@ -132,7 +136,7 @@ export function Column({
         </SortableContext>
 
         {sortedCards.length === 0 && (
-          <div className="flex items-center justify-center h-10 text-brand-text/15 font-mono text-xs">
+          <div className="flex items-center justify-center h-10 text-[color:var(--color-text-subtle)] font-sans text-xs font-medium">
             Drop here
           </div>
         )}
@@ -143,7 +147,7 @@ export function Column({
         <button
           onClick={() => void handleAddCard()}
           disabled={isCreating}
-          className="w-full py-2 px-3 flex items-center gap-2 text-brand-text/35 hover:text-brand-text/65 font-mono text-[12px] transition-colors group/add rounded-xl hover:bg-brand-text/5 disabled:opacity-50"
+          className="w-full py-2 px-3 flex items-center gap-2 text-[color:var(--color-text-subtle)] hover:text-[color:var(--color-text-muted)] font-sans font-medium text-[12px] transition-colors group/add rounded-lg hover:bg-brand-text/5 disabled:opacity-50"
         >
           {isCreating ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
-import { Column } from "./Column";
+import { Column, type ColumnCountMode } from "./Column";
 import type { BoardMemberSummary } from "../../lib/types";
 
 interface SortableColumnProps {
@@ -10,6 +10,7 @@ interface SortableColumnProps {
   labels: Doc<"labels">[];
   members: BoardMemberSummary[];
   onCardClick: (cardId: Id<"cards">) => void;
+  countMode?: ColumnCountMode;
 }
 
 export function SortableColumn(props: SortableColumnProps) {

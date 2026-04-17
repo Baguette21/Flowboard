@@ -11,9 +11,10 @@ export function Badge({ children, color, className, variant = "soft" }: BadgePro
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-widest font-bold",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-sans font-semibold normal-case",
+        "tracking-[0.125px]",
         variant === "soft" && "bg-brand-text/10 text-brand-text",
-        variant === "outline" && "border-2 border-brand-text/20 text-brand-text",
+        variant === "outline" && "card-whisper text-brand-text",
         variant === "solid" && "bg-brand-text text-brand-bg",
         className,
       )}

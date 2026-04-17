@@ -47,30 +47,30 @@ export function NoteCard({ note }: NoteCardProps) {
     <>
       <div
         onClick={() => navigate(`/notes/${note._id}`)}
-        className="group relative cursor-pointer select-none rounded-[14px] border-2 border-brand-text/10 bg-brand-primary p-6 transition-all hover:-translate-y-0.5 hover:border-brand-text/30"
+        className="group relative cursor-pointer select-none bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)]"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px] bg-brand-accent/12 text-brand-accent">
+            <div className="mb-2 flex items-center gap-2.5">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-brand-accent/12 text-brand-accent">
                 <FileText className="h-4.5 w-4.5" />
               </div>
-              <h3 className="truncate font-serif text-xl font-bold italic leading-tight">
+              <h3 className="truncate font-sans text-[22px] font-bold leading-tight tracking-display text-brand-text">
                 {note.title || "Untitled"}
               </h3>
             </div>
 
             {preview ? (
-              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-brand-text/45">
+              <p className="mt-2 line-clamp-2 text-[15px] leading-relaxed text-[color:var(--color-text-muted)]">
                 {preview}
               </p>
             ) : (
-              <p className="mt-2 text-sm italic text-brand-text/25">
+              <p className="mt-2 text-[15px] text-[color:var(--color-text-subtle)]">
                 Empty note
               </p>
             )}
 
-            <p className="mt-3 font-mono text-xs uppercase tracking-widest text-brand-text/40">
+            <p className="mt-3 font-sans text-[12px] font-medium text-[color:var(--color-text-subtle)]">
               {new Date(note.updatedAt).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -85,7 +85,7 @@ export function NoteCard({ note }: NoteCardProps) {
               trigger={
                 <button
                   onClick={(event) => event.stopPropagation()}
-                  className="rounded-xl p-1.5 text-brand-text/20 opacity-0 transition-all hover:bg-brand-text/10 hover:text-brand-text group-hover:opacity-100"
+                  className="rounded-lg p-1.5 text-[color:var(--color-text-subtle)] opacity-0 transition-all hover:bg-brand-text/5 hover:text-brand-text group-hover:opacity-100"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -93,12 +93,6 @@ export function NoteCard({ note }: NoteCardProps) {
               items={menuItems}
             />
           </div>
-        </div>
-
-        <div className="mt-6 flex gap-1.5">
-          <div className="h-1.5 flex-1 rounded-full bg-brand-accent/25" />
-          <div className="h-1.5 flex-1 rounded-full bg-brand-accent/12" />
-          <div className="h-1.5 flex-1 rounded-full bg-brand-accent/6" />
         </div>
       </div>
 

@@ -173,11 +173,11 @@ export function BoardCalendarView({
               style={{ borderLeft: `3px solid ${calendarColor}` }}
             >
               <div>
-                <h2 className="text-xl font-bold leading-none text-brand-text sm:text-2xl">
+                <h2 className="text-xl font-bold leading-none tracking-display text-brand-text sm:text-2xl">
                   {format(selectedMonth, "MMMM yyyy")}
                 </h2>
                 {dueThisMonth.length > 0 && (
-                  <p className="mt-1 text-xs text-brand-text/50">
+                  <p className="mt-1 text-xs text-[color:var(--color-text-muted)]">
                     {dueThisMonth.length} task{dueThisMonth.length !== 1 ? "s" : ""} due
                   </p>
                 )}
@@ -191,19 +191,19 @@ export function BoardCalendarView({
                 <button
                   type="button"
                   onClick={() => setShowColorPicker((v) => !v)}
-                  className="flex items-center gap-2 rounded-lg border border-brand-text/15 bg-brand-primary px-3 py-1.5 text-sm font-medium text-brand-text/70 hover:border-brand-text/30 hover:text-brand-text transition-colors"
+                  className="flex items-center gap-2 rounded-lg card-whisper bg-brand-primary px-3 py-1.5 text-sm font-medium text-[color:var(--color-text-muted)] hover:border-[color:var(--color-border-whisper-strong)] hover:text-brand-text transition-colors"
                   title="Change calendar accent color"
                 >
                   <span
-                    className="h-3.5 w-3.5 rounded-full ring-2 ring-white/30"
+                    className="h-3.5 w-3.5 rounded-full card-whisper"
                     style={{ backgroundColor: calendarColor }}
                   />
                   Accent
                 </button>
 
                 {showColorPicker && (
-                  <div className="absolute right-0 top-10 z-20 rounded-xl border border-brand-text/12 bg-brand-primary p-3 shadow-xl">
-                    <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-brand-text/35">
+                  <div className="absolute right-0 top-10 z-20 rounded-xl card-whisper bg-brand-primary p-3 card-elevation">
+                    <p className="mb-2.5 text-[11px] font-semibold text-[color:var(--color-text-subtle)]">
                       Pick a color
                     </p>
                     <div className="flex gap-2">
@@ -228,17 +228,17 @@ export function BoardCalendarView({
               </div>
 
               {/* Month nav */}
-              <div className="flex items-center gap-0.5 rounded-lg border border-brand-text/12 bg-brand-primary p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg card-whisper bg-brand-primary p-0.5">
                 <button
                   onClick={() => setSelectedMonth((cur) => subMonths(cur, 1))}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-text-muted)] hover:bg-brand-text/5 hover:text-brand-text transition-colors"
                   title="Previous month"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setSelectedMonth((cur) => addMonths(cur, 1))}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-brand-text/50 hover:bg-brand-text/8 hover:text-brand-text transition-colors"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-text-muted)] hover:bg-brand-text/5 hover:text-brand-text transition-colors"
                   title="Next month"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -249,20 +249,24 @@ export function BoardCalendarView({
 
           {/* ── Grid ──────────────────────────────────── */}
           {cards === undefined ? (
-            <div className="rounded-xl border border-brand-text/10 bg-brand-primary p-10 text-center">
-              <p className="text-sm text-brand-text/40">Loading…</p>
+            <div className="rounded-xl card-whisper bg-brand-primary p-10 text-center">
+              <p className="text-sm text-[color:var(--color-text-subtle)]">Loading…</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-brand-text/12 bg-brand-primary">
+            <div className="overflow-hidden rounded-xl card-whisper card-elevation bg-brand-primary">
               {/* Day-of-week row */}
-              <div className="grid grid-cols-7" style={{ borderBottom: `2px solid ${tint(calendarColor, 0.25)}` }}>
+              <div className="grid grid-cols-7 border-b border-[color:var(--color-border-whisper)]">
                 {DAYS.map((day, i) => {
                   const isWeekend = i === 0 || i === 6;
                   return (
                     <div
                       key={day}
-                      className="py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider"
-                      style={{ color: isWeekend ? tint(calendarColor, 0.35) : tint(calendarColor, 0.65) }}
+                      className={cn(
+                        "py-2.5 text-center text-[11px] font-semibold",
+                        isWeekend
+                          ? "text-[color:var(--color-text-subtle)]"
+                          : "text-[color:var(--color-text-muted)]",
+                      )}
                     >
                       {day}
                     </div>
@@ -284,19 +288,22 @@ export function BoardCalendarView({
                       key={key}
                       onClick={() => void handleDateCreate(day)}
                       className={cn(
-                        "group/cell relative min-h-32 cursor-pointer border-b border-r border-brand-text/8 px-2 py-2 align-top transition-colors sm:min-h-40 sm:px-2.5 sm:py-2.5",
+                        "group/cell relative min-h-32 cursor-pointer border-b border-r border-[color:var(--color-border-whisper)] px-2 py-2 align-top transition-colors sm:min-h-40 sm:px-2.5 sm:py-2.5",
                         isCurrentDay && "bg-brand-text/[0.025]",
                         !isCurrentMonth && "opacity-35",
                         isWeekend && isCurrentMonth && !isCurrentDay && "bg-brand-text/[0.015]",
                       )}
-                      style={isCurrentDay ? { boxShadow: `inset 0 2px 0 ${calendarColor}` } : undefined}
                     >
                       {/* Date number row */}
                       <div className="mb-1.5 flex items-start justify-between">
                         <span
                           className={cn(
                             "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold leading-none",
-                            isCurrentDay ? "text-white" : isCurrentMonth ? "text-brand-text/70" : "text-brand-text/30",
+                            isCurrentDay
+                              ? "text-white"
+                              : isCurrentMonth
+                                ? "text-brand-text"
+                                : "text-[color:var(--color-text-subtle)]",
                           )}
                           style={isCurrentDay ? { backgroundColor: calendarColor } : undefined}
                         >
@@ -307,7 +314,7 @@ export function BoardCalendarView({
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); void handleDateCreate(day); }}
-                          className="opacity-0 group-hover/cell:opacity-100 flex h-5 w-5 items-center justify-center rounded text-brand-text/40 hover:bg-brand-text/10 hover:text-brand-text/70 transition-all"
+                          className="opacity-0 group-hover/cell:opacity-100 flex h-5 w-5 items-center justify-center rounded text-[color:var(--color-text-subtle)] hover:bg-brand-text/5 hover:text-[color:var(--color-text-muted)] transition-all"
                           title={`Add task on ${format(day, "MMM d")}`}
                         >
                           <Plus className="h-3 w-3" />
@@ -335,29 +342,45 @@ export function BoardCalendarView({
                                 e.stopPropagation();
                                 setSelectedCardId(card._id);
                               }}
-                              className="block w-full overflow-hidden rounded text-left transition-all hover:-translate-y-px hover:shadow-sm"
+                              className={cn(
+                                "block w-full overflow-hidden rounded-[6px] card-whisper text-left transition-all hover:card-elevation hover:border-[color:var(--color-border-whisper-strong)]",
+                                card.isComplete && "opacity-50",
+                              )}
                               style={{
-                                backgroundColor: overdue
-                                  ? tint(statusColor, 0.15)
-                                  : tint(statusColor, 0.1),
                                 borderLeft: `2px solid ${statusColor}`,
+                                backgroundColor: card.isComplete
+                                  ? undefined
+                                  : tint(statusColor, overdue ? 0.18 : 0.12),
                               }}
                             >
                               <div className="px-2 py-1.5">
-                                <p className="truncate text-[11px] font-medium leading-tight text-brand-text/80">
+                                <p
+                                  className={cn(
+                                    "truncate text-[11px] font-medium leading-tight text-brand-text",
+                                    card.isComplete &&
+                                      "line-through text-[color:var(--color-text-subtle)]",
+                                  )}
+                                >
                                   {card.title}
                                 </p>
                                 <div className="mt-0.5 flex items-center justify-between gap-1">
-                                  <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-brand-text/40">
+                                  <span className="truncate text-[10px] font-medium text-[color:var(--color-text-subtle)]">
                                     {status?.title ?? "—"}
                                   </span>
-                                  <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] text-brand-text/35">
+                                  <span
+                                    className={cn(
+                                      "inline-flex shrink-0 items-center gap-0.5 text-[10px]",
+                                      overdue && !card.isComplete
+                                        ? "text-red-500"
+                                        : "text-[color:var(--color-text-subtle)]",
+                                    )}
+                                  >
                                     <Clock className="h-2 w-2" />
                                     {format(card.dueDate, "h:mm a")}
                                   </span>
                                 </div>
                                 {assigneeName && (
-                                  <p className="mt-0.5 truncate text-[9px] text-brand-text/30">
+                                  <p className="mt-0.5 truncate text-[10px] text-[color:var(--color-text-subtle)]">
                                     {assigneeName}
                                   </p>
                                 )}
@@ -367,7 +390,7 @@ export function BoardCalendarView({
                         })}
 
                         {dayCards.length > 4 && (
-                          <p className="pl-1 text-[10px] font-medium text-brand-text/35">
+                          <p className="pl-1 text-[10px] font-medium text-[color:var(--color-text-subtle)]">
                             +{dayCards.length - 4} more
                           </p>
                         )}
@@ -381,15 +404,15 @@ export function BoardCalendarView({
 
           {/* Empty state */}
           {cards !== undefined && dueCards.length === 0 && (
-            <div className="mt-0 rounded-b-xl border-x border-b border-brand-text/12 bg-brand-primary px-6 py-10 text-center">
+            <div className="mt-0 rounded-b-xl border-x border-b border-[color:var(--color-border-whisper)] bg-brand-primary px-6 py-10 text-center">
               <div
                 className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
                 style={{ backgroundColor: tint(calendarColor, 0.12) }}
               >
                 <Clock className="h-5 w-5" style={{ color: tint(calendarColor, 0.7) }} />
               </div>
-              <p className="font-semibold text-brand-text/60">No due dates yet</p>
-              <p className="mt-1 text-sm text-brand-text/35">
+              <p className="font-semibold text-[color:var(--color-text-muted)]">No due dates yet</p>
+              <p className="mt-1 text-sm text-[color:var(--color-text-subtle)]">
                 Click any date to create a task
               </p>
             </div>

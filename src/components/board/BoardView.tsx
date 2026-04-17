@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -29,12 +29,24 @@ import {
 } from "@dnd-kit/sortable";
 import { generateKeyBetween } from "fractional-indexing";
 import { SortableColumn } from "../column/SortableColumn";
+import type { ColumnCountMode } from "../column/Column";
 import { Card as CardComponent } from "../card/Card";
 import { CreateColumn } from "../column/CreateColumn";
 import { CardDetail } from "../card/CardDetail";
 import { ColumnSkeleton } from "../ui/Skeleton";
 import { Layers } from "lucide-react";
+import { cn } from "../../lib/utils";
 import type { BoardMemberSummary } from "../../lib/types";
+
+function getCountModeStorageKey(boardId: Id<"boards">) {
+  return `flowboard-count-mode-${boardId}`;
+}
+
+function loadStoredCountMode(boardId: Id<"boards">): ColumnCountMode {
+  if (typeof window === "undefined") return "all";
+  const raw = window.localStorage.getItem(getCountModeStorageKey(boardId));
+  return raw === "remaining" ? "remaining" : "all";
+}
 
 interface BoardViewProps {
   boardId: Id<"boards">;
@@ -60,6 +72,18 @@ export function BoardView({ boardId }: BoardViewProps) {
   const [activeCard, setActiveCard] = useState<Doc<"cards"> | null>(null);
   const [activeColumn, setActiveColumn] = useState<Doc<"columns"> | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(null);
+  const [countMode, setCountMode] = useState<ColumnCountMode>(() =>
+    loadStoredCountMode(boardId),
+  );
+
+  useEffect(() => {
+    setCountMode(loadStoredCountMode(boardId));
+  }, [boardId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(getCountModeStorageKey(boardId), countMode);
+  }, [boardId, countMode]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -100,8 +124,13 @@ export function BoardView({ boardId }: BoardViewProps) {
       return 0;
     }
 
-    return (displayCards ?? []).filter((card) => card.columnId === activeColumn._id).length;
-  }, [activeColumn, displayCards]);
+    const cardsInColumn = (displayCards ?? []).filter(
+      (card) => card.columnId === activeColumn._id,
+    );
+    return countMode === "remaining"
+      ? cardsInColumn.filter((card) => !card.isComplete).length
+      : cardsInColumn.length;
+  }, [activeColumn, displayCards, countMode]);
 
   const collisionDetectionStrategy = useCallback<CollisionDetection>((args) => {
     // ── Card dragging: pointer-first, fall back to closestCorners ──────
@@ -299,21 +328,58 @@ export function BoardView({ boardId }: BoardViewProps) {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <div className="flex gap-6 sm:gap-8 h-full p-4 sm:p-6 overflow-x-auto pb-6 sm:pb-8 items-start">
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-            {orderedColumns.map((col) => (
-              <SortableColumn
-                key={col._id}
-                column={col}
-                labels={labels ?? []}
-                members={members ?? []}
-                cards={(displayCards ?? []).filter((c) => c.columnId === col._id)}
-                onCardClick={(cardId) => setSelectedCardId(cardId)}
-              />
-            ))}
-          </SortableContext>
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-end gap-2 px-4 pt-3 sm:px-6">
+            <span className="font-sans text-[11px] font-medium text-[color:var(--color-text-subtle)]">
+              Count
+            </span>
+            <div className="inline-flex items-center gap-0.5 rounded-full card-whisper bg-brand-primary p-0.5">
+              <button
+                type="button"
+                onClick={() => setCountMode("all")}
+                className={cn(
+                  "rounded-full px-3 py-1 text-[11px] font-semibold transition",
+                  countMode === "all"
+                    ? "bg-brand-text text-brand-bg"
+                    : "text-[color:var(--color-text-muted)] hover:text-brand-text",
+                )}
+                title="Count every task in the group"
+              >
+                All tasks
+              </button>
+              <button
+                type="button"
+                onClick={() => setCountMode("remaining")}
+                className={cn(
+                  "rounded-full px-3 py-1 text-[11px] font-semibold transition",
+                  countMode === "remaining"
+                    ? "bg-brand-text text-brand-bg"
+                    : "text-[color:var(--color-text-muted)] hover:text-brand-text",
+                )}
+                title="Count only tasks that aren't marked complete"
+              >
+                Remaining
+              </button>
+            </div>
+          </div>
 
-          <CreateColumn boardId={boardId} />
+          <div className="flex flex-1 gap-6 sm:gap-8 p-4 sm:p-6 overflow-x-auto pb-6 sm:pb-8 items-start">
+            <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+              {orderedColumns.map((col) => (
+                <SortableColumn
+                  key={col._id}
+                  column={col}
+                  labels={labels ?? []}
+                  members={members ?? []}
+                  cards={(displayCards ?? []).filter((c) => c.columnId === col._id)}
+                  onCardClick={(cardId) => setSelectedCardId(cardId)}
+                  countMode={countMode}
+                />
+              ))}
+            </SortableContext>
+
+            <CreateColumn boardId={boardId} />
+          </div>
         </div>
 
         <DragOverlay dropAnimation={dropAnimation}>

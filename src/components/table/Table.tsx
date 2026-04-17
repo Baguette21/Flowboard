@@ -802,7 +802,7 @@ function TableView({
   handleRowDragOver,
   handleRowDragEnd,
 }: TableViewProps) {
-  const totalWidth = visibleColumns.reduce((s, c) => s + c.width, 0) + 180;
+  const totalWidth = visibleColumns.reduce((s, c) => s + c.width, 0) + 140;
 
   const renderRows = (rows: Doc<"cards">[]) =>
     rows.map((card) => (
@@ -819,30 +819,8 @@ function TableView({
           "group border-b border-brand-text/6 transition-colors",
           dragRowId === card._id && "opacity-40",
           hoveredRow === card._id && "bg-brand-primary/40",
-          state.selectedRows.has(card._id) && "bg-brand-accent/5",
         )}
       >
-        {/* Row select checkbox + drag handle */}
-        <td className="sticky left-0 z-10 w-10 border-r border-brand-text/6 bg-inherit px-1 py-0">
-          <div className="flex items-center justify-center gap-0.5">
-            <GripVertical className={cn(
-              "h-3 w-3 cursor-grab text-brand-text/15 transition-opacity",
-              hoveredRow === card._id ? "opacity-100" : "opacity-0",
-            )} />
-            <input
-              type="checkbox"
-              checked={state.selectedRows.has(card._id)}
-              onChange={(e) => {
-                e.stopPropagation();
-                const multiSelect =
-                  e.nativeEvent instanceof MouseEvent ? e.nativeEvent.shiftKey : false;
-                actions.selectRow(card._id, multiSelect);
-              }}
-              className="h-3.5 w-3.5 cursor-pointer accent-brand-accent"
-            />
-          </div>
-        </td>
-
         {visibleColumns.map((col) => {
           const isActive =
             state.activeCell?.rowId === card._id &&
@@ -862,7 +840,7 @@ function TableView({
               className={cn(
                 "border-r border-brand-text/6 px-0 py-0",
                 isActive && "ring-2 ring-inset ring-brand-accent/40",
-                col.frozen && "sticky left-10 z-10 bg-brand-bg",
+                col.frozen && "sticky left-0 z-10 bg-brand-bg",
               )}
               onClick={() => {
                 actions.setActiveCell({ rowId: card._id, colId: col.id });
@@ -907,19 +885,6 @@ function TableView({
         <table className="w-full border-collapse" style={{ minWidth: totalWidth }}>
           <thead>
             <tr className="border-b border-brand-text/10 bg-brand-bg/50">
-              {/* Select-all checkbox */}
-              <th className="sticky left-0 z-20 w-10 border-r border-brand-text/10 bg-brand-bg/50 px-1 py-2">
-                <input
-                  type="checkbox"
-                  checked={
-                    processedCards.length > 0 &&
-                    processedCards.every((c) => state.selectedRows.has(c._id))
-                  }
-                  onChange={() => actions.selectAllRows()}
-                  className="h-3.5 w-3.5 cursor-pointer accent-brand-accent"
-                />
-              </th>
-
               {visibleColumns.map((col) => (
                 <th
                   key={col.id}
@@ -934,7 +899,7 @@ function TableView({
                   }}
                   className={cn(
                     "relative select-none border-r border-brand-text/10 text-left",
-                    col.frozen && "sticky left-10 z-20 bg-brand-bg/50",
+                    col.frozen && "sticky left-0 z-20 bg-brand-bg/50",
                     dragColId === col.id && "opacity-40",
                   )}
                 >
@@ -1713,6 +1678,7 @@ function ListView({
     boardId,
     cardIds: processedCards.map((card) => card._id),
   });
+  const toggleComplete = useMutation(api.cards.toggleComplete);
 
   return (
     <div className="px-4 py-2 sm:px-6">
@@ -1738,16 +1704,22 @@ function ListView({
             >
               <div className="flex items-center gap-3">
                 <GripVertical className="h-4 w-4 flex-shrink-0 cursor-grab text-brand-text/18" />
-                <div
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void toggleComplete({ cardId: card._id });
+                  }}
+                  aria-label={card.isComplete ? "Mark as incomplete" : "Mark as complete"}
                   className={cn(
-                    "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                    "flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors hover:border-green-500",
                     card.isComplete
                       ? "border-green-500 bg-green-500 text-white"
                       : "border-brand-text/20 bg-brand-bg",
                   )}
                 >
                   {card.isComplete && <Check className="h-3 w-3" />}
-                </div>
+                </button>
               </div>
               <div className="min-w-0 flex-1">
                 <p

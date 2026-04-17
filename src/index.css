@@ -1,7 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-serif: "DM Serif Display", serif;
   --font-mono: "Space Mono", monospace;
 
@@ -12,6 +13,13 @@
   --color-brand-sidebar-text: #F5F3EE;
   --color-brand-text: #111111;
   --color-brand-dark: #1A1A1A;
+
+  /* Notion-inspired design tokens (light) */
+  --color-text-muted: rgba(0, 0, 0, 0.55);
+  --color-text-subtle: rgba(0, 0, 0, 0.35);
+  --color-border-whisper: rgba(0, 0, 0, 0.08);
+  --color-border-whisper-strong: rgba(0, 0, 0, 0.14);
+  --color-link: #0075de;
 
   --radius-xl: 2rem;
   --radius-2xl: 3rem;
@@ -34,6 +42,14 @@
     --color-brand-sidebar-text: #F2EDF5;
     --color-brand-text: #F2EDF5;
     --color-brand-dark: #100D12;
+
+    /* Notion-inspired design tokens (dark) */
+    --color-text-muted: rgba(255, 255, 255, 0.60);
+    --color-text-subtle: rgba(255, 255, 255, 0.38);
+    --color-border-whisper: rgba(255, 255, 255, 0.08);
+    --color-border-whisper-strong: rgba(255, 255, 255, 0.15);
+    --color-link: #62aef0;
+
     color-scheme: dark;
   }
 
@@ -47,6 +63,7 @@
     -webkit-touch-callout: none;
     caret-color: transparent;
     transition: background-color 180ms ease, color 180ms ease;
+    font-feature-settings: "lnum", "locl";
     @apply font-sans;
   }
 
@@ -90,7 +107,7 @@
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     @apply relative overflow-hidden;
   }
-  
+
   .btn-magnetic:hover {
     transform: scale(1.03);
   }
@@ -98,13 +115,54 @@
   .interactive-lift {
     transition: transform 0.2s ease-out;
   }
-  
+
   .interactive-lift:hover {
     transform: translateY(-1px);
   }
 
   .glass-panel {
     @apply bg-brand-bg/60 backdrop-blur-xl border border-brand-primary shadow-sm;
+  }
+
+  /* Notion-inspired card primitives */
+  .card-whisper {
+    border: 1px solid var(--color-border-whisper);
+  }
+
+  .card-elevation {
+    box-shadow:
+      rgba(0, 0, 0, 0.04) 0 4px 18px,
+      rgba(0, 0, 0, 0.027) 0 2.025px 7.84688px,
+      rgba(0, 0, 0, 0.02) 0 0.8px 2.925px,
+      rgba(0, 0, 0, 0.01) 0 0.175px 1.04062px;
+  }
+
+  .card-elevation-hover {
+    box-shadow:
+      rgba(0, 0, 0, 0.06) 0 6px 22px,
+      rgba(0, 0, 0, 0.04) 0 3px 10px,
+      rgba(0, 0, 0, 0.03) 0 1px 4px,
+      rgba(0, 0, 0, 0.02) 0 0.25px 1.5px;
+  }
+
+  :root.dark .card-elevation {
+    box-shadow:
+      rgba(255, 255, 255, 0.04) 0 4px 18px,
+      rgba(255, 255, 255, 0.027) 0 2.025px 7.84688px,
+      rgba(255, 255, 255, 0.02) 0 0.8px 2.925px,
+      rgba(255, 255, 255, 0.01) 0 0.175px 1.04062px;
+  }
+
+  :root.dark .card-elevation-hover {
+    box-shadow:
+      rgba(255, 255, 255, 0.06) 0 6px 22px,
+      rgba(255, 255, 255, 0.04) 0 3px 10px,
+      rgba(255, 255, 255, 0.03) 0 1px 4px,
+      rgba(255, 255, 255, 0.02) 0 0.25px 1.5px;
+  }
+
+  .tracking-display {
+    letter-spacing: -0.25px;
   }
 
   .themed-select-popup {

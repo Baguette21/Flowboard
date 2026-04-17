@@ -164,14 +164,14 @@ export function ColumnHeader({
                 setIsEditing(true);
               }}
               className={cn(
-                "inline-flex min-h-8 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12px] font-semibold text-white/90 select-none transition-opacity hover:opacity-85",
+                "inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold text-white select-none shadow-sm transition hover:brightness-110 hover:scale-[1.02]",
                 dragHandleProps && "cursor-grab active:cursor-grabbing touch-none",
               )}
               style={{ backgroundColor: pillBg }}
               title="Drag to reorder · Double-click to rename"
             >
               {column.title}
-              <span className="text-[10px] font-mono opacity-60">{cardCount}</span>
+              <span className="text-[11px] font-sans font-medium opacity-75">{cardCount}</span>
             </button>
           )}
         </div>

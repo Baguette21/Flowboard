@@ -47,27 +47,26 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           ...style,
           ...(statusColor
             ? {
-                backgroundColor: `${statusColor}16`,
-                borderColor: `${statusColor}24`,
+                borderLeft: `3px solid ${statusColor}`,
+                paddingLeft: "11px",
               }
             : null),
         }}
         className={cn(
-          "relative w-full cursor-pointer select-none rounded-lg border px-3.5 py-3 transition-all duration-150",
-          !statusColor && "border-brand-text/8 bg-brand-primary",
+          "relative w-full cursor-pointer select-none rounded-[8px] card-whisper bg-brand-primary px-3 py-2.5 transition-all duration-150",
           card.isComplete && "opacity-50",
           isDragging && "scale-105 rotate-1 cursor-grabbing opacity-30 shadow-2xl",
-          "hover:-translate-y-px hover:border-brand-text/20",
+          "hover:card-elevation hover:border-[color:var(--color-border-whisper-strong)]",
           className,
         )}
         {...props}
       >
         <div className="flex items-start gap-2.5">
-          <FileText className="mt-[1px] h-3.5 w-3.5 flex-shrink-0 text-brand-text/28" />
+          <FileText className="mt-[2px] h-3.5 w-3.5 flex-shrink-0 text-[color:var(--color-text-subtle)]" />
           <h3
             className={cn(
-              "text-[13px] font-medium leading-snug text-brand-text/85",
-              card.isComplete && "line-through text-brand-text/35",
+              "text-[14px] font-medium leading-snug text-brand-text",
+              card.isComplete && "line-through text-[color:var(--color-text-subtle)]",
             )}
           >
             {card.title}
@@ -79,7 +78,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             {labels.map((label) => (
               <span
                 key={label._id}
-                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white/90"
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white/95"
                 style={{ backgroundColor: label.color }}
               >
                 {label.name}
@@ -88,7 +87,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
             {card.priority && (
               <span
-                className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-white/90"
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white/95"
                 style={{ backgroundColor: priorityColors[card.priority] }}
               >
                 {card.priority.charAt(0).toUpperCase() + card.priority.slice(1)} Priority
@@ -98,8 +97,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             {card.dueDate && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px]",
-                  isOverdue ? "bg-red-500/12 text-red-400" : "text-brand-text/38",
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  isOverdue ? "bg-red-500/15 text-red-500" : "text-[color:var(--color-text-muted)]",
                 )}
               >
                 <Clock className="h-2.5 w-2.5" />
@@ -108,7 +107,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             )}
 
             {card.isComplete && (
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-green-500">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600">
                 <CheckCircle2 className="h-2.5 w-2.5" />
                 Done
               </span>

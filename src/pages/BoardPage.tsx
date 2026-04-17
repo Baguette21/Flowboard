@@ -45,16 +45,19 @@ function loadStoredViewOrder(boardId: Id<"boards">): BoardMode[] {
   }
 }
 
+function getInitialViewOrder(boardId?: Id<"boards">) {
+  return boardId ? loadStoredViewOrder(boardId) : DEFAULT_VIEW_ORDER;
+}
+
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<BoardMode>("board");
+  const typedBoardId = boardId as Id<"boards"> | undefined;
+  const [viewOrder, setViewOrder] = useState<BoardMode[]>(() => getInitialViewOrder(typedBoardId));
+  const [mode, setMode] = useState<BoardMode>(() => getInitialViewOrder(typedBoardId)[0]);
   const [showSettings, setShowSettings] = useState(false);
   const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
-  const [viewOrder, setViewOrder] = useState<BoardMode[]>(DEFAULT_VIEW_ORDER);
   const updateBoard = useMutation(api.boards.update);
-
-  const typedBoardId = boardId as Id<"boards"> | undefined;
 
   const board = useQuery(
     api.boards.get,
@@ -79,7 +82,9 @@ export function BoardPage() {
   }
 
   useEffect(() => {
-    setViewOrder(loadStoredViewOrder(typedBoardId));
+    const nextViewOrder = loadStoredViewOrder(typedBoardId);
+    setViewOrder(nextViewOrder);
+    setMode(nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0]);
   }, [typedBoardId]);
 
   useEffect(() => {
