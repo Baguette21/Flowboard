@@ -7,6 +7,7 @@ import {
   ChevronRight,
   FileText,
   Home,
+  PanelLeftClose,
   PencilLine,
   Plus,
   Star,
@@ -17,6 +18,7 @@ import { cn } from "../../lib/utils";
 import { CreateBoardModal } from "../board/CreateBoardModal";
 import { getBoardIconOption } from "../../lib/boardIcons";
 import { toast } from "sonner";
+import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 interface SidebarProps {
   activeBoardId?: Id<"boards">;
@@ -24,6 +26,7 @@ interface SidebarProps {
   activeDrawId?: Id<"drawings">;
   mobileOpen?: boolean;
   desktopCollapsed?: boolean;
+  onDesktopToggle?: () => void;
   onMobileClose?: () => void;
 }
 
@@ -33,10 +36,12 @@ export function Sidebar({
   activeDrawId,
   mobileOpen = false,
   desktopCollapsed = false,
+  onDesktopToggle,
   onMobileClose,
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { openInActiveTab } = useBoardTabs();
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
@@ -52,7 +57,7 @@ export function Sidebar({
   const handleCreateNote = async () => {
     try {
       const noteId = await createNote({ title: "Untitled" });
-      navigate(`/notes/${noteId}`);
+      openInActiveTab({ kind: "note", id: noteId });
       onMobileClose?.();
     } catch {
       toast.error("Failed to create note");
@@ -62,7 +67,7 @@ export function Sidebar({
   const handleCreateDrawing = async () => {
     try {
       const drawingId = await createDrawing({ title: "Untitled" });
-      navigate(`/draw/${drawingId}`);
+      openInActiveTab({ kind: "draw", id: drawingId });
       onMobileClose?.();
     } catch {
       toast.error("Failed to create drawing");
@@ -92,18 +97,30 @@ export function Sidebar({
         aria-hidden={desktopCollapsed && !mobileOpen}
       >
         <div className="flex h-14 flex-shrink-0 items-center border-b-2 border-brand-sidebar-text/10 px-5">
-          <button
-            onClick={() => {
-              navigate("/");
-              onMobileClose?.();
-            }}
-            className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
-          >
-            <div className="h-5 w-5 rounded bg-brand-accent" />
-            <span className="pt-1 font-serif text-lg font-bold italic leading-none tracking-tight">
-              FlowBoard<span className="text-brand-accent">.</span>
-            </span>
-          </button>
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={() => {
+                navigate("/");
+                onMobileClose?.();
+              }}
+              className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
+            >
+              <div className="h-5 w-5 rounded bg-brand-accent" />
+              <span className="pt-1 font-serif text-lg font-bold italic leading-none tracking-tight">
+                FlowBoard<span className="text-brand-accent">.</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onDesktopToggle}
+              className="hidden h-8 w-8 items-center justify-center rounded-lg text-brand-sidebar-text/55 transition-colors hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text lg:flex"
+              aria-label="Hide sidebar"
+              title="Hide sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          </div>
 
           <button
             type="button"
@@ -186,7 +203,7 @@ export function Sidebar({
                       <button
                         key={board._id}
                         onClick={() => {
-                          navigate(`/board/${board._id}`);
+                          openInActiveTab({ kind: "board", id: board._id });
                           onMobileClose?.();
                         }}
                         className={cn(
@@ -269,7 +286,7 @@ export function Sidebar({
                     <button
                       key={note._id}
                       onClick={() => {
-                        navigate(`/notes/${note._id}`);
+                        openInActiveTab({ kind: "note", id: note._id });
                         onMobileClose?.();
                       }}
                       className={cn(
@@ -343,7 +360,7 @@ export function Sidebar({
                     <button
                       key={drawing._id}
                       onClick={() => {
-                        navigate(`/draw/${drawing._id}`);
+                        openInActiveTab({ kind: "draw", id: drawing._id });
                         onMobileClose?.();
                       }}
                       className={cn(

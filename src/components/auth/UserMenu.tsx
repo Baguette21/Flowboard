@@ -2,16 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Moon, Sun, User } from "lucide-react";
+import { FlaskConical, LogOut, Moon, Sun, User } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { useTheme } from "../../hooks/useTheme";
+import { cn } from "../../lib/utils";
+import { useExperimentalFeatures } from "../../hooks/useExperimentalFeatures";
 
 export function UserMenu() {
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
   const me = useQuery(api.users.me);
   const { theme, toggle } = useTheme();
+  const { features, setFeature } = useExperimentalFeatures();
   const [open, setOpen] = useState(false);
+  const [showExperimental, setShowExperimental] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +66,54 @@ export function UserMenu() {
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
+          <button
+            onClick={() => setShowExperimental((current) => !current)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-brand-text/6 text-brand-text transition-colors text-left"
+          >
+            <FlaskConical className="w-4 h-4" />
+            Experimental settings
+          </button>
+          {showExperimental && (
+            <div className="mx-2 mb-1 rounded-[12px] border border-brand-text/10 bg-brand-bg/60 p-3">
+              <div className="mb-2">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
+                  Test Features
+                </p>
+                <p className="mt-1 text-xs text-brand-text/60">
+                  Board tabs stay hidden until the header is hovered.
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  setFeature("multiBoardTabs", !features.multiBoardTabs)
+                }
+                className="flex w-full items-start gap-3 rounded-[10px] px-1 py-1 text-left"
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 flex h-6 w-10 flex-shrink-0 rounded-full p-0.5 transition-colors",
+                    features.multiBoardTabs ? "bg-brand-accent" : "bg-brand-text/15",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                      features.multiBoardTabs ? "translate-x-4" : "translate-x-0",
+                    )}
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-brand-text">
+                    Hover board tabs
+                  </span>
+                  <span className="block text-xs text-brand-text/55">
+                    Keep multiple boards open and switch between them from the app header.
+                  </span>
+                </span>
+              </button>
+            </div>
+          )}
           <button
             onClick={() => void handleSignOut()}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-brand-accent/10 text-brand-accent transition-colors text-left"

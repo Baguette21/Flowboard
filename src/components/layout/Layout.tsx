@@ -6,7 +6,6 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 interface LayoutProps {
   children: ReactNode;
-  boardName?: string;
   boardId?: Id<"boards">;
   activeNoteId?: Id<"notes">;
   activeDrawId?: Id<"drawings">;
@@ -19,7 +18,6 @@ const DESKTOP_SIDEBAR_STORAGE_KEY = "flowboard.desktopSidebarCollapsed";
 
 export function Layout({
   children,
-  boardName,
   boardId,
   activeNoteId,
   activeDrawId,
@@ -52,11 +50,10 @@ export function Layout({
 
   const handleOpenSidebar = () => {
     if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-      setDesktopSidebarCollapsed((current) => !current);
-      return;
+      setDesktopSidebarCollapsed(false);
+    } else {
+      setMobileSidebarOpen(true);
     }
-
-    setMobileSidebarOpen(true);
   };
 
   return (
@@ -67,11 +64,11 @@ export function Layout({
         activeDrawId={activeDrawId}
         mobileOpen={mobileSidebarOpen}
         desktopCollapsed={desktopSidebarCollapsed}
+        onDesktopToggle={() => setDesktopSidebarCollapsed((current) => !current)}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
       <div className="flex flex-1 min-w-0 flex-col md:min-h-0 md:overflow-hidden">
         <Header
-          boardName={boardName}
           onOpenSidebar={handleOpenSidebar}
           sidebarCollapsed={desktopSidebarCollapsed}
           searchValue={searchValue}

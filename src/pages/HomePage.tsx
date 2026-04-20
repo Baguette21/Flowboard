@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "../components/layout/Layout";
@@ -18,14 +17,15 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
+import { useBoardTabs } from "../hooks/useBoardTabs";
 
 type FilterTab = "all" | "boards" | "notes";
 
 export function HomePage() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
   const [showCreateBoard, setShowCreateBoard] = useState(false);
+  const { openInActiveTab } = useBoardTabs();
 
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
@@ -36,7 +36,7 @@ export function HomePage() {
   const handleCreateNote = async () => {
     try {
       const noteId = await createNote({ title: "Untitled" });
-      navigate(`/notes/${noteId}`);
+      openInActiveTab({ kind: "note", id: noteId });
     } catch {
       toast.error("Failed to create note");
     }

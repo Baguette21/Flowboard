@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Star, Trash2, MoreHorizontal, Users } from "lucide-react";
@@ -9,15 +8,16 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Dropdown } from "../ui/Dropdown";
 import type { BoardListItem } from "../../lib/types";
 import { getBoardIconOption } from "../../lib/boardIcons";
+import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 interface BoardCardProps {
   board: BoardListItem;
 }
 
 export function BoardCard({ board }: BoardCardProps) {
-  const navigate = useNavigate();
   const toggleFavorite = useMutation(api.boards.update);
   const deleteBoard = useMutation(api.boards.remove);
+  const { openInActiveTab } = useBoardTabs();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const boardIcon = getBoardIconOption(board.icon, board.color);
@@ -63,7 +63,7 @@ export function BoardCard({ board }: BoardCardProps) {
   return (
     <>
       <div
-        onClick={() => navigate(`/board/${board._id}`)}
+        onClick={() => openInActiveTab({ kind: "board", id: board._id })}
         className="group relative select-none cursor-pointer bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)]"
       >
         <div className="flex items-start justify-between gap-3">
