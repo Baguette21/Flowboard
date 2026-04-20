@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Check,
@@ -12,14 +11,15 @@ import {
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 export function NotificationBell() {
-  const navigate = useNavigate();
   const invites = useQuery(api.boardInvites.listMine);
   const notifications = useQuery(api.notifications.listMine);
   const acceptInvite = useMutation(api.boardInvites.accept);
   const declineInvite = useMutation(api.boardInvites.decline);
   const markNotificationRead = useMutation(api.notifications.markRead);
+  const { openInActiveTab } = useBoardTabs();
   const [open, setOpen] = useState(false);
   const [processingInviteId, setProcessingInviteId] = useState<string | null>(null);
   const [openingNotificationId, setOpeningNotificationId] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function NotificationBell() {
       const result = await acceptInvite({ inviteId });
       toast.success("Board invite accepted");
       setOpen(false);
-      navigate(`/board/${result.boardId}`);
+      openInActiveTab({ kind: "board", id: result.boardId });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to accept invite";
       toast.error(message);
@@ -72,7 +72,7 @@ export function NotificationBell() {
     try {
       await markNotificationRead({ notificationId });
       setOpen(false);
-      navigate(`/board/${boardId}`);
+      openInActiveTab({ kind: "board", id: boardId });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to open notification";

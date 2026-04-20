@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -11,6 +10,7 @@ import {
   DEFAULT_BOARD_ACCENT,
   DEFAULT_BOARD_ICON,
 } from "../../lib/boardIcons";
+import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 interface CreateBoardModalProps {
   open: boolean;
@@ -18,8 +18,8 @@ interface CreateBoardModalProps {
 }
 
 export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
-  const navigate = useNavigate();
   const createBoard = useMutation(api.boards.create);
+  const { openInActiveTab } = useBoardTabs();
   const [name, setName] = useState("");
   const [iconId, setIconId] = useState(DEFAULT_BOARD_ICON.id);
   const [color, setColor] = useState(DEFAULT_BOARD_ACCENT.color);
@@ -56,7 +56,7 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
       });
       toast.success(`Board "${name}" created!`);
       onClose();
-      navigate(`/board/${boardId}`);
+      openInActiveTab({ kind: "board", id: boardId });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create board";
       toast.error(message);

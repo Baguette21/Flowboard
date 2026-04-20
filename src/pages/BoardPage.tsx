@@ -11,6 +11,7 @@ import { BoardSettings } from "../components/board/BoardSettings";
 import { ArrowLeft, CalendarDays, LayoutGrid, List, Settings, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
+import { useBoardTabs } from "../hooks/useBoardTabs";
 
 type BoardMode = "board" | "calendar" | "table" | "list";
 
@@ -58,6 +59,7 @@ export function BoardPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
   const updateBoard = useMutation(api.boards.update);
+  const { ensureInActiveTab } = useBoardTabs();
 
   const board = useQuery(
     api.boards.get,
@@ -86,6 +88,14 @@ export function BoardPage() {
     setViewOrder(nextViewOrder);
     setMode(nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0]);
   }, [typedBoardId]);
+
+  useEffect(() => {
+    if (!typedBoardId) {
+      return;
+    }
+
+    ensureInActiveTab({ kind: "board", id: typedBoardId });
+  }, [ensureInActiveTab, typedBoardId]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -154,7 +164,7 @@ export function BoardPage() {
   };
 
   return (
-    <Layout boardName={board.name} boardId={typedBoardId}>
+    <Layout boardId={typedBoardId}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-text/10 bg-brand-bg/60 px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
           {viewOrder.map((viewKey) => {
