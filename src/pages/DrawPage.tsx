@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft, PencilLine, Plus } from "lucide-react";
@@ -9,6 +9,7 @@ import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { ExcalidrawCanvas } from "../components/drawing/ExcalidrawCanvas";
 import { Layout } from "../components/layout/Layout";
 import { cn } from "../lib/utils";
+import { useBoardTabs } from "../hooks/useBoardTabs";
 
 function DrawEditor({
   drawing,
@@ -105,10 +106,10 @@ function DrawEditor({
 
 export function DrawPage() {
   const { drawingId } = useParams<{ drawingId?: string }>();
-  const navigate = useNavigate();
   const drawings = useQuery(api.drawings.list);
   const createDrawing = useMutation(api.drawings.create);
   const updateDrawing = useMutation(api.drawings.update);
+  const { ensureInActiveTab, openInActiveTab } = useBoardTabs();
 
   const activeDrawId = (drawingId as Id<"drawings"> | undefined) ?? null;
   const activeDrawing = useQuery(
@@ -121,25 +122,33 @@ export function DrawPage() {
       return;
     }
 
-    navigate(`/draw/${drawings[0]._id}`, { replace: true });
-  }, [activeDrawId, drawings, navigate]);
+    openInActiveTab({ kind: "draw", id: drawings[0]._id });
+  }, [activeDrawId, drawings, openInActiveTab]);
+
+  useEffect(() => {
+    if (!activeDrawId) {
+      return;
+    }
+
+    ensureInActiveTab({ kind: "draw", id: activeDrawId });
+  }, [activeDrawId, ensureInActiveTab]);
 
   const handleCreateDrawing = useCallback(async () => {
     try {
       const createdDrawingId = await createDrawing({ title: "Untitled" });
-      navigate(`/draw/${createdDrawingId}`, { replace: true });
+      openInActiveTab({ kind: "draw", id: createdDrawingId });
     } catch {
       toast.error("Failed to create drawing");
     }
-  }, [createDrawing, navigate]);
+  }, [createDrawing, openInActiveTab]);
 
   const openLatestDrawing = useCallback(() => {
     if (!drawings || drawings.length === 0) {
       return;
     }
 
-    navigate(`/draw/${drawings[0]._id}`, { replace: true });
-  }, [drawings, navigate]);
+    openInActiveTab({ kind: "draw", id: drawings[0]._id });
+  }, [drawings, openInActiveTab]);
 
   const renderEmptyState = (
     titleText: string,

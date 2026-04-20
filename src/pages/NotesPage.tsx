@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -7,12 +7,13 @@ import { Layout } from "../components/layout/Layout";
 import { NoteEditor } from "../components/notes/NoteEditor";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useBoardTabs } from "../hooks/useBoardTabs";
 
 export function NotesPage() {
   const { noteId } = useParams<{ noteId?: string }>();
-  const navigate = useNavigate();
   const notes = useQuery(api.notes.list);
   const createNote = useMutation(api.notes.create);
+  const { ensureInActiveTab, openInActiveTab } = useBoardTabs();
 
   const activeNoteId = (noteId as Id<"notes"> | undefined) ?? null;
   const activeNote = useQuery(
@@ -25,13 +26,21 @@ export function NotesPage() {
       return;
     }
 
-    navigate(`/notes/${notes[0]._id}`, { replace: true });
-  }, [activeNoteId, navigate, notes]);
+    openInActiveTab({ kind: "note", id: notes[0]._id });
+  }, [activeNoteId, notes, openInActiveTab]);
+
+  useEffect(() => {
+    if (!activeNoteId) {
+      return;
+    }
+
+    ensureInActiveTab({ kind: "note", id: activeNoteId });
+  }, [activeNoteId, ensureInActiveTab]);
 
   const handleCreateNote = async () => {
     try {
       const createdNoteId = await createNote({ title: "Untitled" });
-      navigate(`/notes/${createdNoteId}`, { replace: true });
+      openInActiveTab({ kind: "note", id: createdNoteId });
     } catch {
       toast.error("Failed to create note");
     }
@@ -42,7 +51,7 @@ export function NotesPage() {
       return;
     }
 
-    navigate(`/notes/${notes[0]._id}`, { replace: true });
+    openInActiveTab({ kind: "note", id: notes[0]._id });
   };
 
   const renderEmptyState = (
