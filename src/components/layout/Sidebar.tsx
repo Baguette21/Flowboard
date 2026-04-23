@@ -26,8 +26,10 @@ interface SidebarProps {
   activeDrawId?: Id<"drawings">;
   mobileOpen?: boolean;
   desktopCollapsed?: boolean;
+  peek?: boolean;
   onDesktopToggle?: () => void;
   onMobileClose?: () => void;
+  onPeekLeave?: () => void;
 }
 
 export function Sidebar({
@@ -36,8 +38,10 @@ export function Sidebar({
   activeDrawId,
   mobileOpen = false,
   desktopCollapsed = false,
+  peek = false,
   onDesktopToggle,
   onMobileClose,
+  onPeekLeave,
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,15 +90,18 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full max-w-[88vw] flex-col overflow-hidden border-r-2 border-brand-sidebar-text/10 bg-brand-dark text-brand-sidebar-text transition-all duration-300 lg:static lg:z-auto lg:max-w-none lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex h-full max-w-[88vw] flex-col overflow-hidden border-r-2 border-brand-sidebar-text/10 bg-brand-dark text-brand-sidebar-text transition-all duration-300 lg:max-w-none",
           mobileOpen
             ? "translate-x-0 w-[17.5rem]"
             : "-translate-x-full w-[17.5rem]",
-          desktopCollapsed
-            ? "lg:w-0 lg:min-w-0 lg:-translate-x-4 lg:border-r-0 lg:opacity-0"
-            : "lg:w-60 lg:opacity-100",
+          peek && desktopCollapsed
+            ? "lg:fixed lg:z-50 lg:top-3 lg:bottom-3 lg:left-0 lg:h-auto lg:w-60 lg:translate-x-0 lg:opacity-100 lg:rounded-l-none lg:rounded-r-md lg:border-2 lg:border-l-0 lg:shadow-2xl"
+            : desktopCollapsed
+              ? "lg:static lg:z-auto lg:w-0 lg:min-w-0 lg:-translate-x-4 lg:border-r-0 lg:opacity-0"
+              : "lg:static lg:z-auto lg:w-60 lg:translate-x-0 lg:opacity-100",
         )}
-        aria-hidden={desktopCollapsed && !mobileOpen}
+        aria-hidden={desktopCollapsed && !mobileOpen && !peek}
+        onMouseLeave={peek && desktopCollapsed ? onPeekLeave : undefined}
       >
         <div className="flex h-14 flex-shrink-0 items-center border-b-2 border-brand-sidebar-text/10 px-5">
           <div className="flex min-w-0 items-center gap-2">
