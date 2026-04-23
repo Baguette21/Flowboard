@@ -12,10 +12,12 @@ import { format as fmtDate } from "date-fns";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/utils";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
 import { useTableState } from "./useTableState";
 import { ColumnHeaderMenu } from "./ColumnMenu";
 import { FilterBar } from "./FilterBar";
 import { RowDetailModal } from "./RowDetail";
+import { UserAvatar } from "../ui/UserAvatar";
 import type {
   TableProps,
   TableColumnDef,
@@ -63,6 +65,9 @@ export function Table({
   showViewModeTabs = true,
 }: TableProps) {
   const members = useQuery(api.boardMembers.listForBoard, { boardId });
+  const memberImageUrls = useProfileImageUrls(
+    (members ?? []).map((member) => member.imageKey),
+  );
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
   const createCard = useMutation(api.cards.create);
   const updateCard = useMutation(api.cards.update);
@@ -517,6 +522,7 @@ export function Table({
             resolveSelectLabel={resolveSelectLabel}
             sortedBoardColumns={sortedBoardColumns}
             members={members ?? []}
+            memberImageUrls={memberImageUrls}
             labelsById={labelsById}
             accessInfo={accessInfo}
             hoveredRow={hoveredRow}
@@ -743,7 +749,8 @@ interface TableViewProps {
   commitBuiltInField: (card: Doc<"cards">, col: TableColumnDef, val: CellValue) => Promise<void>;
   resolveSelectLabel: (col: TableColumnDef, val: CellValue) => SelectOption | null;
   sortedBoardColumns: Doc<"columns">[];
-  members: { userId: Id<"users">; name: string | null; email: string | null }[];
+  members: { userId: Id<"users">; name: string | null; email: string | null; imageKey: string | null }[];
+  memberImageUrls: Record<string, string>;
   labelsById: Map<Id<"labels">, Doc<"labels">>;
   accessInfo: { canManageAssignees: boolean } | undefined | null;
   hoveredRow: string | null;
@@ -783,6 +790,7 @@ function TableView({
   resolveSelectLabel,
   sortedBoardColumns,
   members,
+  memberImageUrls,
   labelsById,
   accessInfo,
   hoveredRow,
@@ -857,6 +865,7 @@ function TableView({
                 resolveSelectLabel={resolveSelectLabel}
                 sortedBoardColumns={sortedBoardColumns}
                 members={members}
+                memberImageUrls={memberImageUrls}
                 labelsById={labelsById}
                 accessInfo={accessInfo}
                 onCommitBuiltIn={(val) => void commitBuiltInField(card, col, val)}
@@ -1068,7 +1077,8 @@ interface CellRendererProps {
   isEditing: boolean;
   resolveSelectLabel: (col: TableColumnDef, val: CellValue) => SelectOption | null;
   sortedBoardColumns: Doc<"columns">[];
-  members: { userId: Id<"users">; name: string | null; email: string | null }[];
+  members: { userId: Id<"users">; name: string | null; email: string | null; imageKey: string | null }[];
+  memberImageUrls: Record<string, string>;
   labelsById: Map<Id<"labels">, Doc<"labels">>;
   accessInfo: { canManageAssignees: boolean } | undefined | null;
   onCommitBuiltIn: (val: CellValue) => void;
@@ -1084,6 +1094,7 @@ function CellRenderer({
   resolveSelectLabel,
   sortedBoardColumns,
   members,
+  memberImageUrls,
   labelsById,
   accessInfo,
   onCommitBuiltIn,
@@ -1208,9 +1219,12 @@ function CellRenderer({
         if (!isEditing && member) {
           return (
             <div className="flex items-center gap-2 px-3 py-1.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent/15 text-[10px] font-bold text-brand-accent">
-                {(member.name ?? member.email ?? "?")[0]?.toUpperCase()}
-              </div>
+              <UserAvatar
+                name={member.name}
+                email={member.email}
+                imageUrl={member.imageKey ? memberImageUrls[member.imageKey] ?? null : null}
+                size="sm"
+              />
               <span className="text-sm text-brand-text/70">
                 {member.name ?? member.email ?? "Unknown"}
               </span>
@@ -1459,9 +1473,12 @@ function CellRenderer({
       if (!isEditing && member) {
         return (
           <div className="flex items-center gap-2 px-3 py-1.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-accent/15 text-[10px] font-bold text-brand-accent">
-              {(member.name ?? member.email ?? "?")[0]?.toUpperCase()}
-            </div>
+            <UserAvatar
+              name={member.name}
+              email={member.email}
+              imageUrl={member.imageKey ? memberImageUrls[member.imageKey] ?? null : null}
+              size="sm"
+            />
             <span className="text-sm text-brand-text/70">
               {member.name ?? member.email ?? "Unknown"}
             </span>

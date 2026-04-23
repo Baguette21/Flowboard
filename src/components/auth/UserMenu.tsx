@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "react-router-dom";
-import { FlaskConical, LogOut, Moon, Sun, User } from "lucide-react";
+import { FlaskConical, LogOut, Moon, Settings, Sun, User } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { useTheme } from "../../hooks/useTheme";
 import { cn } from "../../lib/utils";
 import { useExperimentalFeatures } from "../../hooks/useExperimentalFeatures";
+import { SettingsModal } from "./SettingsModal";
 
 export function UserMenu() {
   const { signOut } = useAuthActions();
@@ -16,6 +17,7 @@ export function UserMenu() {
   const { features, setFeature } = useExperimentalFeatures();
   const [open, setOpen] = useState(false);
   const [showExperimental, setShowExperimental] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function UserMenu() {
   const secondaryIdentity = me?.email
     ? me.name ?? "Verified account"
     : "No verified email";
+  const accountTier = me?.role === "PRO" ? "PRO" : "FREE";
 
   return (
     <div ref={ref} className="relative">
@@ -58,6 +61,18 @@ export function UserMenu() {
             <p className="font-mono text-xs text-brand-text/50 truncate mt-1">
               {secondaryIdentity}
             </p>
+            <div className="mt-2 flex">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em]",
+                  accountTier === "PRO"
+                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                    : "border-brand-text/12 bg-brand-text/6 text-brand-text/55",
+                )}
+              >
+                {accountTier} account
+              </span>
+            </div>
           </div>
           <button
             onClick={toggle}
@@ -65,6 +80,16 @@ export function UserMenu() {
           >
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setShowSettings(true);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-brand-text/6 text-brand-text transition-colors text-left"
+          >
+            <Settings className="w-4 h-4" />
+            Account settings
           </button>
           <button
             onClick={() => setShowExperimental((current) => !current)}
@@ -123,6 +148,11 @@ export function UserMenu() {
           </button>
         </div>
       )}
+
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

@@ -12,7 +12,28 @@ export const list = query({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return drawings.sort((a, b) => b.updatedAt - a.updatedAt);
+    return drawings.sort((a, b) => {
+      if (a.order && b.order) return a.order.localeCompare(b.order);
+      if (a.order) return -1;
+      if (b.order) return 1;
+      return b.updatedAt - a.updatedAt;
+    });
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    orders: v.array(
+      v.object({ drawingId: v.id("drawings"), order: v.string() }),
+    ),
+  },
+  handler: async (ctx, { orders }) => {
+    const { userId } = await requireCurrentUser(ctx);
+    for (const { drawingId, order } of orders) {
+      const drawing = await ctx.db.get(drawingId);
+      if (!drawing || drawing.userId !== userId) continue;
+      await ctx.db.patch(drawingId, { order });
+    }
   },
 });
 

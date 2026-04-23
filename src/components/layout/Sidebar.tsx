@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -14,11 +14,56 @@ import {
   Users,
   X,
 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { generateKeyBetween } from "fractional-indexing";
 import { cn } from "../../lib/utils";
 import { CreateBoardModal } from "../board/CreateBoardModal";
 import { getBoardIconOption } from "../../lib/boardIcons";
 import { toast } from "sonner";
 import { useBoardTabs } from "../../hooks/useBoardTabs";
+
+function SortableSidebarItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
 
 interface SidebarProps {
   activeBoardId?: Id<"boards">;
@@ -51,10 +96,76 @@ export function Sidebar({
   const drawings = useQuery(api.drawings.list);
   const createNote = useMutation(api.notes.create);
   const createDrawing = useMutation(api.drawings.create);
+  const reorderBoards = useMutation(api.boards.reorder);
+  const reorderNotes = useMutation(api.notes.reorder);
+  const reorderDrawings = useMutation(api.drawings.reorder);
   const [showCreate, setShowCreate] = useState(false);
   const [boardsExpanded, setBoardsExpanded] = useState(true);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [drawExpanded, setDrawExpanded] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleBoardsDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !boards || active.id === over.id) return;
+    const oldIndex = boards.findIndex((b) => b._id === active.id);
+    const newIndex = boards.findIndex((b) => b._id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(boards, oldIndex, newIndex);
+    let lastKey: string | null = null;
+    const orders: { boardId: Id<"boards">; order: string }[] = [];
+    for (const board of reordered) {
+      lastKey = generateKeyBetween(lastKey, null);
+      if (board.role === "owner") {
+        orders.push({ boardId: board._id, order: lastKey });
+      }
+    }
+    if (orders.length > 0) {
+      void reorderBoards({ orders }).catch(() => {
+        toast.error("Failed to reorder boards");
+      });
+    }
+  };
+
+  const handleNotesDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !notes || active.id === over.id) return;
+    const oldIndex = notes.findIndex((n) => n._id === active.id);
+    const newIndex = notes.findIndex((n) => n._id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(notes, oldIndex, newIndex);
+    let lastKey: string | null = null;
+    const orders = reordered.map((note) => {
+      lastKey = generateKeyBetween(lastKey, null);
+      return { noteId: note._id, order: lastKey };
+    });
+    void reorderNotes({ orders }).catch(() => {
+      toast.error("Failed to reorder notes");
+    });
+  };
+
+  const handleDrawingsDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !drawings || active.id === over.id) return;
+    const oldIndex = drawings.findIndex((d) => d._id === active.id);
+    const newIndex = drawings.findIndex((d) => d._id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(drawings, oldIndex, newIndex);
+    let lastKey: string | null = null;
+    const orders = reordered.map((drawing) => {
+      lastKey = generateKeyBetween(lastKey, null);
+      return { drawingId: drawing._id, order: lastKey };
+    });
+    void reorderDrawings({ orders }).catch(() => {
+      toast.error("Failed to reorder drawings");
+    });
+  };
 
   const isHome = location.pathname === "/";
 
@@ -203,45 +314,65 @@ export function Sidebar({
                     No boards yet
                   </div>
                 ) : (
-                  boards.map((board) => {
-                    const boardIcon = getBoardIconOption(board.icon, board.color);
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleBoardsDragEnd}
+                  >
+                    <SortableContext
+                      items={boards.map((b) => b._id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {boards.map((board) => {
+                        const boardIcon = getBoardIconOption(
+                          board.icon,
+                          board.color,
+                        );
 
-                    return (
-                      <button
-                        key={board._id}
-                        onClick={() => {
-                          openInActiveTab({ kind: "board", id: board._id });
-                          onMobileClose?.();
-                        }}
-                        className={cn(
-                          "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
-                          activeBoardId === board._id
-                            ? "bg-brand-primary text-brand-text"
-                            : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
-                        )}
-                      >
-                        <span
-                          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[8px]"
-                          style={{
-                            backgroundColor: `${board.color}22`,
-                            color: board.color,
-                          }}
-                        >
-                          <boardIcon.Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="flex-1 truncate">{board.name}</span>
-                        {board.role === "member" ? (
-                          <Users className="h-3 w-3 flex-shrink-0 text-brand-sidebar-text/50" />
-                        ) : null}
-                        {board.isFavorite ? (
-                          <Star
-                            className="h-3 w-3 flex-shrink-0 text-yellow-500"
-                            fill="currentColor"
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })
+                        return (
+                          <SortableSidebarItem key={board._id} id={board._id}>
+                            <button
+                              onClick={() => {
+                                openInActiveTab({
+                                  kind: "board",
+                                  id: board._id,
+                                });
+                                onMobileClose?.();
+                              }}
+                              className={cn(
+                                "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                                activeBoardId === board._id
+                                  ? "bg-brand-primary text-brand-text"
+                                  : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
+                              )}
+                            >
+                              <span
+                                className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[8px]"
+                                style={{
+                                  backgroundColor: `${board.color}22`,
+                                  color: board.color,
+                                }}
+                              >
+                                <boardIcon.Icon className="h-3.5 w-3.5" />
+                              </span>
+                              <span className="flex-1 truncate">
+                                {board.name}
+                              </span>
+                              {board.role === "member" ? (
+                                <Users className="h-3 w-3 flex-shrink-0 text-brand-sidebar-text/50" />
+                              ) : null}
+                              {board.isFavorite ? (
+                                <Star
+                                  className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                                  fill="currentColor"
+                                />
+                              ) : null}
+                            </button>
+                          </SortableSidebarItem>
+                        );
+                      })}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             ) : null}
@@ -289,33 +420,48 @@ export function Sidebar({
                     No notes yet
                   </div>
                 ) : (
-                  notes.map((note) => (
-                    <button
-                      key={note._id}
-                      onClick={() => {
-                        openInActiveTab({ kind: "note", id: note._id });
-                        onMobileClose?.();
-                      }}
-                      className={cn(
-                        "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
-                        activeNoteId === note._id
-                          ? "bg-brand-primary text-brand-text"
-                          : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
-                      )}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleNotesDragEnd}
+                  >
+                    <SortableContext
+                      items={notes.map((n) => n._id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <FileText
-                        className={cn(
-                          "h-4 w-4 flex-shrink-0",
-                          activeNoteId === note._id
-                            ? "text-brand-accent"
-                            : "text-brand-sidebar-text/30",
-                        )}
-                      />
-                      <span className="flex-1 truncate">
-                        {note.title || "Untitled"}
-                      </span>
-                    </button>
-                  ))
+                      {notes.map((note) => (
+                        <SortableSidebarItem key={note._id} id={note._id}>
+                          <button
+                            onClick={() => {
+                              openInActiveTab({
+                                kind: "note",
+                                id: note._id,
+                              });
+                              onMobileClose?.();
+                            }}
+                            className={cn(
+                              "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                              activeNoteId === note._id
+                                ? "bg-brand-primary text-brand-text"
+                                : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
+                            )}
+                          >
+                            <FileText
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                activeNoteId === note._id
+                                  ? "text-brand-accent"
+                                  : "text-brand-sidebar-text/30",
+                              )}
+                            />
+                            <span className="flex-1 truncate">
+                              {note.title || "Untitled"}
+                            </span>
+                          </button>
+                        </SortableSidebarItem>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             ) : null}
@@ -363,33 +509,51 @@ export function Sidebar({
                     No drawings yet
                   </div>
                 ) : (
-                  drawings.map((drawing) => (
-                    <button
-                      key={drawing._id}
-                      onClick={() => {
-                        openInActiveTab({ kind: "draw", id: drawing._id });
-                        onMobileClose?.();
-                      }}
-                      className={cn(
-                        "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
-                        activeDrawId === drawing._id
-                          ? "bg-brand-primary text-brand-text"
-                          : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
-                      )}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDrawingsDragEnd}
+                  >
+                    <SortableContext
+                      items={drawings.map((d) => d._id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <PencilLine
-                        className={cn(
-                          "h-4 w-4 flex-shrink-0",
-                          activeDrawId === drawing._id
-                            ? "text-brand-accent"
-                            : "text-brand-sidebar-text/30",
-                        )}
-                      />
-                      <span className="flex-1 truncate">
-                        {drawing.title || "Untitled"}
-                      </span>
-                    </button>
-                  ))
+                      {drawings.map((drawing) => (
+                        <SortableSidebarItem
+                          key={drawing._id}
+                          id={drawing._id}
+                        >
+                          <button
+                            onClick={() => {
+                              openInActiveTab({
+                                kind: "draw",
+                                id: drawing._id,
+                              });
+                              onMobileClose?.();
+                            }}
+                            className={cn(
+                              "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                              activeDrawId === drawing._id
+                                ? "bg-brand-primary text-brand-text"
+                                : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
+                            )}
+                          >
+                            <PencilLine
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                activeDrawId === drawing._id
+                                  ? "text-brand-accent"
+                                  : "text-brand-sidebar-text/30",
+                              )}
+                            />
+                            <span className="flex-1 truncate">
+                              {drawing.title || "Untitled"}
+                            </span>
+                          </button>
+                        </SortableSidebarItem>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             ) : null}

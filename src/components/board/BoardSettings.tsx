@@ -13,6 +13,8 @@ import {
   getBoardAccentOption,
   getBoardIconOption,
 } from "../../lib/boardIcons";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
+import { UserAvatar } from "../ui/UserAvatar";
 
 interface BoardSettingsProps {
   open: boolean;
@@ -30,6 +32,9 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId: board._id });
   const members = useQuery(api.boardMembers.listForBoard, { boardId: board._id });
   const invites = useQuery(api.boardInvites.listForBoard, { boardId: board._id });
+  const memberImageUrls = useProfileImageUrls(
+    (members ?? []).map((member) => member.imageKey),
+  );
 
   const [name, setName] = useState(board.name);
   const [iconId, setIconId] = useState(getBoardIconOption(board.icon, board.color).id);
@@ -293,11 +298,19 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                       ) : (
                         members.map((member) => (
                           <div key={`${member.role}-${member.userId}`} className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-bold text-sm truncate">{member.name ?? member.email ?? "Unnamed user"}</p>
-                              <p className="font-mono text-[11px] text-brand-text/50 truncate">
-                                {member.email ?? "No email available"}
-                              </p>
+                            <div className="flex min-w-0 items-center gap-3">
+                              <UserAvatar
+                                name={member.name}
+                                email={member.email}
+                                imageUrl={member.imageKey ? memberImageUrls[member.imageKey] ?? null : null}
+                                size="md"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm truncate">{member.name ?? member.email ?? "Unnamed user"}</p>
+                                <p className="font-mono text-[11px] text-brand-text/50 truncate">
+                                  {member.email ?? "No email available"}
+                                </p>
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="px-2 py-1 rounded-full bg-brand-bg border border-brand-text/10 font-mono text-[10px] uppercase tracking-widest text-brand-text/50">

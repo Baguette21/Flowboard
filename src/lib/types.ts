@@ -13,12 +13,14 @@ export type BoardListItem = {
   role: "owner" | "member";
   ownerName: string | null;
   ownerEmail: string | null;
+  ownerImageKey: string | null;
 };
 
 export type BoardMemberSummary = {
   userId: Id<"users">;
   name: string | null;
   email: string | null;
+  imageKey: string | null;
   joinedAt: number;
   role: "owner" | "member";
   canBeAssigned: boolean;

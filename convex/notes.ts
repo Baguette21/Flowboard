@@ -12,7 +12,28 @@ export const list = query({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return notes.sort((a, b) => b.updatedAt - a.updatedAt);
+    return notes.sort((a, b) => {
+      if (a.order && b.order) return a.order.localeCompare(b.order);
+      if (a.order) return -1;
+      if (b.order) return 1;
+      return b.updatedAt - a.updatedAt;
+    });
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    orders: v.array(
+      v.object({ noteId: v.id("notes"), order: v.string() }),
+    ),
+  },
+  handler: async (ctx, { orders }) => {
+    const { userId } = await requireCurrentUser(ctx);
+    for (const { noteId, order } of orders) {
+      const note = await ctx.db.get(noteId);
+      if (!note || note.userId !== userId) continue;
+      await ctx.db.patch(noteId, { order });
+    }
   },
 });
 

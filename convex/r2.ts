@@ -146,3 +146,122 @@ export const deleteObject = action({
     return null;
   },
 });
+
+export const createProfileImageUploadUrl = action({
+  args: {
+    fileName: v.string(),
+    contentType: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ key: string; uploadUrl: string }> => {
+    if (!args.contentType.startsWith("image/")) {
+      throw new Error("Only image uploads are allowed");
+    }
+
+    const me: { _id: string } | null = await ctx.runQuery(api.users.me, {});
+    if (!me) {
+      throw new Error("Not authenticated");
+    }
+
+    const bucket = requireEnv("R2_BUCKET");
+    const client = createR2Client();
+    const key: string =
+      `avatars/${me._id}/${Date.now()}-${sanitizeFileName(args.fileName)}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: args.contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 });
+
+    return { key, uploadUrl };
+  },
+});
+
+export const getProfileImageUrl = action({
+  args: { key: v.string() },
+  handler: async (ctx, { key }): Promise<{ url: string }> => {
+    const me: { _id: string; imageKey: string | null } | null =
+      await ctx.runQuery(api.users.me, {});
+    if (!me) {
+      throw new Error("Not authenticated");
+    }
+
+    if (!key.startsWith("avatars/")) {
+      throw new Error("Invalid profile image key");
+    }
+
+    const bucket = requireEnv("R2_BUCKET");
+    const client = createR2Client();
+    const command: GetObjectCommand = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+
+    const url: string = await getSignedUrl(client, command, { expiresIn: 3600 });
+    return { url };
+  },
+});
+
+export const getProfileImageUrls = action({
+  args: { keys: v.array(v.string()) },
+  handler: async (ctx, { keys }): Promise<{ urls: Record<string, string> }> => {
+    const me: { _id: string } | null = await ctx.runQuery(api.users.me, {});
+    if (!me) {
+      throw new Error("Not authenticated");
+    }
+
+    const validKeys = Array.from(
+      new Set(keys.filter((key) => key.startsWith("avatars/"))),
+    );
+
+    if (validKeys.length === 0) {
+      return { urls: {} };
+    }
+
+    const bucket = requireEnv("R2_BUCKET");
+    const client = createR2Client();
+    const urls: Record<string, string> = {};
+
+    await Promise.all(
+      validKeys.map(async (key) => {
+        const command: GetObjectCommand = new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
+        });
+        urls[key] = await getSignedUrl(client, command, { expiresIn: 3600 });
+      }),
+    );
+
+    return { urls };
+  },
+});
+
+export const deleteProfileImageObject = action({
+  args: { key: v.string() },
+  handler: async (ctx, { key }): Promise<null> => {
+    const me: { _id: string } | null = await ctx.runQuery(api.users.me, {});
+    if (!me) {
+      throw new Error("Not authenticated");
+    }
+
+    if (!key.startsWith(`avatars/${me._id}/`)) {
+      throw new Error("Cannot delete an image that is not yours");
+    }
+
+    const bucket = requireEnv("R2_BUCKET");
+    const client = createR2Client();
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+
+    return null;
+  },
+});
