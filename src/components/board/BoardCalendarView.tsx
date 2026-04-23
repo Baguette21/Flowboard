@@ -21,6 +21,8 @@ import { CardDetail } from "../card/CardDetail";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
 import { toast } from "sonner";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
+import { UserAvatar } from "../ui/UserAvatar";
 
 interface BoardCalendarViewProps {
   boardId: Id<"boards">;
@@ -54,6 +56,9 @@ export function BoardCalendarView({
   const members = useQuery(api.boardMembers.listForBoard, { boardId });
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
   const createCard = useMutation(api.cards.create);
+  const memberImageUrls = useProfileImageUrls(
+    (members ?? []).map((member) => member.imageKey),
+  );
 
   const [selectedMonth, setSelectedMonth] = useState(() =>
     startOfMonth(new Date()),
@@ -380,9 +385,22 @@ export function BoardCalendarView({
                                   </span>
                                 </div>
                                 {assigneeName && (
-                                  <p className="mt-0.5 truncate text-[10px] text-[color:var(--color-text-subtle)]">
-                                    {assigneeName}
-                                  </p>
+                                  <div className="mt-1 flex items-center gap-1.5">
+                                    <UserAvatar
+                                      name={assignee?.name}
+                                      email={assignee?.email}
+                                      imageUrl={
+                                        assignee?.imageKey
+                                          ? memberImageUrls[assignee.imageKey] ?? null
+                                          : null
+                                      }
+                                      size="sm"
+                                      className="h-4 w-4 text-[8px]"
+                                    />
+                                    <p className="min-w-0 truncate text-[10px] text-[color:var(--color-text-subtle)]">
+                                      {assigneeName}
+                                    </p>
+                                  </div>
                                 )}
                               </div>
                             </button>

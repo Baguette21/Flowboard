@@ -1,6 +1,5 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SearchBar } from "../search/SearchBar";
-import { UserMenu } from "../auth/UserMenu";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { BoardTabStrip } from "./BoardTabStrip";
 
@@ -55,7 +54,6 @@ export function Header({
           )}
 
           <NotificationBell />
-          <UserMenu />
         </div>
       </div>
 

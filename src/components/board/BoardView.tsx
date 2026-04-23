@@ -38,6 +38,23 @@ import { Layers } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { BoardMemberSummary } from "../../lib/types";
 
+function compareCardsByOrder(
+  a: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
+  b: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
+) {
+  const orderComparison = a.order.localeCompare(b.order);
+  if (orderComparison !== 0) {
+    return orderComparison;
+  }
+
+  const createdAtComparison = a.createdAt - b.createdAt;
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  return a._id.localeCompare(b._id);
+}
+
 function getCountModeStorageKey(boardId: Id<"boards">) {
   return `flowboard-count-mode-${boardId}`;
 }
@@ -254,7 +271,7 @@ export function BoardView({ boardId }: BoardViewProps) {
         targetColumnId = over.data.current.column._id as Id<"columns">;
         const colCards = (cards ?? [])
           .filter((c) => c.columnId === targetColumnId && c._id !== activeId)
-          .sort((a, b) => a.order.localeCompare(b.order));
+          .sort(compareCardsByOrder);
         const lastKey = colCards.length > 0 ? colCards[colCards.length - 1].order : null;
         targetOrder = generateKeyBetween(lastKey, null);
       } else if (over.data.current?.type === "Card") {
@@ -264,7 +281,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
         const colCards = (cards ?? [])
           .filter((c) => c.columnId === targetColumnId && c._id !== activeId)
-          .sort((a, b) => a.order.localeCompare(b.order));
+          .sort(compareCardsByOrder);
 
         const overIndex = colCards.findIndex((c) => c._id === overId);
         const prev = overIndex > 0 ? colCards[overIndex - 1].order : null;

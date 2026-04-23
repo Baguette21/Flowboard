@@ -27,6 +27,7 @@ export function Layout({
 }: LayoutProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [sidebarPeek, setSidebarPeek] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -58,14 +59,26 @@ export function Layout({
 
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden bg-brand-bg text-brand-text md:h-screen md:overflow-hidden">
+      {desktopSidebarCollapsed ? (
+        <div
+          className="fixed left-0 top-0 z-30 hidden h-full w-2 lg:block"
+          onMouseEnter={() => setSidebarPeek(true)}
+          aria-hidden="true"
+        />
+      ) : null}
       <Sidebar
         activeBoardId={boardId}
         activeNoteId={activeNoteId}
         activeDrawId={activeDrawId}
         mobileOpen={mobileSidebarOpen}
         desktopCollapsed={desktopSidebarCollapsed}
-        onDesktopToggle={() => setDesktopSidebarCollapsed((current) => !current)}
+        peek={sidebarPeek}
+        onDesktopToggle={() => {
+          setDesktopSidebarCollapsed((current) => !current);
+          setSidebarPeek(false);
+        }}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        onPeekLeave={() => setSidebarPeek(false)}
       />
       <div className="flex flex-1 min-w-0 flex-col md:min-h-0 md:overflow-hidden">
         <Header

@@ -164,7 +164,7 @@ export function BoardPage() {
   };
 
   return (
-    <Layout boardId={typedBoardId}>
+    <Layout key={typedBoardId} boardId={typedBoardId}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-text/10 bg-brand-bg/60 px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
           {viewOrder.map((viewKey) => {
@@ -234,9 +234,10 @@ export function BoardPage() {
 
       <div className="flex-1 md:min-h-0 md:overflow-hidden">
         {mode === "board" ? (
-          <BoardView boardId={typedBoardId} />
+          <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
         ) : mode === "calendar" ? (
           <BoardCalendarView
+            key={`calendar-${typedBoardId}`}
             boardId={typedBoardId}
             cards={cards}
             boardColor={board.color}
@@ -245,6 +246,7 @@ export function BoardPage() {
           />
         ) : (
           <Table
+            key={`${mode}-${typedBoardId}`}
             boardId={typedBoardId}
             cards={cards}
             columns={columns ?? []}
@@ -256,6 +258,7 @@ export function BoardPage() {
       </div>
 
       <BoardSettings
+        key={`settings-${typedBoardId}`}
         open={showSettings}
         onClose={() => setShowSettings(false)}
         board={board}

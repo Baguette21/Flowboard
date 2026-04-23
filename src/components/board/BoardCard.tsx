@@ -9,6 +9,8 @@ import { Dropdown } from "../ui/Dropdown";
 import type { BoardListItem } from "../../lib/types";
 import { getBoardIconOption } from "../../lib/boardIcons";
 import { useBoardTabs } from "../../hooks/useBoardTabs";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
+import { UserAvatar } from "../ui/UserAvatar";
 
 interface BoardCardProps {
   board: BoardListItem;
@@ -21,6 +23,8 @@ export function BoardCard({ board }: BoardCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const boardIcon = getBoardIconOption(board.icon, board.color);
+  const ownerImageUrls = useProfileImageUrls([board.ownerImageKey]);
+  const ownerImageUrl = board.ownerImageKey ? ownerImageUrls[board.ownerImageKey] ?? null : null;
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -102,9 +106,17 @@ export function BoardCard({ board }: BoardCardProps) {
               </p>
             </div>
             {board.role === "member" && (
-              <p className="font-sans text-[12px] text-[color:var(--color-text-muted)] mt-2 truncate">
-                Owner: {board.ownerName ?? board.ownerEmail ?? "Unknown"}
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <UserAvatar
+                  name={board.ownerName}
+                  email={board.ownerEmail}
+                  imageUrl={ownerImageUrl}
+                  size="sm"
+                />
+                <p className="min-w-0 truncate font-sans text-[12px] text-[color:var(--color-text-muted)]">
+                  Owner: {board.ownerName ?? board.ownerEmail ?? "Unknown"}
+                </p>
+              </div>
             )}
           </div>
 

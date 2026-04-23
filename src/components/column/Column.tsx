@@ -11,6 +11,23 @@ import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
 
+function compareCardsByOrder(
+  a: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
+  b: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
+) {
+  const orderComparison = a.order.localeCompare(b.order);
+  if (orderComparison !== 0) {
+    return orderComparison;
+  }
+
+  const createdAtComparison = a.createdAt - b.createdAt;
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  return a._id.localeCompare(b._id);
+}
+
 export type ColumnCountMode = "all" | "remaining";
 
 interface ColumnProps {
@@ -48,7 +65,7 @@ export function Column({
   });
 
   const sortedCards = useMemo(
-    () => [...cards].sort((a, b) => a.order.localeCompare(b.order)),
+    () => [...cards].sort(compareCardsByOrder),
     [cards],
   );
   const cardIds = useMemo(() => sortedCards.map((c) => c._id), [sortedCards]);
