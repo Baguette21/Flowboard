@@ -8,6 +8,7 @@ type MemberSummary = {
   userId: Id<"users">;
   name: string | null;
   email: string | null;
+  imageKey: string | null;
   joinedAt: number;
   role: "owner" | "member";
   canBeAssigned: boolean;
@@ -41,6 +42,7 @@ export const listForBoard = query({
         userId: owner._id,
         name: owner.name ?? null,
         email: owner.email ?? null,
+        imageKey: owner.imageKey ?? null,
         joinedAt: access.board.createdAt,
         role: "owner",
         canBeAssigned: true,
@@ -56,6 +58,7 @@ export const listForBoard = query({
         userId: entry.user._id,
         name: entry.user.name ?? null,
         email: entry.user.email ?? null,
+        imageKey: entry.user.imageKey ?? null,
         joinedAt: entry.membership.joinedAt,
         role: "member",
         canBeAssigned: entry.membership.canBeAssigned ?? false,

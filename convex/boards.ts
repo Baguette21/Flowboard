@@ -34,12 +34,24 @@ async function buildBoardListItem(
     color: board.color,
     icon: board.icon ?? null,
     isFavorite: board.isFavorite,
+    order: board.order ?? null,
     createdAt: board.createdAt,
     updatedAt: board.updatedAt,
     role,
     ownerName: owner?.name ?? null,
     ownerEmail: owner?.email ?? null,
+    ownerImageKey: owner?.imageKey ?? null,
   };
+}
+
+function compareSidebarOrder(
+  a: { order: string | null; updatedAt: number },
+  b: { order: string | null; updatedAt: number },
+): number {
+  if (a.order && b.order) return a.order.localeCompare(b.order);
+  if (a.order) return -1;
+  if (b.order) return 1;
+  return b.updatedAt - a.updatedAt;
 }
 
 async function generateUniqueSlug(
@@ -89,7 +101,23 @@ export const list = query({
       ...sharedBoards.map(async (board) => await buildBoardListItem(ctx, board, "member")),
     ]);
 
-    return boardItems.sort((a, b) => b.updatedAt - a.updatedAt);
+    return boardItems.sort(compareSidebarOrder);
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    orders: v.array(
+      v.object({ boardId: v.id("boards"), order: v.string() }),
+    ),
+  },
+  handler: async (ctx, { orders }) => {
+    const { userId } = await requireCurrentUser(ctx);
+    for (const { boardId, order } of orders) {
+      const board = await ctx.db.get(boardId);
+      if (!board || board.userId !== userId) continue;
+      await ctx.db.patch(boardId, { order });
+    }
   },
 });
 

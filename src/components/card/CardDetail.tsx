@@ -23,6 +23,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
+import { UserAvatar } from "../ui/UserAvatar";
 
 const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", color: "#E63B2E" },
@@ -56,13 +58,16 @@ export function CardDetail({
   const updateCard    = useMutation(api.cards.update);
   const toggleComplete = useMutation(api.cards.toggleComplete);
   const deleteCard    = useMutation(api.cards.remove);
-  const moveCard      = useMutation(api.cards.move);
+  const moveCardToColumnEnd = useMutation(api.cards.moveToColumnEnd);
 
   const [confirmDelete,   setConfirmDelete]   = useState(false);
   const [isDeleting,      setIsDeleting]      = useState(false);
   const [titleValue,      setTitleValue]      = useState("");
   const [isEditingTitle,  setIsEditingTitle]  = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const memberImageUrls = useProfileImageUrls(
+    members.map((member) => member.imageKey),
+  );
 
   // Auto-resize textarea
   useEffect(() => {
@@ -117,12 +122,9 @@ export function CardDetail({
     if (!card || newColumnId === card.columnId) return;
     const target = columns.find((c) => c._id === newColumnId);
     if (!target) return;
-    // Place at the very end of the target column
-    const newOrder = `z${Date.now()}`;
-    await moveCard({
+    await moveCardToColumnEnd({
       cardId,
       targetColumnId: newColumnId as Id<"columns">,
-      newOrder,
     });
     toast.success(`Moved to ${target.title}`);
   };
@@ -277,22 +279,84 @@ export function CardDetail({
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Assignee</span>
               </div>
               {canManageAssignees ? (
-                <select
-                  value={card.assignedUserId ?? ""}
-                  onChange={(e) => void handleAssigneeChange(e.target.value)}
-                  className="w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 text-sm text-brand-text focus:outline-none cursor-pointer"
-                >
-                  <option value="">Empty</option>
-                  {members.map((m) => (
-                    <option key={m.userId} value={m.userId}>
-                      {m.name ?? m.email ?? "Unknown"}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleAssigneeChange("")}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
+                      currentAssignee
+                        ? "border-brand-text/12 bg-brand-primary/60 text-brand-text/70 hover:border-brand-text/28"
+                        : "border-brand-accent/25 bg-brand-accent/8 text-brand-text",
+                    )}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-text/10 bg-brand-text/8 font-mono text-[10px] font-bold uppercase text-brand-text/55">
+                      None
+                    </div>
+                    <span className="text-sm">Unassigned</span>
+                  </button>
+                  <div className="space-y-2">
+                    {members.map((member) => {
+                      const isSelected = member.userId === card.assignedUserId;
+                      const imageUrl = member.imageKey
+                        ? memberImageUrls[member.imageKey] ?? null
+                        : null;
+                      return (
+                        <button
+                          key={member.userId}
+                          type="button"
+                          onClick={() => void handleAssigneeChange(member.userId)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
+                            isSelected
+                              ? "border-brand-accent/25 bg-brand-accent/8 text-brand-text"
+                              : "border-brand-text/12 bg-brand-primary/60 text-brand-text/70 hover:border-brand-text/28",
+                          )}
+                        >
+                          <UserAvatar
+                            name={member.name}
+                            email={member.email}
+                            imageUrl={imageUrl}
+                            size="md"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-brand-text">
+                              {member.name ?? member.email ?? "Unknown"}
+                            </span>
+                            <span className="block truncate font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/40">
+                              {member.role}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : (
-                <p className="text-sm text-brand-text/70">
-                  {currentAssignee?.name ?? currentAssignee?.email ?? <span className="text-brand-text/30">Empty</span>}
-                </p>
+                currentAssignee ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-brand-text/12 bg-brand-primary/60 px-3 py-2">
+                    <UserAvatar
+                      name={currentAssignee.name}
+                      email={currentAssignee.email}
+                      imageUrl={
+                        currentAssignee.imageKey
+                          ? memberImageUrls[currentAssignee.imageKey] ?? null
+                          : null
+                      }
+                      size="md"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-brand-text">
+                        {currentAssignee.name ?? currentAssignee.email ?? "Unknown"}
+                      </p>
+                      <p className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/40">
+                        {currentAssignee.role}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-brand-text/30">Empty</p>
+                )
               )}
             </div>
 
