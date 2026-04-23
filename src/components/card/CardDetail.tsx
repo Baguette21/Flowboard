@@ -58,7 +58,7 @@ export function CardDetail({
   const updateCard    = useMutation(api.cards.update);
   const toggleComplete = useMutation(api.cards.toggleComplete);
   const deleteCard    = useMutation(api.cards.remove);
-  const moveCard      = useMutation(api.cards.move);
+  const moveCardToColumnEnd = useMutation(api.cards.moveToColumnEnd);
 
   const [confirmDelete,   setConfirmDelete]   = useState(false);
   const [isDeleting,      setIsDeleting]      = useState(false);
@@ -122,12 +122,9 @@ export function CardDetail({
     if (!card || newColumnId === card.columnId) return;
     const target = columns.find((c) => c._id === newColumnId);
     if (!target) return;
-    // Place at the very end of the target column
-    const newOrder = `z${Date.now()}`;
-    await moveCard({
+    await moveCardToColumnEnd({
       cardId,
       targetColumnId: newColumnId as Id<"columns">,
-      newOrder,
     });
     toast.success(`Moved to ${target.title}`);
   };

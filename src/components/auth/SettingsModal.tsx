@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex, useMutation } from "convex/react";
-import { Loader2, Trash2, Upload, User } from "lucide-react";
+import {
+  Loader2,
+  LogOut,
+  Moon,
+  Sun,
+  Trash2,
+  Upload,
+  User,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { Modal } from "../ui/Modal";
 import { cn } from "../../lib/utils";
 import { useProfileAvatar } from "../../hooks/useProfileAvatar";
+import { useTheme } from "../../hooks/useTheme";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -29,8 +39,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const convex = useConvex();
-  const { signIn } = useAuthActions();
+  const navigate = useNavigate();
+  const { signIn, signOut } = useAuthActions();
   const { name, email, imageKey, imageUrl, role } = useProfileAvatar();
+  const { theme, toggle } = useTheme();
   const updateProfile = useMutation(api.users.updateProfile);
   const setProfileImageKey = useMutation(api.users.setProfileImageKey);
 
@@ -257,6 +269,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    onClose();
+    navigate("/login");
+  };
+
   const otpDigits = useMemo(
     () => Array.from({ length: 6 }, (_, index) => verificationCode[index] ?? ""),
     [verificationCode],
@@ -278,39 +296,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Account settings" size="lg">
       <div className="space-y-8 px-6 py-6">
-        <section>
-          <p className={sectionLabel}>Account</p>
-          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-widest text-brand-text/45">
-                  Current plan
-                </p>
-                <p className="mt-1 text-base font-semibold text-brand-text">
-                  {role} account
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em]",
-                  role === "PRO"
-                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
-                    : "border-brand-text/12 bg-brand-text/6 text-brand-text/55",
-                )}
-              >
-                {role}
-              </span>
-            </div>
-            <p className="mt-3 text-sm text-brand-text/60">
-              {role === "PRO"
-                ? "Your account has PRO upload access."
-                : "Your account is on the FREE plan."}
-            </p>
-          </div>
-        </section>
-
-        <div className="h-px bg-brand-text/8" />
-
         <section>
           <p className={sectionLabel}>Profile picture</p>
           <div className="flex items-center gap-5">
@@ -546,6 +531,90 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               </div>
             </form>
           )}
+        </section>
+
+        <div className="h-px bg-brand-text/8" />
+
+        <section>
+          <p className={sectionLabel}>Account</p>
+          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-brand-text/45">
+                  Current plan
+                </p>
+                <p className="mt-1 text-base font-semibold text-brand-text">
+                  {role} account
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em]",
+                  role === "PRO"
+                    ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                    : "border-brand-text/12 bg-brand-text/6 text-brand-text/55",
+                )}
+              >
+                {role}
+              </span>
+            </div>
+            <p className="mt-3 text-sm text-brand-text/60">
+              {role === "PRO"
+                ? "Your account has PRO upload access."
+                : "Your account is on the FREE plan."}
+            </p>
+          </div>
+        </section>
+
+        <div className="h-px bg-brand-text/8" />
+
+        <section>
+          <p className={sectionLabel}>Preferences</p>
+          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+            <button
+              type="button"
+              onClick={toggle}
+              className="flex w-full items-center justify-between rounded-[14px] border border-brand-text/10 bg-brand-bg/45 px-4 py-3 text-left transition-colors hover:border-brand-text/30"
+            >
+              <span>
+                <span className="block font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
+                  Theme
+                </span>
+                <span className="mt-1 block text-sm font-medium text-brand-text">
+                  {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                </span>
+              </span>
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-brand-text/60" />
+              ) : (
+                <Moon className="h-4 w-4 text-brand-text/60" />
+              )}
+            </button>
+          </div>
+        </section>
+
+        <div className="h-px bg-brand-text/8" />
+
+        <section>
+          <p className={sectionLabel}>Session</p>
+          <div className="rounded-[18px] border-2 border-brand-accent/16 bg-brand-accent/6 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-brand-text">Sign out of this account</p>
+                <p className="mt-1 text-xs text-brand-text/55">
+                  End your current session and return to the login screen.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className={dangerButton}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+            </div>
+          </div>
         </section>
       </div>
     </Modal>

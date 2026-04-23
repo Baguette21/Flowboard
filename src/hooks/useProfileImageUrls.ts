@@ -18,7 +18,11 @@ export function useProfileImageUrls(
           ),
         ),
       ).sort(),
-    [imageKeys],
+    [imageKeys.join("|")],
+  );
+  const normalizedKeysSignature = useMemo(
+    () => normalizedKeys.join("|"),
+    [normalizedKeys],
   );
 
   useEffect(() => {
@@ -37,7 +41,21 @@ export function useProfileImageUrls(
           keys: normalizedKeys,
         });
         if (!cancelled) {
-          setUrls(result.urls);
+          setUrls((current) => {
+            const currentKeys = Object.keys(current);
+            const nextKeys = Object.keys(result.urls);
+
+            if (
+              currentKeys.length === nextKeys.length &&
+              currentKeys.every(
+                (key) => current[key] === result.urls[key],
+              )
+            ) {
+              return current;
+            }
+
+            return result.urls;
+          });
         }
       } catch (error) {
         console.error("Failed to load profile images", error);
@@ -50,7 +68,7 @@ export function useProfileImageUrls(
     return () => {
       cancelled = true;
     };
-  }, [convex, normalizedKeys]);
+  }, [convex, normalizedKeysSignature]);
 
   return urls;
 }

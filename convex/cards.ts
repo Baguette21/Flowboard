@@ -9,6 +9,23 @@ import {
   requireBoardAccess,
 } from "./helpers/boardAccess";
 
+function compareCardOrder(
+  a: { order: string; createdAt: number; _id: Id<"cards"> },
+  b: { order: string; createdAt: number; _id: Id<"cards"> },
+) {
+  const orderComparison = a.order.localeCompare(b.order);
+  if (orderComparison !== 0) {
+    return orderComparison;
+  }
+
+  const createdAtComparison = a.createdAt - b.createdAt;
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  return a._id.localeCompare(b._id);
+}
+
 function extractTextFragments(node: unknown, fragments: string[]) {
   if (typeof node === "string") {
     fragments.push(node);
@@ -136,7 +153,7 @@ export const listByBoard = query({
       .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
       .collect();
 
-    return cards.sort((a, b) => a.order.localeCompare(b.order));
+    return cards.sort(compareCardOrder);
   },
 });
 
@@ -158,7 +175,7 @@ export const listByColumn = query({
       .withIndex("by_columnId", (q) => q.eq("columnId", columnId))
       .collect();
 
-    return cards.sort((a, b) => a.order.localeCompare(b.order));
+    return cards.sort(compareCardOrder);
   },
 });
 
@@ -227,7 +244,7 @@ export const create = mutation({
       .query("cards")
       .withIndex("by_columnId", (q) => q.eq("columnId", columnId))
       .collect();
-    const sorted = existing.sort((a, b) => a.order.localeCompare(b.order));
+    const sorted = existing.sort(compareCardOrder);
     const lastKey = sorted.length > 0 ? sorted[sorted.length - 1].order : null;
     const order = generateOrderKeyAfter(lastKey);
 
@@ -267,6 +284,49 @@ export const create = mutation({
     }
 
     return cardId;
+  },
+});
+
+export const normalizeBoardOrders = mutation({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, { boardId }) => {
+    await requireBoardAccess(ctx, boardId);
+
+    const cards = await ctx.db
+      .query("cards")
+      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .collect();
+
+    const cardsByColumn = new Map<Id<"columns">, typeof cards>();
+    for (const card of cards) {
+      const current = cardsByColumn.get(card.columnId) ?? [];
+      current.push(card);
+      cardsByColumn.set(card.columnId, current);
+    }
+
+    let updatedCount = 0;
+
+    for (const [, columnCards] of cardsByColumn) {
+      const sortedCards = [...columnCards].sort(compareCardOrder);
+      let previousOrder: string | null = null;
+
+      for (const card of sortedCards) {
+        const nextOrder = generateOrderKeyAfter(previousOrder);
+        previousOrder = nextOrder;
+
+        if (card.order === nextOrder) {
+          continue;
+        }
+
+        await ctx.db.patch(card._id, {
+          order: nextOrder,
+          updatedAt: Date.now(),
+        });
+        updatedCount += 1;
+      }
+    }
+
+    return { updatedCount };
   },
 });
 
@@ -380,6 +440,53 @@ export const move = mutation({
     await ctx.db.patch(cardId, {
       columnId: targetColumnId,
       order: newOrder,
+      updatedAt: Date.now(),
+    });
+
+    if (previousColumnId !== targetColumnId) {
+      await ctx.db.insert("activityLogs", {
+        boardId: card.boardId,
+        cardId,
+        userId,
+        action: "moved",
+        details: `Moved task "${card.title}" from "${sourceColumn?.title}" to "${targetColumn?.title}"`,
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+export const moveToColumnEnd = mutation({
+  args: {
+    cardId: v.id("cards"),
+    targetColumnId: v.id("columns"),
+  },
+  handler: async (ctx, { cardId, targetColumnId }) => {
+    const card = await ctx.db.get(cardId);
+    if (!card) {
+      throw new Error("Task not found");
+    }
+
+    const { userId } = await requireBoardAccess(ctx, card.boardId);
+    const sourceColumn = await ctx.db.get(card.columnId);
+    const targetColumn = await ctx.db.get(targetColumnId);
+    const previousColumnId = card.columnId;
+
+    const existingTargetCards = await ctx.db
+      .query("cards")
+      .withIndex("by_columnId", (q) => q.eq("columnId", targetColumnId))
+      .collect();
+    const sortedTargetCards = existingTargetCards
+      .filter((existingCard) => existingCard._id !== cardId)
+      .sort(compareCardOrder);
+    const lastKey =
+      sortedTargetCards.length > 0
+        ? sortedTargetCards[sortedTargetCards.length - 1].order
+        : null;
+
+    await ctx.db.patch(cardId, {
+      columnId: targetColumnId,
+      order: generateOrderKeyAfter(lastKey),
       updatedAt: Date.now(),
     });
 
