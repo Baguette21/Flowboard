@@ -27,6 +27,7 @@ export default defineSchema({
     slug: v.string(),
     color: v.string(),
     icon: v.optional(v.string()),
+    drawingDocument: v.optional(v.string()),
     isFavorite: v.boolean(),
     order: v.optional(v.string()),
     inviteToken: v.optional(v.string()),
