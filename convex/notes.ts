@@ -12,12 +12,28 @@ export const list = query({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return notes.sort((a, b) => {
+    return notes.filter((note) => !note.archivedAt).sort((a, b) => {
       if (a.order && b.order) return a.order.localeCompare(b.order);
       if (a.order) return -1;
       if (b.order) return 1;
       return b.updatedAt - a.updatedAt;
     });
+  },
+});
+
+export const listArchived = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireCurrentUser(ctx);
+
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    return notes
+      .filter((note) => note.archivedAt)
+      .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   },
 });
 
@@ -62,6 +78,7 @@ export const create = mutation({
     const noteId = await ctx.db.insert("notes", {
       userId,
       title: title ?? "Untitled",
+      isFavorite: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -76,8 +93,10 @@ export const update = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
+    isFavorite: v.optional(v.boolean()),
+    archivedAt: v.optional(v.union(v.number(), v.null())),
   },
-  handler: async (ctx, { noteId, title, content, drawingDocument }) => {
+  handler: async (ctx, { noteId, title, content, drawingDocument, isFavorite, archivedAt }) => {
     const { userId } = await requireCurrentUser(ctx);
     const note = await ctx.db.get(noteId);
 
@@ -99,6 +118,14 @@ export const update = mutation({
 
     if (drawingDocument !== undefined) {
       patch.drawingDocument = drawingDocument;
+    }
+
+    if (isFavorite !== undefined) {
+      patch.isFavorite = isFavorite;
+    }
+
+    if (archivedAt !== undefined) {
+      patch.archivedAt = archivedAt ?? undefined;
     }
 
     await ctx.db.patch(noteId, patch);

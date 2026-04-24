@@ -11,6 +11,7 @@ import {
   Table2,
   Trash2,
 } from "lucide-react";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 interface BoardTableViewProps {
   boardId: Id<"boards">;
@@ -44,23 +45,20 @@ interface TableColumnConfig {
 type CustomCellState = Record<string, Record<string, CustomCellValue>>;
 
 const COLUMN_KIND_OPTIONS: Array<{ value: TableColumnKind; label: string }> = [
-  { value: "title", label: "Task title" },
-  { value: "description", label: "Description" },
+  { value: "title", label: "Task" },
   { value: "group", label: "Group" },
-  { value: "priority", label: "Priority" },
-  { value: "dueDate", label: "Due date" },
-  { value: "assignee", label: "Assignee" },
   { value: "status", label: "Status" },
   { value: "labels", label: "Labels" },
-  { value: "text", label: "Custom text" },
-  { value: "number", label: "Custom number" },
-  { value: "checkbox", label: "Custom checkbox" },
+  { value: "priority", label: "Priority" },
+  { value: "assignee", label: "Assignee" },
 ];
 
 const DEFAULT_TABLE_COLUMNS: TableColumnConfig[] = [
   { id: "title", label: "Task", kind: "title", width: 280, locked: true },
   { id: "group", label: "Group", kind: "group", width: 170 },
   { id: "status", label: "Status", kind: "status", width: 120 },
+  { id: "labels", label: "Labels", kind: "labels", width: 180 },
+  { id: "priority", label: "Priority", kind: "priority", width: 140 },
 ];
 
 const priorityOptions = [
@@ -109,10 +107,18 @@ function loadStoredColumns(boardId: Id<"boards">): TableColumnConfig[] {
       return DEFAULT_TABLE_COLUMNS;
     }
 
-    return parsed.map((column) => ({
+    const normalized = parsed.map((column) => ({
       ...column,
       width: typeof column.width === "number" ? column.width : 180,
     }));
+    if (!normalized.some((column) => column.kind === "labels" || column.id === "labels")) {
+      const statusIndex = normalized.findIndex((column) => column.kind === "status");
+      const priorityIndex = normalized.findIndex((column) => column.kind === "priority");
+      const insertIndex =
+        priorityIndex >= 0 ? priorityIndex : statusIndex >= 0 ? statusIndex + 1 : normalized.length;
+      normalized.splice(insertIndex, 0, { id: "labels", label: "Labels", kind: "labels", width: 180 });
+    }
+    return normalized;
   } catch {
     return DEFAULT_TABLE_COLUMNS;
   }
@@ -155,7 +161,7 @@ export function BoardTableView({
   );
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnLabel, setNewColumnLabel] = useState("");
-  const [newColumnKind, setNewColumnKind] = useState<TableColumnKind>("text");
+  const [newColumnKind, setNewColumnKind] = useState<TableColumnKind>("labels");
 
   useEffect(() => {
     setTableColumns(loadStoredColumns(boardId));
@@ -312,7 +318,7 @@ export function BoardTableView({
     ]);
     setIsAddingColumn(false);
     setNewColumnLabel("");
-    setNewColumnKind("text");
+    setNewColumnKind("labels");
   };
 
   const updateColumn = (columnId: string, patch: Partial<TableColumnConfig>) => {
@@ -402,7 +408,7 @@ export function BoardTableView({
                 cardId: card._id,
                 priority:
                   event.target.value === ""
-                    ? undefined
+                    ? null
                     : (event.target.value as Doc<"cards">["priority"]),
               })
             }
@@ -436,22 +442,25 @@ export function BoardTableView({
       case "assignee":
         return (
           <select
-            value={card.assignedUserId ?? ""}
+            multiple
+            value={getAssignedUserIds(card)}
             disabled={!(accessInfo?.canManageAssignees ?? false)}
             onClick={stopRowClick}
             onChange={(event) =>
-              void updateCard({
-                cardId: card._id,
-                assignedUserId:
-                  event.target.value === ""
-                    ? null
-                    : (event.target.value as Id<"users">),
-              })
+              {
+                const selectedIds = Array.from(event.target.selectedOptions).map(
+                  (option) => option.value as Id<"users">,
+                );
+                void updateCard({
+                  cardId: card._id,
+                  assignedUserIds: selectedIds,
+                  assignedUserId: selectedIds[0] ?? null,
+                });
+              }
             }
-            className="themed-select-popup w-full border-0 bg-transparent px-2 py-1 text-sm text-brand-text outline-none disabled:cursor-not-allowed disabled:text-brand-text/30"
+            className="themed-select-popup min-h-20 w-full border-0 bg-transparent px-2 py-1 text-sm text-brand-text outline-none disabled:cursor-not-allowed disabled:text-brand-text/30"
             style={{ colorScheme: "inherit" }}
           >
-            <option value="">Empty</option>
             {(members ?? []).map((member) => (
               <option key={member.userId} value={member.userId}>
                 {member.name ?? member.email ?? "Unknown"}
@@ -594,7 +603,7 @@ export function BoardTableView({
                   onClick={() => {
                     setIsAddingColumn(false);
                     setNewColumnLabel("");
-                    setNewColumnKind("text");
+                    setNewColumnKind("labels");
                   }}
                   className="inline-flex h-9 items-center rounded-[8px] border border-brand-text/12 px-3 text-sm text-brand-text/60"
                 >

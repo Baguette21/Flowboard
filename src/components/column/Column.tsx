@@ -10,6 +10,7 @@ import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import type { BoardMemberSummary } from "../../lib/types";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 function compareCardsByOrder(
   a: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
@@ -125,9 +126,9 @@ export function Column({
       >
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
           {sortedCards.map((card) => {
-            const assignee = card.assignedUserId
-              ? (members.find((m) => m.userId === card.assignedUserId) ?? null)
-              : null;
+            const assignees = getAssignedUserIds(card)
+              .map((userId) => members.find((m) => m.userId === userId))
+              .filter((member): member is BoardMemberSummary => Boolean(member));
             const cardLabels = labels.filter((l) => card.labelIds.includes(l._id));
 
             return sortableCards ? (
@@ -135,7 +136,7 @@ export function Column({
                 key={card._id}
                 card={card}
                 labels={cardLabels}
-                assignee={assignee}
+                assignees={assignees}
                 statusColor={column.color}
                 onClick={() => onCardClick(card._id)}
               />
@@ -144,7 +145,7 @@ export function Column({
                 key={card._id}
                 card={card}
                 labels={cardLabels}
-                assignee={assignee}
+                assignees={assignees}
                 statusColor={column.color}
                 onClick={() => onCardClick(card._id)}
               />

@@ -132,9 +132,20 @@ export const leaveBoard = mutation({
       .collect();
 
     for (const card of assignedCards) {
-      if (card.assignedUserId === userId) {
+      const nextAssignedUserIds = (card.assignedUserIds ?? []).filter(
+        (assignedUserId) => assignedUserId !== userId,
+      );
+
+      if (
+        card.assignedUserId === userId ||
+        nextAssignedUserIds.length !== (card.assignedUserIds ?? []).length
+      ) {
         await ctx.db.patch(card._id, {
-          assignedUserId: null,
+          assignedUserId:
+            card.assignedUserId === userId
+              ? (nextAssignedUserIds[0] ?? null)
+              : card.assignedUserId,
+          assignedUserIds: nextAssignedUserIds,
           updatedAt: Date.now(),
         });
       }

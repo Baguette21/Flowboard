@@ -35,6 +35,7 @@ async function buildBoardListItem(
     icon: board.icon ?? null,
     isFavorite: board.isFavorite,
     order: board.order ?? null,
+    archivedAt: board.archivedAt ?? null,
     createdAt: board.createdAt,
     updatedAt: board.updatedAt,
     role,
@@ -101,7 +102,29 @@ export const list = query({
       ...sharedBoards.map(async (board) => await buildBoardListItem(ctx, board, "member")),
     ]);
 
-    return boardItems.sort(compareSidebarOrder);
+    return boardItems
+      .filter((board) => board.archivedAt === null)
+      .sort(compareSidebarOrder);
+  },
+});
+
+export const listArchived = query({
+  args: {},
+  handler: async (ctx) => {
+    const currentUser = await requireCurrentUser(ctx);
+
+    const ownedBoards = await ctx.db
+      .query("boards")
+      .withIndex("by_userId", (q) => q.eq("userId", currentUser.userId))
+      .collect();
+
+    const boardItems = await Promise.all(
+      ownedBoards.map(async (board) => await buildBoardListItem(ctx, board, "owner")),
+    );
+
+    return boardItems
+      .filter((board) => board.archivedAt !== null)
+      .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   },
 });
 
@@ -225,9 +248,14 @@ export const update = mutation({
     icon: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
+    archivedAt: v.optional(v.union(v.number(), v.null())),
   },
-  handler: async (ctx, { boardId, name, color, icon, drawingDocument, isFavorite }) => {
-    const { board, userId } = await requireBoardAccess(ctx, boardId);
+  handler: async (ctx, { boardId, name, color, icon, drawingDocument, isFavorite, archivedAt }) => {
+    const { board, userId, role } = await requireBoardAccess(ctx, boardId);
+    if (archivedAt !== undefined && role !== "owner") {
+      throw new Error("Only the board owner can archive this board");
+    }
+
     const patch: Partial<Doc<"boards">> = {
       updatedAt: Date.now(),
     };
@@ -253,6 +281,10 @@ export const update = mutation({
       patch.isFavorite = isFavorite;
     }
 
+    if (archivedAt !== undefined) {
+      patch.archivedAt = archivedAt ?? undefined;
+    }
+
     await ctx.db.patch(boardId, patch);
 
     let details = "Updated board settings";
@@ -264,6 +296,8 @@ export const update = mutation({
       details = "Changed board color";
     } else if (isFavorite !== undefined && isFavorite !== board.isFavorite) {
       details = isFavorite ? "Marked board as favorite" : "Removed board from favorites";
+    } else if (archivedAt !== undefined) {
+      details = archivedAt === null ? "Restored board from archive" : "Archived board";
     }
 
     await ctx.db.insert("activityLogs", {

@@ -95,6 +95,25 @@ async function assertValidAssignee(
   }
 }
 
+async function assertValidAssignees(
+  ctx: MutationCtx,
+  boardId: Id<"boards">,
+  boardOwnerId: string,
+  assignedUserIds: Id<"users">[],
+) {
+  for (const assignedUserId of assignedUserIds) {
+    await assertValidAssignee(ctx, boardId, boardOwnerId, assignedUserId);
+  }
+}
+
+function normalizeAssigneeIds(
+  assignedUserIds?: Id<"users">[],
+  assignedUserId?: Id<"users"> | null,
+) {
+  const ids = assignedUserIds ?? (assignedUserId ? [assignedUserId] : []);
+  return [...new Set(ids)];
+}
+
 function requireAssignmentAccess(
   role: "owner" | "member",
   canAssign: boolean,
@@ -221,23 +240,25 @@ export const create = mutation({
     priority: priorityValidator,
     dueDate: v.optional(v.number()),
     assignedUserId: v.optional(v.union(v.id("users"), v.null())),
+    assignedUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (
     ctx,
-    { columnId, boardId, title, description, priority, dueDate, assignedUserId },
+    { columnId, boardId, title, description, priority, dueDate, assignedUserId, assignedUserIds },
   ) => {
     const access = await requireBoardAccess(ctx, boardId);
     const { userId } = access;
+    const nextAssigneeIds = normalizeAssigneeIds(assignedUserIds, assignedUserId);
 
-    if (assignedUserId !== undefined && assignedUserId !== null) {
+    if (nextAssigneeIds.length > 0) {
       requireAssignmentAccess(access.role, access.membership?.canBeAssigned ?? false);
     }
 
-    await assertValidAssignee(
+    await assertValidAssignees(
       ctx,
       boardId,
       access.board.userId,
-      assignedUserId ?? null,
+      nextAssigneeIds,
     );
 
     const existing = await ctx.db
@@ -253,7 +274,8 @@ export const create = mutation({
       boardId,
       title,
       description,
-      assignedUserId: assignedUserId ?? null,
+      assignedUserId: nextAssigneeIds[0] ?? null,
+      assignedUserIds: nextAssigneeIds,
       order,
       labelIds: [],
       isComplete: false,
@@ -273,9 +295,9 @@ export const create = mutation({
       createdAt: Date.now(),
     });
 
-    if (assignedUserId !== undefined && assignedUserId !== null) {
+    for (const assigneeId of nextAssigneeIds) {
       await createAssignmentNotification(ctx, {
-        recipientUserId: assignedUserId,
+        recipientUserId: assigneeId,
         actorUserId: userId,
         boardId,
         cardId,
@@ -337,10 +359,19 @@ export const update = mutation({
     description: v.optional(v.string()),
     noteContent: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
-    priority: priorityValidator,
+    priority: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+        v.null(),
+      ),
+    ),
     dueDate: v.optional(v.number()),
     labelIds: v.optional(v.array(v.id("labels"))),
     assignedUserId: v.optional(v.union(v.id("users"), v.null())),
+    assignedUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, { cardId, ...fields }) => {
     const card = await ctx.db.get(cardId);
@@ -361,34 +392,48 @@ export const update = mutation({
     if (fields.drawingDocument !== undefined) {
       patch.drawingDocument = fields.drawingDocument;
     }
-    if (fields.priority !== undefined) patch.priority = fields.priority;
+    if (fields.priority !== undefined) patch.priority = fields.priority ?? undefined;
     if (fields.dueDate !== undefined) patch.dueDate = fields.dueDate;
     if (fields.labelIds !== undefined) patch.labelIds = fields.labelIds;
-    if (fields.assignedUserId !== undefined) {
+    const hasAssigneeUpdate =
+      fields.assignedUserIds !== undefined || fields.assignedUserId !== undefined;
+
+    if (hasAssigneeUpdate) {
+      const nextAssigneeIds = normalizeAssigneeIds(
+        fields.assignedUserIds,
+        fields.assignedUserId,
+      );
       requireAssignmentAccess(access.role, access.membership?.canBeAssigned ?? false);
-      await assertValidAssignee(
+      await assertValidAssignees(
         ctx,
         card.boardId,
         access.board.userId,
-        fields.assignedUserId,
+        nextAssigneeIds,
       );
-      patch.assignedUserId = fields.assignedUserId;
+      patch.assignedUserId = nextAssigneeIds[0] ?? null;
+      patch.assignedUserIds = nextAssigneeIds;
     }
 
     await ctx.db.patch(cardId, patch);
 
-    if (
-      fields.assignedUserId !== undefined &&
-      fields.assignedUserId !== card.assignedUserId &&
-      fields.assignedUserId !== null
-    ) {
+    if (hasAssigneeUpdate) {
+      const previousAssigneeIds = normalizeAssigneeIds(
+        card.assignedUserIds,
+        card.assignedUserId ?? null,
+      );
+      const nextAssigneeIds = (patch.assignedUserIds as Id<"users">[]) ?? [];
+      const previousSet = new Set(previousAssigneeIds);
+      const addedAssigneeIds = nextAssigneeIds.filter((id) => !previousSet.has(id));
+
+      for (const assigneeId of addedAssigneeIds) {
       await createAssignmentNotification(ctx, {
-        recipientUserId: fields.assignedUserId,
+        recipientUserId: assigneeId,
         actorUserId: userId,
         boardId: card.boardId,
         cardId,
         taskTitle: fields.title ?? card.title,
       });
+      }
     }
 
     const changedField = fields.title
@@ -405,7 +450,7 @@ export const update = mutation({
             ? "due date"
             : fields.labelIds !== undefined
               ? "labels"
-              : fields.assignedUserId !== undefined
+              : hasAssigneeUpdate
                 ? "assignee"
         : "details";
 

@@ -23,6 +23,7 @@ import type { BoardMemberSummary } from "../../lib/types";
 import { toast } from "sonner";
 import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
 import { UserAvatar } from "../ui/UserAvatar";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 interface BoardCalendarViewProps {
   boardId: Id<"boards">;
@@ -329,11 +330,13 @@ export function BoardCalendarView({
                       {/* Task cards */}
                       <div className="space-y-1">
                         {dayCards.slice(0, 4).map((card) => {
-                          const assignee = card.assignedUserId
-                            ? (membersById.get(card.assignedUserId) ?? null)
-                            : null;
-                          const assigneeName =
-                            assignee?.name ?? assignee?.email ?? null;
+                          const assignees = getAssignedUserIds(card)
+                            .map((userId) => membersById.get(userId))
+                            .filter((member): member is BoardMemberSummary => Boolean(member));
+                          const assigneeName = assignees
+                            .slice(0, 2)
+                            .map((member) => member.name ?? member.email ?? "Unknown")
+                            .join(", ");
                           const overdue =
                             card.dueDate < Date.now() &&
                             !card.isComplete;
@@ -384,21 +387,27 @@ export function BoardCalendarView({
                                     {format(card.dueDate, "h:mm a")}
                                   </span>
                                 </div>
-                                {assigneeName && (
+                                {assignees.length > 0 && (
                                   <div className="mt-1 flex items-center gap-1.5">
-                                    <UserAvatar
-                                      name={assignee?.name}
-                                      email={assignee?.email}
-                                      imageUrl={
-                                        assignee?.imageKey
-                                          ? memberImageUrls[assignee.imageKey] ?? null
-                                          : null
-                                      }
-                                      size="sm"
-                                      className="h-4 w-4 text-[8px]"
-                                    />
+                                    <span className="flex -space-x-1">
+                                      {assignees.slice(0, 2).map((assignee) => (
+                                        <UserAvatar
+                                          key={assignee.userId}
+                                          name={assignee.name}
+                                          email={assignee.email}
+                                          imageUrl={
+                                            assignee.imageKey
+                                              ? memberImageUrls[assignee.imageKey] ?? null
+                                              : null
+                                          }
+                                          size="sm"
+                                          className="h-4 w-4 border border-brand-primary text-[8px]"
+                                        />
+                                      ))}
+                                    </span>
                                     <p className="min-w-0 truncate text-[10px] text-[color:var(--color-text-subtle)]">
                                       {assigneeName}
+                                      {assignees.length > 2 ? ` +${assignees.length - 2}` : ""}
                                     </p>
                                   </div>
                                 )}
