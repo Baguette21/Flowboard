@@ -6,16 +6,17 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Layout } from "../components/layout/Layout";
 import { BoardView } from "../components/board/BoardView";
 import { BoardCalendarView } from "../components/board/BoardCalendarView";
+import { BoardDrawView } from "../components/board/BoardDrawView";
 import { Table } from "../components/table/Table";
 import { BoardSettings } from "../components/board/BoardSettings";
-import { ArrowLeft, CalendarDays, LayoutGrid, List, Settings, Star, Table2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 
-type BoardMode = "board" | "calendar" | "table" | "list";
+type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
-const DEFAULT_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list"];
+const DEFAULT_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list", "draw"];
 
 function getViewOrderStorageKey(boardId: Id<"boards">) {
   return `flowboard-view-order-${boardId}`;
@@ -173,6 +174,7 @@ export function BoardPage() {
               calendar: { key: "calendar" as const, label: "Calendar", icon: CalendarDays },
               table: { key: "table" as const, label: "Table", icon: Table2 },
               list: { key: "list" as const, label: "List", icon: List },
+              draw: { key: "draw" as const, label: "Draw", icon: PencilLine },
             } satisfies Record<BoardMode, { key: BoardMode; label: string; icon: typeof LayoutGrid }>)[
               viewKey
             ];
@@ -243,6 +245,12 @@ export function BoardPage() {
             boardColor={board.color}
             columns={columns ?? []}
             labels={labels ?? []}
+          />
+        ) : mode === "draw" ? (
+          <BoardDrawView
+            key={`draw-${typedBoardId}`}
+            boardId={typedBoardId}
+            drawingDocument={board.drawingDocument}
           />
         ) : (
           <Table

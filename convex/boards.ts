@@ -223,9 +223,10 @@ export const update = mutation({
     name: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    drawingDocument: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
   },
-  handler: async (ctx, { boardId, name, color, icon, isFavorite }) => {
+  handler: async (ctx, { boardId, name, color, icon, drawingDocument, isFavorite }) => {
     const { board, userId } = await requireBoardAccess(ctx, boardId);
     const patch: Partial<Doc<"boards">> = {
       updatedAt: Date.now(),
@@ -242,6 +243,10 @@ export const update = mutation({
 
     if (icon !== undefined) {
       patch.icon = icon;
+    }
+
+    if (drawingDocument !== undefined) {
+      patch.drawingDocument = drawingDocument;
     }
 
     if (isFavorite !== undefined) {
