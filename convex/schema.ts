@@ -29,11 +29,13 @@ export default defineSchema({
     icon: v.optional(v.string()),
     isFavorite: v.boolean(),
     order: v.optional(v.string()),
+    inviteToken: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_inviteToken", ["inviteToken"]),
 
   boardMembers: defineTable({
     boardId: v.id("boards"),

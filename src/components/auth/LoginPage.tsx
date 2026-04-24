@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
+
+function resolveRedirectPath(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
 
 type Flow = "signIn" | "signUp";
 
@@ -59,6 +65,8 @@ function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boole
 export function LoginPage() {
   const { signIn } = useAuthActions();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = resolveRedirectPath(searchParams.get("redirect"));
   const { theme, toggle } = useTheme();
 
   const [flow, setFlow] = useState<Flow>("signIn");
@@ -124,7 +132,7 @@ export function LoginPage() {
           throw new Error("Invalid verification code");
         }
 
-        navigate("/");
+        navigate(redirectPath);
         toast.success("Email verified.");
         return;
       }
@@ -142,7 +150,7 @@ export function LoginPage() {
         return;
       }
 
-      navigate("/");
+      navigate(redirectPath);
       toast.success(flow === "signIn" ? "Welcome back." : "Account created.");
     } catch (error: unknown) {
       setError(getErrorMessage(error, flow, awaitingVerification));
