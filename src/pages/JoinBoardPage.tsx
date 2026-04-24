@@ -32,12 +32,16 @@ export function JoinBoardPage() {
         );
         navigate(`/board/${result.boardId}`, { replace: true });
       } catch (error) {
-        const message =
-          error instanceof Error && error.message
-            ? error.message.includes("[CONVEX") || error.message.includes("Uncaught Error:")
-              ? "This invite link is no longer active."
-              : error.message
-            : "We couldn't add you to the board right now.";
+        const raw = error instanceof Error ? error.message : "";
+        let message = "We couldn't add you to the board right now.";
+        if (raw.includes("no longer active")) {
+          message = "This invite link is no longer active.";
+        } else if (raw.includes("Invalid invite link")) {
+          message = "This invite link is invalid.";
+        } else if (raw.includes("Not authenticated")) {
+          message = "Please sign in again to join this board.";
+          hasAttempted.current = false;
+        }
         setErrorMessage(message);
       }
     })();

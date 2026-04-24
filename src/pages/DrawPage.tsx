@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft, PencilLine, Plus } from "lucide-react";
@@ -8,15 +8,19 @@ import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { ExcalidrawCanvas } from "../components/drawing/ExcalidrawCanvas";
 import { Layout } from "../components/layout/Layout";
+import { WorkspaceItemMenu } from "../components/layout/WorkspaceItemMenu";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { cn } from "../lib/utils";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 
 function DrawEditor({
   drawing,
   onUpdate,
+  actions,
 }: {
   drawing: Doc<"drawings">;
   onUpdate: ReturnType<typeof useMutation<typeof api.drawings.update>>;
+  actions?: ReactNode;
 }) {
   const [title, setTitle] = useState(() => drawing.title);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -60,17 +64,20 @@ function DrawEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-brand-bg">
       <div className="flex-shrink-0 px-6 pt-8 pb-4 sm:px-10 md:px-16 lg:px-24">
-        <textarea
-          ref={titleRef}
-          value={title}
-          onChange={(event) => handleTitleChange(event.target.value)}
-          placeholder="Untitled"
-          rows={1}
-          className={cn(
-            "w-full resize-none overflow-hidden border-none bg-transparent p-0 font-serif text-3xl font-bold italic tracking-tight text-brand-text sm:text-4xl",
-            "placeholder:text-brand-text/25 focus:outline-none",
-          )}
-        />
+        <div className="flex items-start gap-3">
+          <textarea
+            ref={titleRef}
+            value={title}
+            onChange={(event) => handleTitleChange(event.target.value)}
+            placeholder="Untitled"
+            rows={1}
+            className={cn(
+              "min-w-0 flex-1 resize-none overflow-hidden border-none bg-transparent p-0 font-serif text-3xl font-bold italic tracking-tight text-brand-text sm:text-4xl",
+              "placeholder:text-brand-text/25 focus:outline-none",
+            )}
+          />
+          {actions}
+        </div>
         <div className="mt-2 flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest text-brand-text/35">
           <span>Created {format(new Date(drawing.createdAt), "MMM d, yyyy")}</span>
           {hasBeenEdited ? (
@@ -106,10 +113,14 @@ function DrawEditor({
 
 export function DrawPage() {
   const { drawingId } = useParams<{ drawingId?: string }>();
+  const navigate = useNavigate();
   const drawings = useQuery(api.drawings.list);
   const createDrawing = useMutation(api.drawings.create);
   const updateDrawing = useMutation(api.drawings.update);
+  const deleteDrawing = useMutation(api.drawings.remove);
   const { ensureInActiveTab, openInActiveTab } = useBoardTabs();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const activeDrawId = (drawingId as Id<"drawings"> | undefined) ?? null;
   const activeDrawing = useQuery(
@@ -149,6 +160,57 @@ export function DrawPage() {
 
     openInActiveTab({ kind: "draw", id: drawings[0]._id });
   }, [drawings, openInActiveTab]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!activeDrawing) return;
+    try {
+      await updateDrawing({
+        drawingId: activeDrawing._id,
+        isFavorite: !(activeDrawing.isFavorite ?? false),
+      });
+      toast.success(
+        activeDrawing.isFavorite ? "Removed from favorites" : "Added to favorites",
+      );
+    } catch {
+      toast.error("Failed to update favorite");
+    }
+  }, [activeDrawing, updateDrawing]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!activeDrawId) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/draw/${activeDrawId}`);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  }, [activeDrawId]);
+
+  const handleArchive = useCallback(async () => {
+    if (!activeDrawId) return;
+    try {
+      await updateDrawing({ drawingId: activeDrawId, archivedAt: Date.now() });
+      toast.success("Drawing archived");
+      navigate("/");
+    } catch {
+      toast.error("Failed to archive drawing");
+    }
+  }, [activeDrawId, navigate, updateDrawing]);
+
+  const handleDelete = useCallback(async () => {
+    if (!activeDrawId) return;
+    setIsDeleting(true);
+    try {
+      await deleteDrawing({ drawingId: activeDrawId });
+      toast.success("Drawing deleted");
+      setConfirmDelete(false);
+      navigate("/");
+    } catch {
+      toast.error("Failed to delete drawing");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [activeDrawId, deleteDrawing, navigate]);
 
   const renderEmptyState = (
     titleText: string,
@@ -228,6 +290,15 @@ export function DrawPage() {
         key={activeDrawing._id}
         drawing={activeDrawing}
         onUpdate={updateDrawing}
+        actions={
+          <WorkspaceItemMenu
+            isFavorite={activeDrawing.isFavorite ?? false}
+            onToggleFavorite={() => void handleToggleFavorite()}
+            onCopyLink={() => void handleCopyLink()}
+            onArchive={() => void handleArchive()}
+            onDelete={() => setConfirmDelete(true)}
+          />
+        }
       />
     );
   } else {
@@ -255,5 +326,19 @@ export function DrawPage() {
     );
   }
 
-  return <Layout activeDrawId={activeDrawId ?? undefined}>{content}</Layout>;
+  return (
+    <>
+      <Layout activeDrawId={activeDrawId ?? undefined}>{content}</Layout>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => void handleDelete()}
+        title="Delete drawing"
+        description={`This will permanently delete "${activeDrawing?.title || "Untitled"}". This action cannot be undone.`}
+        confirmLabel="Delete"
+        isDestructive
+        isLoading={isDeleting}
+      />
+    </>
+  );
 }

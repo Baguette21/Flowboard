@@ -37,6 +37,7 @@ import { ColumnSkeleton } from "../ui/Skeleton";
 import { Layers } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { BoardMemberSummary } from "../../lib/types";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 function compareCardsByOrder(
   a: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
@@ -407,11 +408,9 @@ export function BoardView({ boardId }: BoardViewProps) {
                 activeCard.labelIds.includes(l._id),
               )}
               statusColor={columnsById.get(activeCard.columnId)?.color}
-              assignee={
-                activeCard.assignedUserId
-                  ? membersById.get(activeCard.assignedUserId) ?? null
-                  : null
-              }
+              assignees={getAssignedUserIds(activeCard)
+                .map((userId) => membersById.get(userId))
+                .filter((member): member is BoardMemberSummary => Boolean(member))}
               isDragging
             />
           )}

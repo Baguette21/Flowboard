@@ -6,6 +6,7 @@ export type ColumnType =
   | "number"
   | "select"
   | "multiSelect"
+  | "date"
   | "person"
   | "checkbox"
   | "status"
@@ -164,6 +165,7 @@ export const COLUMN_TYPE_META: Record<ColumnType, { label: string; icon: string 
   number: { label: "Number", icon: "Hash" },
   select: { label: "Select", icon: "ChevronDown" },
   multiSelect: { label: "Multi-select", icon: "Tags" },
+  date: { label: "Date", icon: "Calendar" },
   person: { label: "Person", icon: "User" },
   checkbox: { label: "Checkbox", icon: "CheckSquare" },
   status: { label: "Status", icon: "CircleDot" },

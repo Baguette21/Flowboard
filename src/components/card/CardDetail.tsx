@@ -17,6 +17,7 @@ import {
   Calendar,
   Loader2,
   Users,
+  Plus,
   X,
   Layers3,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
 import { UserAvatar } from "../ui/UserAvatar";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", color: "#E63B2E" },
@@ -33,7 +35,7 @@ const PRIORITY_OPTIONS = [
   { value: "low",    label: "Low",    color: "#3B82F6" },
 ] as const;
 
-type CardPriority = Doc<"cards">["priority"];
+type CardPriority = Doc<"cards">["priority"] | null;
 
 interface CardDetailProps {
   cardId: Id<"cards">;
@@ -64,10 +66,25 @@ export function CardDetail({
   const [isDeleting,      setIsDeleting]      = useState(false);
   const [titleValue,      setTitleValue]      = useState("");
   const [isEditingTitle,  setIsEditingTitle]  = useState(false);
+  const [localAssignedUserIds, setLocalAssignedUserIds] = useState<Id<"users">[]>([]);
+  const [localLabelIds, setLocalLabelIds] = useState<Id<"labels">[]>([]);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [isAssigneeCommitPending, setIsAssigneeCommitPending] = useState(false);
+  const [isLabelCommitPending, setIsLabelCommitPending] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const localAssignedUserIdsRef = useRef<Id<"users">[]>([]);
+  const localLabelIdsRef = useRef<Id<"labels">[]>([]);
   const memberImageUrls = useProfileImageUrls(
     members.map((member) => member.imageKey),
   );
+
+  useEffect(() => {
+    localAssignedUserIdsRef.current = localAssignedUserIds;
+  }, [localAssignedUserIds]);
+
+  useEffect(() => {
+    localLabelIdsRef.current = localLabelIds;
+  }, [localLabelIds]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -91,6 +108,45 @@ export function CardDetail({
     }
   }, [card, onClose]);
 
+  useEffect(() => {
+    if (!card) {
+      return;
+    }
+
+    const nextAssignedUserIds = getAssignedUserIds(card);
+    if (isAssigneeCommitPending) {
+      const localSet = new Set(localAssignedUserIdsRef.current);
+      const serverMatchesLocal =
+        nextAssignedUserIds.length === localSet.size &&
+        nextAssignedUserIds.every((id) => localSet.has(id));
+      if (!serverMatchesLocal) {
+        return;
+      }
+      setIsAssigneeCommitPending(false);
+    }
+
+    setLocalAssignedUserIds(nextAssignedUserIds);
+  }, [card, isAssigneeCommitPending]);
+
+  useEffect(() => {
+    if (!card) {
+      return;
+    }
+
+    if (isLabelCommitPending) {
+      const localSet = new Set(localLabelIdsRef.current);
+      const serverMatchesLocal =
+        card.labelIds.length === localSet.size &&
+        card.labelIds.every((id) => localSet.has(id));
+      if (!serverMatchesLocal) {
+        return;
+      }
+      setIsLabelCommitPending(false);
+    }
+
+    setLocalLabelIds(card.labelIds);
+  }, [card, isLabelCommitPending]);
+
   /* ── Handlers ── */
   const handleToggleComplete = async () => {
     await toggleComplete({ cardId });
@@ -109,13 +165,62 @@ export function CardDetail({
   };
 
   const handleLabelsChange = async (newLabelIds: Id<"labels">[]) => {
-    await updateCard({ cardId, labelIds: newLabelIds });
+    const previousLabelIds = localLabelIdsRef.current;
+    setLocalLabelIds(newLabelIds);
+    setIsLabelCommitPending(true);
+    try {
+      await updateCard({ cardId, labelIds: newLabelIds });
+    } catch (error) {
+      setLocalLabelIds(previousLabelIds);
+      setIsLabelCommitPending(false);
+      const message = error instanceof Error ? error.message : "Failed to update labels";
+      toast.error(message);
+    }
   };
 
-  const handleAssigneeChange = async (value: string) => {
-    const nextId = value === "" ? null : (value as Id<"users">);
-    await updateCard({ cardId, assignedUserId: nextId });
-    toast.success(nextId ? "Assigned" : "Assignee cleared");
+  const handleAssigneeToggle = async (value: Id<"users">) => {
+    if (!card) return;
+
+    const currentIds = localAssignedUserIds;
+    const nextIds = currentIds.includes(value)
+      ? currentIds.filter((id) => id !== value)
+      : [...currentIds, value];
+
+    setLocalAssignedUserIds(nextIds);
+    setIsAssigneeCommitPending(true);
+    try {
+      await updateCard({
+        cardId,
+        assignedUserIds: nextIds,
+        assignedUserId: nextIds[0] ?? null,
+      });
+      toast.success(nextIds.includes(value) ? "Assignee added" : "Assignee removed");
+    } catch (error) {
+      setLocalAssignedUserIds(currentIds);
+      setIsAssigneeCommitPending(false);
+      const message = error instanceof Error ? error.message : "Failed to update assignees";
+      toast.error(message);
+    }
+  };
+
+  const handleAssigneesClear = async () => {
+    const previousIds = localAssignedUserIdsRef.current;
+    setLocalAssignedUserIds([]);
+    setIsAssigneeCommitPending(true);
+    try {
+      await updateCard({ cardId, assignedUserIds: [], assignedUserId: null });
+      toast.success("Assignees cleared");
+    } catch (error) {
+      setLocalAssignedUserIds(previousIds);
+      setIsAssigneeCommitPending(false);
+      const message = error instanceof Error ? error.message : "Failed to clear assignees";
+      toast.error(message);
+    }
+  };
+
+  const getShortMemberName = (member: BoardMemberSummary) => {
+    const displayName = member.name ?? member.email?.split("@")[0] ?? "Unknown";
+    return displayName.trim().split(/\s+/)[0] || "Unknown";
   };
 
   const handleGroupChange = async (newColumnId: string) => {
@@ -177,8 +282,11 @@ export function CardDetail({
   }
 
   const currentColumn   = columns.find((c) => c._id === card.columnId);
-  const cardLabels      = labels.filter((l) => card.labelIds.includes(l._id));
-  const currentAssignee = members.find((m) => m.userId === card.assignedUserId) ?? null;
+  const cardLabels      = labels.filter((l) => localLabelIds.includes(l._id));
+  const assignedUserIds = localAssignedUserIds;
+  const currentAssignees = assignedUserIds
+    .map((userId) => members.find((m) => m.userId === userId))
+    .filter((member): member is BoardMemberSummary => Boolean(member));
   const isOverdue       = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
   const dueDateFormatted = card.dueDate
     ? format(card.dueDate, "yyyy-MM-dd'T'HH:mm")
@@ -279,84 +387,69 @@ export function CardDetail({
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Assignee</span>
               </div>
               {canManageAssignees ? (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleAssigneeChange("")}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
-                      currentAssignee
-                        ? "border-brand-text/12 bg-brand-primary/60 text-brand-text/70 hover:border-brand-text/28"
-                        : "border-brand-accent/25 bg-brand-accent/8 text-brand-text",
-                    )}
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-text/10 bg-brand-text/8 font-mono text-[10px] font-bold uppercase text-brand-text/55">
-                      None
-                    </div>
-                    <span className="text-sm">Unassigned</span>
-                  </button>
-                  <div className="space-y-2">
-                    {members.map((member) => {
-                      const isSelected = member.userId === card.assignedUserId;
-                      const imageUrl = member.imageKey
-                        ? memberImageUrls[member.imageKey] ?? null
-                        : null;
-                      return (
-                        <button
-                          key={member.userId}
-                          type="button"
-                          onClick={() => void handleAssigneeChange(member.userId)}
-                          className={cn(
-                            "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
-                            isSelected
-                              ? "border-brand-accent/25 bg-brand-accent/8 text-brand-text"
-                              : "border-brand-text/12 bg-brand-primary/60 text-brand-text/70 hover:border-brand-text/28",
-                          )}
-                        >
-                          <UserAvatar
-                            name={member.name}
-                            email={member.email}
-                            imageUrl={imageUrl}
-                            size="md"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-brand-text">
-                              {member.name ?? member.email ?? "Unknown"}
-                            </span>
-                            <span className="block truncate font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/40">
-                              {member.role}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
+                <div className="relative">
+                  <div className="flex min-h-9 items-center gap-2 rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5">
+                    <span className="min-w-0 flex-1 truncate text-sm text-brand-text/70">
+                      {currentAssignees.length > 0
+                        ? currentAssignees.map(getShortMemberName).join(", ")
+                        : "Empty"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAssigneePickerOpen((current) => !current)}
+                      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-brand-text/12 text-brand-text/45 transition-colors hover:border-brand-text/30 hover:text-brand-text"
+                      title="Add assignee"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
                   </div>
+
+                  {assigneePickerOpen && (
+                    <div className="absolute left-0 top-11 z-30 w-64 overflow-hidden rounded-lg border border-brand-text/12 bg-brand-bg py-1 shadow-xl">
+                      <button
+                        type="button"
+                        onClick={() => void handleAssigneesClear()}
+                        className="w-full px-3 py-1.5 text-left text-xs text-brand-text/45 transition-colors hover:bg-brand-primary"
+                      >
+                        Clear assignees
+                      </button>
+                      <div className="my-1 h-px bg-brand-text/8" />
+                      {members.map((member) => {
+                        const isSelected = assignedUserIds.includes(member.userId);
+                        const imageUrl = member.imageKey
+                          ? memberImageUrls[member.imageKey] ?? null
+                          : null;
+                        return (
+                          <button
+                            key={member.userId}
+                            type="button"
+                            onClick={() => void handleAssigneeToggle(member.userId)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-brand-text/70 transition-colors hover:bg-brand-primary"
+                          >
+                            <UserAvatar
+                              name={member.name}
+                              email={member.email}
+                              imageUrl={imageUrl}
+                              size="sm"
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {getShortMemberName(member)}
+                            </span>
+                            {isSelected && (
+                              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-brand-accent" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+              ) : currentAssignees.length > 0 ? (
+                <p className="truncate text-sm text-brand-text/70">
+                  {currentAssignees.map(getShortMemberName).join(", ")}
+                </p>
               ) : (
-                currentAssignee ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-brand-text/12 bg-brand-primary/60 px-3 py-2">
-                    <UserAvatar
-                      name={currentAssignee.name}
-                      email={currentAssignee.email}
-                      imageUrl={
-                        currentAssignee.imageKey
-                          ? memberImageUrls[currentAssignee.imageKey] ?? null
-                          : null
-                      }
-                      size="md"
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-brand-text">
-                        {currentAssignee.name ?? currentAssignee.email ?? "Unknown"}
-                      </p>
-                      <p className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/40">
-                        {currentAssignee.role}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-brand-text/30">Empty</p>
-                )
+                <p className="text-sm text-brand-text/30">Empty</p>
               )}
             </div>
 
@@ -410,7 +503,7 @@ export function CardDetail({
                 value={card.priority ?? ""}
                 onChange={(e) => {
                   const val = e.target.value;
-                  void handlePriority(val === "" ? undefined : (val as typeof card.priority));
+                  void handlePriority(val === "" ? null : (val as typeof card.priority));
                 }}
                 className="w-full rounded-md border border-brand-text/12 bg-brand-primary/60 px-2.5 py-1.5 text-sm text-brand-text focus:outline-none cursor-pointer"
               >
@@ -427,7 +520,7 @@ export function CardDetail({
                 <Tag className="h-3 w-3" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Labels</span>
               </div>
-              <LabelPicker boardId={boardId} selectedIds={card.labelIds} onChange={handleLabelsChange} />
+              <LabelPicker boardId={boardId} selectedIds={localLabelIds} onChange={handleLabelsChange} />
             </div>
           </div>
         </div>

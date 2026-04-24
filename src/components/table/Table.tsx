@@ -14,6 +14,7 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/utils";
 import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
 import { useTableState } from "./useTableState";
+import { areAssignedUserIdsEqual, getAssignedUserIds } from "../../lib/assignees";
 import { ColumnHeaderMenu } from "./ColumnMenu";
 import { FilterBar } from "./FilterBar";
 import { RowDetailModal } from "./RowDetail";
@@ -26,7 +27,7 @@ import type {
   SelectOption,
   ViewMode,
 } from "./types";
-import { COLUMN_TYPE_META, DEFAULT_STATUS_OPTIONS } from "./types";
+import { COLUMN_TYPE_META, DEFAULT_SELECT_COLORS, DEFAULT_STATUS_OPTIONS } from "./types";
 import {
   Plus,
   Table2,
@@ -42,16 +43,33 @@ import {
   Trash2,
   Link,
   Check,
-  Hash,
   Type,
-  CheckSquare,
   User,
   Tags,
-  MousePointer,
-  FunctionSquare,
   CircleDot,
   ThumbsUp,
+  Calendar,
 } from "lucide-react";
+
+type AddColumnOptionId = "title" | "group" | "status" | "labels" | "dueDate" | "priority" | "assignee";
+
+const ADD_COLUMN_OPTIONS: Array<{
+  id: AddColumnOptionId;
+  label: string;
+  typeLabel: string;
+  type: ColumnType;
+  builtIn: NonNullable<TableColumnDef["builtIn"]>;
+  width: number;
+  icon: typeof Type;
+}> = [
+  { id: "title", label: "Task", typeLabel: "Text", type: "text", builtIn: "title", width: 300, icon: Type },
+  { id: "group", label: "Group", typeLabel: "Select", type: "select", builtIn: "group", width: 180, icon: ChevronDown },
+  { id: "status", label: "Status", typeLabel: "Status", type: "status", builtIn: "status", width: 160, icon: CircleDot },
+  { id: "labels", label: "Labels", typeLabel: "Multi-select", type: "multiSelect", builtIn: "labels", width: 180, icon: Tags },
+  { id: "dueDate", label: "Due Date", typeLabel: "Date", type: "date", builtIn: "dueDate", width: 180, icon: Calendar },
+  { id: "priority", label: "Priority", typeLabel: "Select", type: "select", builtIn: "priority", width: 140, icon: ChevronDown },
+  { id: "assignee", label: "Assignee", typeLabel: "Person", type: "person", builtIn: "assignee", width: 180, icon: User },
+];
 
 // ════════════════════════════════════════════════════════════════════════════
 // Table — Main Component
@@ -91,8 +109,9 @@ export function Table({
 
   const [detailCardId, setDetailCardId] = useState<Id<"cards"> | null>(null);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [addColumnMenuPosition, setAddColumnMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [newColName, setNewColName] = useState("");
-  const [newColType, setNewColType] = useState<ColumnType>("text");
+  const [newColOption, setNewColOption] = useState<AddColumnOptionId>("labels");
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -303,7 +322,7 @@ export function Table({
           break;
         }
         case "priority": {
-          const v = value === "" ? undefined : (value as Doc<"cards">["priority"]);
+          const v = value === "" ? null : (value as Doc<"cards">["priority"]);
           if (v !== card.priority) await updateCard({ cardId: card._id, priority: v });
           break;
         }
@@ -313,9 +332,25 @@ export function Table({
           break;
         }
         case "assignee": {
-          const v = value === "" ? null : (value as Id<"users">);
-          if (v !== (card.assignedUserId ?? null))
-            await updateCard({ cardId: card._id, assignedUserId: v });
+          const v = Array.isArray(value)
+            ? (value as Id<"users">[])
+            : value === ""
+              ? []
+              : [value as Id<"users">];
+          if (!areAssignedUserIdsEqual(v, getAssignedUserIds(card))) {
+            await updateCard({
+              cardId: card._id,
+              assignedUserIds: v,
+              assignedUserId: v[0] ?? null,
+            });
+          }
+          break;
+        }
+        case "labels": {
+          const v = Array.isArray(value) ? (value as Id<"labels">[]) : [];
+          const current = new Set(card.labelIds);
+          const changed = v.length !== current.size || v.some((id) => !current.has(id));
+          if (changed) await updateCard({ cardId: card._id, labelIds: v });
           break;
         }
         case "status": {
@@ -349,15 +384,152 @@ export function Table({
   };
 
   // ── Add column ─────────────────────────────────────────────────────────
-  const handleAddColumn = () => {
-    const name = newColName.trim() || `New ${newColType}`;
-    actions.addColumn(newColType, name);
+  const openAddColumnMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setAddColumnMenuPosition({
+      x: Math.max(12, Math.min(rect.left, window.innerWidth - 360)),
+      y: Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - 420)),
+    });
+    setIsAddingColumn(true);
+  };
+
+  const closeAddColumnMenu = () => {
     setIsAddingColumn(false);
+    setAddColumnMenuPosition(null);
     setNewColName("");
-    setNewColType("text");
+    setNewColOption("labels");
+  };
+
+  const handleAddColumn = (optionId = newColOption) => {
+    const option =
+      ADD_COLUMN_OPTIONS.find((entry) => entry.id === optionId) ??
+      ADD_COLUMN_OPTIONS[0];
+    const name = newColName.trim() || option.label;
+    const existingColumn = state.columns.find(
+      (column) => column.builtIn === option.builtIn || column.id === option.id,
+    );
+
+    if (existingColumn) {
+      actions.updateColumn(existingColumn.id, { name, visible: true });
+    } else {
+      actions.addColumnDef({
+        id: option.id,
+        name,
+        type: option.type,
+        width: option.width,
+        visible: true,
+        frozen: false,
+        wrapContent: false,
+        builtIn: option.builtIn,
+        options:
+          option.builtIn === "status"
+            ? [...DEFAULT_STATUS_OPTIONS]
+            : option.builtIn === "priority"
+              ? [
+                  { id: "low", label: "Low", color: "#22C55E" },
+                  { id: "medium", label: "Medium", color: "#EAB308" },
+                  { id: "high", label: "High", color: "#F97316" },
+                  { id: "urgent", label: "Urgent", color: "#E63B2E" },
+                ]
+              : undefined,
+      });
+    }
+    closeAddColumnMenu();
   };
 
   // ── Toggle group collapse ──────────────────────────────────────────────
+  const getColumnDefaultsForType = (type: ColumnType): Partial<TableColumnDef> => ({
+    options:
+      type === "select" || type === "multiSelect"
+        ? [
+            { id: "opt1", label: "Option 1", color: DEFAULT_SELECT_COLORS[0] },
+            { id: "opt2", label: "Option 2", color: DEFAULT_SELECT_COLORS[1] },
+            { id: "opt3", label: "Option 3", color: DEFAULT_SELECT_COLORS[2] },
+          ]
+        : type === "status"
+          ? [...DEFAULT_STATUS_OPTIONS]
+          : undefined,
+    buttonConfig:
+      type === "button" ? { label: "Upvote", action: "increment", targetColumnId: "" } : undefined,
+    formulaConfig: undefined,
+  });
+
+  const valueForConvertedColumn = (
+    value: CellValue,
+    sourceColumn: TableColumnDef,
+    targetType: ColumnType,
+  ): CellValue => {
+    const values = Array.isArray(value) ? value.map(String) : value === null ? [] : [String(value)];
+    const textValue = () => {
+      if (sourceColumn.builtIn === "assignee") {
+        return values
+          .map((id) => members?.find((member) => member.userId === id))
+          .filter((member): member is NonNullable<typeof members>[number] => Boolean(member))
+          .map((member) => member.name ?? member.email ?? "Unknown")
+          .join(", ");
+      }
+      if (sourceColumn.builtIn === "labels") {
+        return values
+          .map((id) => labelsById.get(id as Id<"labels">)?.name)
+          .filter((name): name is string => Boolean(name))
+          .join(", ");
+      }
+      const resolved = resolveSelectLabel(sourceColumn, value);
+      return resolved?.label ?? values.join(", ");
+    };
+
+    switch (targetType) {
+      case "text":
+        return textValue();
+      case "number": {
+        const num = Number(Array.isArray(value) ? value[0] : value);
+        return Number.isFinite(num) ? num : null;
+      }
+      case "date":
+        return values[0] ?? "";
+      case "select":
+      case "person":
+      case "status":
+        return values[0] ?? null;
+      case "multiSelect":
+        return values;
+      case "checkbox":
+        return Boolean(value);
+      case "button":
+        return typeof value === "number" ? value : 0;
+      case "formula":
+        return null;
+      default:
+        return value;
+    }
+  };
+
+  const changeColumnType = (columnId: string, type: ColumnType) => {
+    const column = state.columns.find((entry) => entry.id === columnId);
+    if (!column || column.type === type) return;
+
+    const cellWrites = processedCards.map((card) => ({
+      type: "SET_CELL" as const,
+      rowId: card._id,
+      colId: columnId,
+      value: valueForConvertedColumn(getCellValue(card, column), column, type),
+    }));
+
+    actions.batch([
+      ...cellWrites,
+      {
+        type: "UPDATE_COLUMN",
+        columnId,
+        patch: {
+          type,
+          builtIn: undefined,
+          locked: false,
+          ...getColumnDefaultsForType(type),
+        },
+      },
+    ]);
+  };
+
   const toggleGroupCollapse = (key: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -390,11 +562,15 @@ export function Table({
       return opt ?? null;
     }
     if (colDef.builtIn === "assignee") {
-      const member = (members ?? []).find((m) => m.userId === val);
+      const assignedIds = Array.isArray(val) ? val : val ? [String(val)] : [];
+      const member = (members ?? []).find((m) => m.userId === assignedIds[0]);
       return member
         ? {
             id: String(member.userId),
-            label: member.name ?? member.email ?? "Unknown",
+            label:
+              assignedIds.length > 1
+                ? `${member.name ?? member.email ?? "Unknown"} +${assignedIds.length - 1}`
+                : (member.name ?? member.email ?? "Unknown"),
             color: "#6B7280",
           }
         : null;
@@ -476,23 +652,27 @@ export function Table({
             compact
           />
 
-          {/* New row */}
-          <button
-            onClick={() => void addRow()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-text/10 px-3 py-1.5 text-xs font-medium text-brand-text/60 transition-colors hover:border-brand-text/25 hover:text-brand-text"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New row
-          </button>
+          {state.viewConfig.mode !== "table" && state.viewConfig.mode !== "list" && (
+            <>
+              {/* New row */}
+              <button
+                onClick={() => void addRow()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-text/10 px-3 py-1.5 text-xs font-medium text-brand-text/60 transition-colors hover:border-brand-text/25 hover:text-brand-text"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New row
+              </button>
 
-          {/* Add column */}
-          <button
-            onClick={() => setIsAddingColumn(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-text/10 px-3 py-1.5 text-xs font-medium text-brand-text/60 transition-colors hover:border-brand-text/25 hover:text-brand-text"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add column
-          </button>
+              {/* Add column */}
+              <button
+                onClick={openAddColumnMenu}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-text/10 px-3 py-1.5 text-xs font-medium text-brand-text/60 transition-colors hover:border-brand-text/25 hover:text-brand-text"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add column
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -523,6 +703,7 @@ export function Table({
             sortedBoardColumns={sortedBoardColumns}
             members={members ?? []}
             memberImageUrls={memberImageUrls}
+            labels={labels}
             labelsById={labelsById}
             accessInfo={accessInfo}
             hoveredRow={hoveredRow}
@@ -538,11 +719,11 @@ export function Table({
               setContextMenu({ x: e.clientX, y: e.clientY, type: "column", id });
             }}
             onAddRow={() => void addRow()}
-            setIsAddingColumn={setIsAddingColumn}
+            onAddColumnClick={openAddColumnMenu}
             newColName={newColName}
             setNewColName={setNewColName}
-            newColType={newColType}
-            setNewColType={setNewColType}
+            newColOption={newColOption}
+            setNewColOption={setNewColOption}
             handleAddColumn={handleAddColumn}
             dragColId={dragColId}
             handleColDragStart={handleColDragStart}
@@ -595,7 +776,7 @@ export function Table({
           columnId={contextMenu.id}
           columns={state.columns}
           viewConfig={state.viewConfig}
-          actions={actions}
+          actions={{ ...actions, changeColumnType }}
           onClose={() => setContextMenu(null)}
         />
       )}
@@ -638,75 +819,56 @@ export function Table({
       )}
 
       {/* ── Add Column Modal ────────────────────────────────────────────── */}
-      {isAddingColumn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {isAddingColumn && addColumnMenuPosition && (
+        <div className="fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-brand-text/20 backdrop-blur-sm"
-            onClick={() => setIsAddingColumn(false)}
+            className="absolute inset-0"
+            onClick={closeAddColumnMenu}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-brand-text/10 bg-brand-bg p-6 shadow-2xl">
-            <h3 className="mb-4 text-lg font-bold text-brand-text">Add Column</h3>
-            <div className="space-y-3">
+          <div
+            className="absolute w-[340px] overflow-hidden rounded-xl border border-brand-text/12 bg-brand-bg shadow-2xl"
+            style={{ left: addColumnMenuPosition.x, top: addColumnMenuPosition.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-brand-text/8 px-3 py-2">
               <input
                 autoFocus
                 value={newColName}
                 onChange={(e) => setNewColName(e.target.value)}
-                placeholder="Column name"
-                className="w-full rounded-lg border border-brand-text/12 bg-brand-primary/50 px-3 py-2 text-sm text-brand-text outline-none placeholder:text-brand-text/30 focus:border-brand-text/25"
+                placeholder="Type property name..."
+                className="w-full bg-transparent px-2 py-2 text-sm font-medium text-brand-text outline-none placeholder:text-brand-text/35"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddColumn();
-                  if (e.key === "Escape") setIsAddingColumn(false);
+                  if (e.key === "Escape") closeAddColumnMenu();
                 }}
               />
-              <div className="grid grid-cols-3 gap-1.5">
-                {(Object.keys(COLUMN_TYPE_META) as ColumnType[]).map((type) => {
-                  const meta = COLUMN_TYPE_META[type];
-                  const IconMap: Record<string, typeof Type> = {
-                    Type,
-                    Hash,
-                    ChevronDown,
-                    Tags,
-                    User,
-                    CheckSquare,
-                    CircleDot,
-                    MousePointer,
-                    FunctionSquare,
-                  };
-                  const Icon = IconMap[meta.icon] ?? Type;
+            </div>
+            <div className="px-3 pb-3 pt-3">
+              <div className="mb-2 px-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-text/45">
+                Select type
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                {ADD_COLUMN_OPTIONS.map((option) => {
+                  const Icon = option.icon;
                   return (
                     <button
-                      key={type}
-                      onClick={() => setNewColType(type)}
+                      key={option.id}
+                      onMouseEnter={() => setNewColOption(option.id)}
+                      onClick={() => handleAddColumn(option.id)}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
-                        newColType === type
-                          ? "bg-brand-text text-brand-bg"
-                          : "bg-brand-primary/60 text-brand-text/60 hover:bg-brand-primary hover:text-brand-text",
+                        "flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition-colors",
+                        newColOption === option.id
+                          ? "bg-brand-primary text-brand-text"
+                          : "text-brand-text/70 hover:bg-brand-primary hover:text-brand-text",
                       )}
                     >
-                      <Icon className="h-3 w-3" />
-                      {meta.label}
+                      <Icon className="h-4 w-4 flex-shrink-0 text-brand-text/45" />
+                      <span className="min-w-0">
+                        <span className="block truncate">{option.label}</span>
+                      </span>
                     </button>
                   );
                 })}
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    setIsAddingColumn(false);
-                    setNewColName("");
-                    setNewColType("text");
-                  }}
-                  className="rounded-lg px-4 py-2 text-sm text-brand-text/50 transition-colors hover:text-brand-text"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddColumn}
-                  className="rounded-lg bg-brand-text px-4 py-2 text-sm font-medium text-brand-bg"
-                >
-                  Add
-                </button>
               </div>
             </div>
           </div>
@@ -751,6 +913,7 @@ interface TableViewProps {
   sortedBoardColumns: Doc<"columns">[];
   members: { userId: Id<"users">; name: string | null; email: string | null; imageKey: string | null }[];
   memberImageUrls: Record<string, string>;
+  labels: Doc<"labels">[];
   labelsById: Map<Id<"labels">, Doc<"labels">>;
   accessInfo: { canManageAssignees: boolean } | undefined | null;
   hoveredRow: string | null;
@@ -760,11 +923,11 @@ interface TableViewProps {
   onRowContextMenu: (e: ReactMouseEvent, id: string) => void;
   onColumnContextMenu: (e: ReactMouseEvent, id: string) => void;
   onAddRow: () => void;
-  setIsAddingColumn: (v: boolean) => void;
+  onAddColumnClick: (event: ReactMouseEvent<HTMLElement>) => void;
   newColName: string;
   setNewColName: (v: string) => void;
-  newColType: ColumnType;
-  setNewColType: (v: ColumnType) => void;
+  newColOption: AddColumnOptionId;
+  setNewColOption: (v: AddColumnOptionId) => void;
   handleAddColumn: () => void;
   dragColId: string | null;
   handleColDragStart: (id: string) => void;
@@ -791,6 +954,7 @@ function TableView({
   sortedBoardColumns,
   members,
   memberImageUrls,
+  labels,
   labelsById,
   accessInfo,
   hoveredRow,
@@ -800,7 +964,7 @@ function TableView({
   onRowContextMenu,
   onColumnContextMenu,
   onAddRow,
-  setIsAddingColumn,
+  onAddColumnClick,
   dragColId,
   handleColDragStart,
   handleColDragOver,
@@ -866,9 +1030,10 @@ function TableView({
                 sortedBoardColumns={sortedBoardColumns}
                 members={members}
                 memberImageUrls={memberImageUrls}
+                labels={labels}
                 labelsById={labelsById}
                 accessInfo={accessInfo}
-                onCommitBuiltIn={(val) => void commitBuiltInField(card, col, val)}
+                onCommitBuiltIn={(val) => commitBuiltInField(card, col, val)}
                 onCommitCustom={(val) => actions.setCell(card._id, col.id, val)}
                 onStopEditing={() => actions.setEditingCell(null)}
               />
@@ -890,7 +1055,7 @@ function TableView({
 
   return (
     <div className="min-w-max px-3 py-3 sm:px-5">
-      <div className="overflow-hidden rounded-lg border border-brand-text/10 bg-brand-primary/30">
+      <div className="rounded-lg border border-brand-text/10 bg-brand-primary/30">
         <table className="w-full border-collapse" style={{ minWidth: totalWidth }}>
           <thead>
             <tr className="border-b border-brand-text/10 bg-brand-bg/50">
@@ -939,7 +1104,7 @@ function TableView({
               {/* Add column header */}
               <th className="min-w-[140px] border-r-0 px-3 py-2 text-left">
                 <button
-                  onClick={() => setIsAddingColumn(true)}
+                  onClick={onAddColumnClick}
                   className="inline-flex items-center gap-1.5 text-sm text-brand-text/35 transition-colors hover:text-brand-text/60"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -1079,9 +1244,10 @@ interface CellRendererProps {
   sortedBoardColumns: Doc<"columns">[];
   members: { userId: Id<"users">; name: string | null; email: string | null; imageKey: string | null }[];
   memberImageUrls: Record<string, string>;
+  labels: Doc<"labels">[];
   labelsById: Map<Id<"labels">, Doc<"labels">>;
   accessInfo: { canManageAssignees: boolean } | undefined | null;
-  onCommitBuiltIn: (val: CellValue) => void;
+  onCommitBuiltIn: (val: CellValue) => Promise<void> | void;
   onCommitCustom: (val: CellValue) => void;
   onStopEditing: () => void;
 }
@@ -1095,6 +1261,7 @@ function CellRenderer({
   sortedBoardColumns,
   members,
   memberImageUrls,
+  labels,
   labelsById,
   accessInfo,
   onCommitBuiltIn,
@@ -1102,6 +1269,79 @@ function CellRenderer({
   onStopEditing,
 }: CellRendererProps) {
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  const [localAssignedIds, setLocalAssignedIds] = useState<string[]>([]);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [isAssigneeCommitPending, setIsAssigneeCommitPending] = useState(false);
+  const localAssignedIdsRef = useRef<string[]>([]);
+  const [localLabelIds, setLocalLabelIds] = useState<Id<"labels">[]>([]);
+  const [labelPickerOpen, setLabelPickerOpen] = useState(false);
+  const [isLabelCommitPending, setIsLabelCommitPending] = useState(false);
+  const localLabelIdsRef = useRef<Id<"labels">[]>([]);
+
+  useEffect(() => {
+    localAssignedIdsRef.current = localAssignedIds;
+  }, [localAssignedIds]);
+
+  useEffect(() => {
+    localLabelIdsRef.current = localLabelIds;
+  }, [localLabelIds]);
+
+  useEffect(() => {
+    if (colDef.builtIn !== "assignee") {
+      return;
+    }
+
+    const nextValue = Array.isArray(value)
+      ? (value as string[])
+      : value
+        ? [String(value)]
+        : [];
+
+    if (isAssigneeCommitPending) {
+      const localSet = new Set(localAssignedIdsRef.current);
+      const serverMatchesLocal =
+        nextValue.length === localSet.size && nextValue.every((id) => localSet.has(id));
+      if (!serverMatchesLocal) {
+        return;
+      }
+      setIsAssigneeCommitPending(false);
+    }
+
+    setLocalAssignedIds(
+      Array.isArray(value)
+        ? (value as string[])
+        : value
+          ? [String(value)]
+          : [],
+    );
+  }, [colDef.builtIn, value, isAssigneeCommitPending]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setAssigneePickerOpen(false);
+      setLabelPickerOpen(false);
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (colDef.builtIn !== "labels") {
+      return;
+    }
+
+    const nextValue = Array.isArray(value) ? (value as Id<"labels">[]) : [];
+
+    if (isLabelCommitPending) {
+      const localSet = new Set(localLabelIdsRef.current);
+      const serverMatchesLocal =
+        nextValue.length === localSet.size && nextValue.every((id) => localSet.has(id));
+      if (!serverMatchesLocal) {
+        return;
+      }
+      setIsLabelCommitPending(false);
+    }
+
+    setLocalLabelIds(nextValue);
+  }, [colDef.builtIn, value, isLabelCommitPending]);
 
   // Built-in fields
   if (colDef.builtIn) {
@@ -1215,42 +1455,84 @@ function CellRenderer({
         );
 
       case "assignee": {
-        const member = members.find((m) => m.userId === value);
-        if (!isEditing && member) {
-          return (
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <UserAvatar
-                name={member.name}
-                email={member.email}
-                imageUrl={member.imageKey ? memberImageUrls[member.imageKey] ?? null : null}
-                size="sm"
-              />
-              <span className="text-sm text-brand-text/70">
-                {member.name ?? member.email ?? "Unknown"}
-              </span>
-            </div>
-          );
-        }
+        const selectedIds = localAssignedIds;
+        const selectedMembers = selectedIds
+          .map((id) => members.find((m) => m.userId === id))
+          .filter((member): member is typeof members[number] => Boolean(member));
+        const getShortName = (member: typeof members[number]) => {
+          const displayName = member.name ?? member.email?.split("@")[0] ?? "Unknown";
+          return displayName.trim().split(/\s+/)[0] || "Unknown";
+        };
+
         return (
-          <select
-            value={String(value ?? "")}
-            disabled={!(accessInfo?.canManageAssignees ?? false)}
-            onClick={stop}
-            onChange={(e) => {
-              onCommitBuiltIn(e.target.value);
-              onStopEditing();
-            }}
-            onBlur={onStopEditing}
-            className="themed-select-popup w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none disabled:cursor-not-allowed disabled:text-brand-text/30"
-            style={{ colorScheme: "inherit" }}
-          >
-            <option value="">Empty</option>
-            {members.map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.name ?? m.email ?? "Unknown"}
-              </option>
-            ))}
-          </select>
+          <div className="relative flex min-h-8 items-center gap-1.5 px-3 py-1.5" onClick={stop}>
+            <span className="min-w-0 flex-1 truncate text-sm text-brand-text/70">
+              {selectedMembers.length > 0
+                ? selectedMembers.map(getShortName).join(", ")
+                : "Empty"}
+            </span>
+            <button
+              type="button"
+              disabled={!(accessInfo?.canManageAssignees ?? false)}
+              onClick={() => {
+                setAssigneePickerOpen((current) => !current);
+              }}
+              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-brand-text/12 text-brand-text/45 transition-colors hover:border-brand-text/30 hover:text-brand-text disabled:cursor-not-allowed disabled:opacity-35"
+              title="Add assignee"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+
+            {assigneePickerOpen && (
+              <div className="absolute right-2 top-8 z-50 w-56 overflow-hidden rounded-lg border border-brand-text/12 bg-brand-bg py-1 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocalAssignedIds([]);
+                    setIsAssigneeCommitPending(true);
+                    void Promise.resolve(onCommitBuiltIn([])).catch(() => {
+                      setIsAssigneeCommitPending(false);
+                    });
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-brand-text/45 transition-colors hover:bg-brand-primary"
+                >
+                  Clear assignees
+                </button>
+                <div className="my-1 h-px bg-brand-text/8" />
+                {members.map((member) => {
+                  const isSelected = selectedIds.includes(member.userId);
+                  return (
+                    <button
+                      key={member.userId}
+                      type="button"
+                      onClick={() => {
+                        const next = isSelected
+                          ? selectedIds.filter((id) => id !== member.userId)
+                          : [...selectedIds, member.userId];
+                        setLocalAssignedIds(next);
+                        setIsAssigneeCommitPending(true);
+                        void Promise.resolve(onCommitBuiltIn(next)).catch(() => {
+                          setIsAssigneeCommitPending(false);
+                        });
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-brand-text/70 transition-colors hover:bg-brand-primary"
+                    >
+                      <UserAvatar
+                        name={member.name}
+                        email={member.email}
+                        imageUrl={
+                          member.imageKey ? memberImageUrls[member.imageKey] ?? null : null
+                        }
+                        size="sm"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{getShortName(member)}</span>
+                      {isSelected && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         );
       }
 
@@ -1292,10 +1574,82 @@ function CellRenderer({
       }
 
       case "labels": {
-        const labelArr = Array.isArray(value) ? value : [];
+        const labelArr =
+          isEditing || isLabelCommitPending
+            ? localLabelIds
+            : Array.isArray(value)
+              ? (value as Id<"labels">[])
+              : [];
         const resolved = labelArr
           .map((id) => labelsById.get(id as Id<"labels">))
           .filter((l): l is Doc<"labels"> => !!l);
+        if (isEditing) {
+          return (
+            <div className="relative flex min-h-8 items-center px-3 py-1.5" onClick={stop}>
+              <button
+                type="button"
+                onClick={() => setLabelPickerOpen((current) => !current)}
+                className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left text-sm text-brand-text/70"
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {resolved.length > 0 ? resolved.map((label) => label.name).join(", ") : "Empty"}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-brand-text/35" />
+              </button>
+
+              {labelPickerOpen && (
+                <div className="absolute left-2 top-8 z-50 w-56 overflow-hidden rounded-lg border border-brand-text/12 bg-brand-bg py-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocalLabelIds([]);
+                      setIsLabelCommitPending(true);
+                      void Promise.resolve(onCommitBuiltIn([])).catch(() => {
+                        setIsLabelCommitPending(false);
+                      });
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-xs text-brand-text/45 transition-colors hover:bg-brand-primary"
+                  >
+                    Clear labels
+                  </button>
+                  <div className="my-1 h-px bg-brand-text/8" />
+                  {labels.length > 0 ? (
+                    labels.map((label) => {
+                      const isSelected = labelArr.includes(label._id);
+                      return (
+                        <button
+                          key={label._id}
+                          type="button"
+                          onClick={() => {
+                            const next = isSelected
+                              ? labelArr.filter((id) => id !== label._id)
+                              : [...labelArr, label._id];
+                            setLocalLabelIds(next);
+                            setIsLabelCommitPending(true);
+                            void Promise.resolve(onCommitBuiltIn(next)).catch(() => {
+                              setIsLabelCommitPending(false);
+                            });
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-brand-text/70 transition-colors hover:bg-brand-primary"
+                        >
+                          <span
+                            className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                            style={{ backgroundColor: label.color }}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{label.name}</span>
+                          {isSelected && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-2 text-xs text-brand-text/35">No labels</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+
         return (
           <div className="flex flex-wrap gap-1 px-3 py-1.5">
             {resolved.length > 0 ? (
@@ -1355,6 +1709,30 @@ function CellRenderer({
             onStopEditing();
           }}
           className="w-full bg-transparent px-3 py-2 text-sm text-brand-text/70 outline-none placeholder:text-brand-text/20"
+        />
+      );
+
+    case "date":
+      if (!isEditing && value) {
+        const dateValue = new Date(String(value));
+        return (
+          <div className="px-3 py-2 text-sm text-brand-text/70">
+            {Number.isNaN(dateValue.getTime())
+              ? String(value)
+              : fmtDate(dateValue, "MMM d, h:mm a")}
+          </div>
+        );
+      }
+      return (
+        <input
+          type="datetime-local"
+          value={String(value ?? "")}
+          onClick={stop}
+          onChange={(e) => {
+            onCommitCustom(e.target.value || null);
+            onStopEditing();
+          }}
+          className="w-full bg-transparent px-3 py-2 text-sm text-brand-text outline-none"
         />
       );
 

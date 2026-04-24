@@ -35,6 +35,7 @@ import {
   MousePointer,
   FunctionSquare,
   ChevronDown,
+  Calendar,
 } from "lucide-react";
 
 interface ColumnHeaderMenuProps {
@@ -45,6 +46,7 @@ interface ColumnHeaderMenuProps {
   viewConfig: ViewConfig;
   actions: {
     updateColumn: (id: string, patch: Partial<TableColumnDef>) => void;
+    changeColumnType: (id: string, type: ColumnType) => void;
     removeColumn: (id: string) => void;
     duplicateColumn: (id: string) => void;
     addColumn: (type: ColumnType, name?: string, afterId?: string) => void;
@@ -264,6 +266,7 @@ export function ColumnHeaderMenu({
     { type: "number", icon: Hash },
     { type: "select", icon: ChevronDown },
     { type: "multiSelect", icon: Tags },
+    { type: "date", icon: Calendar },
     { type: "person", icon: User },
     { type: "checkbox", icon: CheckSquare },
     { type: "status", icon: CircleDot },
@@ -364,7 +367,7 @@ export function ColumnHeaderMenu({
             <button
               key={type}
               onClick={() => {
-                actions.updateColumn(columnId, { type });
+                actions.changeColumnType(columnId, type);
                 onClose();
               }}
               className={cn(

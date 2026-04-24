@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -8,12 +8,19 @@ import { NoteEditor } from "../components/notes/NoteEditor";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
+import { WorkspaceItemMenu } from "../components/layout/WorkspaceItemMenu";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 export function NotesPage() {
   const { noteId } = useParams<{ noteId?: string }>();
+  const navigate = useNavigate();
   const notes = useQuery(api.notes.list);
   const createNote = useMutation(api.notes.create);
+  const updateNote = useMutation(api.notes.update);
+  const deleteNote = useMutation(api.notes.remove);
   const { ensureInActiveTab, openInActiveTab } = useBoardTabs();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const activeNoteId = (noteId as Id<"notes"> | undefined) ?? null;
   const activeNote = useQuery(
@@ -52,6 +59,57 @@ export function NotesPage() {
     }
 
     openInActiveTab({ kind: "note", id: notes[0]._id });
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!activeNote) return;
+    try {
+      await updateNote({
+        noteId: activeNote._id,
+        isFavorite: !(activeNote.isFavorite ?? false),
+      });
+      toast.success(
+        activeNote.isFavorite ? "Removed from favorites" : "Added to favorites",
+      );
+    } catch {
+      toast.error("Failed to update favorite");
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!activeNoteId) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/notes/${activeNoteId}`);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!activeNoteId) return;
+    try {
+      await updateNote({ noteId: activeNoteId, archivedAt: Date.now() });
+      toast.success("Note archived");
+      navigate("/");
+    } catch {
+      toast.error("Failed to archive note");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activeNoteId) return;
+    setIsDeleting(true);
+    try {
+      await deleteNote({ noteId: activeNoteId });
+      toast.success("Note deleted");
+      setConfirmDelete(false);
+      navigate("/");
+    } catch {
+      toast.error("Failed to delete note");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const renderEmptyState = (
@@ -127,7 +185,21 @@ export function NotesPage() {
       </div>
     );
   } else if (activeNote) {
-    content = <NoteEditor key={activeNote._id} note={activeNote} />;
+    content = (
+      <NoteEditor
+        key={activeNote._id}
+        note={activeNote}
+        actions={
+          <WorkspaceItemMenu
+            isFavorite={activeNote.isFavorite ?? false}
+            onToggleFavorite={() => void handleToggleFavorite()}
+            onCopyLink={() => void handleCopyLink()}
+            onArchive={() => void handleArchive()}
+            onDelete={() => setConfirmDelete(true)}
+          />
+        }
+      />
+    );
   } else {
     content = renderEmptyState(
       "Note not found",
@@ -154,10 +226,22 @@ export function NotesPage() {
   }
 
   return (
-    <Layout activeNoteId={activeNoteId ?? undefined}>
-      <div className="flex min-h-0 flex-1 flex-col bg-brand-bg">
-        {content}
-      </div>
-    </Layout>
+    <>
+      <Layout activeNoteId={activeNoteId ?? undefined}>
+        <div className="flex min-h-0 flex-1 flex-col bg-brand-bg">
+          {content}
+        </div>
+      </Layout>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => void handleDelete()}
+        title="Delete note"
+        description={`This will permanently delete "${activeNote?.title || "Untitled"}". This action cannot be undone.`}
+        confirmLabel="Delete"
+        isDestructive
+        isLoading={isDeleting}
+      />
+    </>
   );
 }

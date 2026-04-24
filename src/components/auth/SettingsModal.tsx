@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvex, useMutation } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import {
+  FileText,
+  LayoutGrid,
   Loader2,
   LogOut,
   Moon,
+  PencilLine,
+  RotateCcw,
   Sun,
   Trash2,
   Upload,
@@ -13,7 +17,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Modal } from "../ui/Modal";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
 import { useProfileAvatar } from "../../hooks/useProfileAvatar";
 import { useTheme } from "../../hooks/useTheme";
@@ -26,6 +32,10 @@ interface SettingsModalProps {
 }
 
 type PasswordStep = "idle" | "awaitingCode";
+type ArchivedItem =
+  | { kind: "board"; id: Id<"boards">; title: string; archivedAt: number | null }
+  | { kind: "note"; id: Id<"notes">; title: string; archivedAt: number | null }
+  | { kind: "draw"; id: Id<"drawings">; title: string; archivedAt: number | null };
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) {
@@ -48,9 +58,21 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const { theme, toggle } = useTheme();
   const updateProfile = useMutation(api.users.updateProfile);
   const setProfileImageKey = useMutation(api.users.setProfileImageKey);
+  const archivedBoards = useQuery(api.boards.listArchived);
+  const archivedNotes = useQuery(api.notes.listArchived);
+  const archivedDrawings = useQuery(api.drawings.listArchived);
+  const updateBoard = useMutation(api.boards.update);
+  const updateNote = useMutation(api.notes.update);
+  const updateDrawing = useMutation(api.drawings.update);
+  const deleteBoard = useMutation(api.boards.remove);
+  const deleteNote = useMutation(api.notes.remove);
+  const deleteDrawing = useMutation(api.drawings.remove);
 
   const [draftName, setDraftName] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
+  const [restoringItemKey, setRestoringItemKey] = useState<string | null>(null);
+  const [deletingArchivedItem, setDeletingArchivedItem] = useState<ArchivedItem | null>(null);
+  const [isDeletingArchivedItem, setIsDeletingArchivedItem] = useState(false);
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
@@ -282,6 +304,77 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     () => Array.from({ length: 6 }, (_, index) => verificationCode[index] ?? ""),
     [verificationCode],
   );
+  const archivedItems = useMemo<ArchivedItem[] | undefined>(() => {
+    if (
+      archivedBoards === undefined ||
+      archivedNotes === undefined ||
+      archivedDrawings === undefined
+    ) {
+      return undefined;
+    }
+
+    return [
+      ...archivedBoards.map((board) => ({
+        kind: "board" as const,
+        id: board._id,
+        title: board.name,
+        archivedAt: board.archivedAt,
+      })),
+      ...archivedNotes.map((note) => ({
+        kind: "note" as const,
+        id: note._id,
+        title: note.title || "Untitled",
+        archivedAt: note.archivedAt ?? null,
+      })),
+      ...archivedDrawings.map((drawing) => ({
+        kind: "draw" as const,
+        id: drawing._id,
+        title: drawing.title || "Untitled",
+        archivedAt: drawing.archivedAt ?? null,
+      })),
+    ].sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
+  }, [archivedBoards, archivedDrawings, archivedNotes]);
+
+  const getArchivedItemKey = (item: ArchivedItem) => `${item.kind}-${item.id}`;
+
+  const handleRestoreArchivedItem = async (item: ArchivedItem) => {
+    const itemKey = getArchivedItemKey(item);
+    setRestoringItemKey(itemKey);
+    try {
+      if (item.kind === "board") {
+        await updateBoard({ boardId: item.id, archivedAt: null });
+      } else if (item.kind === "note") {
+        await updateNote({ noteId: item.id, archivedAt: null });
+      } else {
+        await updateDrawing({ drawingId: item.id, archivedAt: null });
+      }
+      toast.success("Restored from archive");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to restore item"));
+    } finally {
+      setRestoringItemKey(null);
+    }
+  };
+
+  const handleDeleteArchivedItem = async () => {
+    if (!deletingArchivedItem) return;
+    setIsDeletingArchivedItem(true);
+    try {
+      if (deletingArchivedItem.kind === "board") {
+        await deleteBoard({ boardId: deletingArchivedItem.id });
+      } else if (deletingArchivedItem.kind === "note") {
+        await deleteNote({ noteId: deletingArchivedItem.id });
+      } else {
+        await deleteDrawing({ drawingId: deletingArchivedItem.id });
+      }
+      toast.success("Deleted permanently");
+      setDeletingArchivedItem(null);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to delete item"));
+    } finally {
+      setIsDeletingArchivedItem(false);
+    }
+  };
 
   const sectionLabel =
     "mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-brand-text/45";
@@ -297,6 +390,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-brand-accent/25 bg-brand-accent/8 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-accent transition-colors hover:bg-brand-accent/15 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
+    <>
     <Modal open={open} onClose={onClose} title="Account settings" size="lg">
       <div className="space-y-8 px-6 py-6">
         <section>
@@ -572,6 +666,39 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         <div className="h-px bg-brand-text/8" />
 
         <section>
+          <p className={sectionLabel}>Archive</p>
+          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+            {archivedItems === undefined ? (
+              <div className="flex items-center gap-2 font-mono text-xs text-brand-text/45">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading archived items...
+              </div>
+            ) : archivedItems.length === 0 ? (
+              <p className="font-mono text-xs text-brand-text/45">
+                Archived boards, notes, and drawings will appear here.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {archivedItems.map((item) => {
+                  const itemKey = getArchivedItemKey(item);
+                  return (
+                    <ArchivedItemRow
+                      key={itemKey}
+                      item={item}
+                      isRestoring={restoringItemKey === itemKey}
+                      onRestore={() => void handleRestoreArchivedItem(item)}
+                      onDelete={() => setDeletingArchivedItem(item)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className="h-px bg-brand-text/8" />
+
+        <section>
           <p className={sectionLabel}>Preferences</p>
           <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
             <button
@@ -621,5 +748,81 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         </section>
       </div>
     </Modal>
+
+    <ConfirmDialog
+      open={deletingArchivedItem !== null}
+      onClose={() => setDeletingArchivedItem(null)}
+      onConfirm={() => void handleDeleteArchivedItem()}
+      title={`Delete ${deletingArchivedItem?.kind ?? "item"}`}
+      description={`This will permanently delete "${deletingArchivedItem?.title ?? "Untitled"}". This action cannot be undone.`}
+      confirmLabel="Delete"
+      isDestructive
+      isLoading={isDeletingArchivedItem}
+    />
+    </>
+  );
+}
+
+function ArchivedItemRow({
+  item,
+  isRestoring,
+  onRestore,
+  onDelete,
+}: {
+  item: ArchivedItem;
+  isRestoring: boolean;
+  onRestore: () => void;
+  onDelete: () => void;
+}) {
+  const Icon =
+    item.kind === "board" ? LayoutGrid : item.kind === "note" ? FileText : PencilLine;
+  const typeLabel =
+    item.kind === "board" ? "Board" : item.kind === "note" ? "Note" : "Drawing";
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[14px] border border-brand-text/10 bg-brand-bg/45 px-3 py-2.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[12px] bg-brand-primary text-brand-text/55">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-brand-text">{item.title}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/40">
+            {typeLabel}
+            {item.archivedAt
+              ? ` - ${new Date(item.archivedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}`
+              : ""}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onRestore}
+          disabled={isRestoring}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[12px] border border-brand-text/12 px-3 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-brand-text/60 transition-colors hover:border-brand-text/30 hover:text-brand-text disabled:opacity-60"
+        >
+          {isRestoring ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RotateCcw className="h-3.5 w-3.5" />
+          )}
+          Restore
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] text-brand-accent transition-colors hover:bg-brand-accent/10"
+          title="Delete permanently"
+          aria-label="Delete permanently"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
