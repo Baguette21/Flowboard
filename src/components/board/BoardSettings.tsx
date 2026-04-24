@@ -4,7 +4,18 @@ import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, Loader2, LogOut, MailPlus, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Link as LinkIcon,
+  Loader2,
+  LogOut,
+  MailPlus,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
 import {
@@ -27,11 +38,14 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const updateBoard = useMutation(api.boards.update);
   const deleteBoard = useMutation(api.boards.remove);
   const createInvite = useMutation(api.boardInvites.create);
+  const ensureInviteLink = useMutation(api.boardInvites.ensureLink);
+  const revokeInviteLink = useMutation(api.boardInvites.revokeLink);
   const setAssignable = useMutation(api.boardMembers.setAssignable);
   const leaveBoard = useMutation(api.boardMembers.leaveBoard);
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId: board._id });
   const members = useQuery(api.boardMembers.listForBoard, { boardId: board._id });
   const invites = useQuery(api.boardInvites.listForBoard, { boardId: board._id });
+  const linkInfo = useQuery(api.boardInvites.getLinkInfo, { boardId: board._id });
   const memberImageUrls = useProfileImageUrls(
     (members ?? []).map((member) => member.imageKey),
   );
@@ -47,6 +61,15 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [updatingAssignableUserId, setUpdatingAssignableUserId] = useState<string | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isRevokingLink, setIsRevokingLink] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const inviteToken = linkInfo?.inviteToken ?? null;
+  const inviteUrl =
+    inviteToken && typeof window !== "undefined"
+      ? `${window.location.origin}/join/${inviteToken}`
+      : null;
 
   useEffect(() => {
     setName(board.name);
@@ -116,6 +139,54 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
     } finally {
       setIsLeaving(false);
       setConfirmLeave(false);
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    setIsGeneratingLink(true);
+    try {
+      const result = await ensureInviteLink({ boardId: board._id });
+      const url = `${window.location.origin}/join/${result.inviteToken}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+        toast.success("Invite link copied");
+      } catch {
+        toast.success("Invite link created");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to generate invite link";
+      toast.error(message);
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+      toast.success("Invite link copied");
+    } catch {
+      toast.error("Copy failed — please copy manually");
+    }
+  };
+
+  const handleRevokeLink = async () => {
+    setIsRevokingLink(true);
+    try {
+      await revokeInviteLink({ boardId: board._id });
+      toast.success("Invite link revoked");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to revoke invite link";
+      toast.error(message);
+    } finally {
+      setIsRevokingLink(false);
     }
   };
 
@@ -255,23 +326,91 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                 </div>
 
                 {isOwner ? (
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="teammate@example.com"
-                      className="flex-1 h-12 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleInvite()}
-                      disabled={isInviting || !inviteEmail.trim()}
-                      className="h-12 px-5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {isInviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailPlus className="w-4 h-4" />}
-                      Send Invite
-                    </button>
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="teammate@example.com"
+                        className="flex-1 h-12 px-4 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-sans text-sm focus:outline-none focus:border-brand-text transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleInvite()}
+                        disabled={isInviting || !inviteEmail.trim()}
+                        className="h-12 px-5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                      >
+                        {isInviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailPlus className="w-4 h-4" />}
+                        Send Invite
+                      </button>
+                    </div>
+
+                    <div className="rounded-[1.5rem] border border-brand-text/10 bg-brand-primary p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <LinkIcon className="w-4 h-4 text-brand-accent" />
+                            <p className="font-mono text-xs uppercase tracking-widest text-brand-text/60">
+                              Invite Link
+                            </p>
+                          </div>
+                          <p className="font-mono text-[11px] text-brand-text/50 mt-1">
+                            Anyone signed in with this link can join the board.
+                          </p>
+                        </div>
+                      </div>
+
+                      {inviteUrl ? (
+                        <>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="text"
+                              value={inviteUrl}
+                              readOnly
+                              onFocus={(e) => e.currentTarget.select()}
+                              className="flex-1 h-11 px-3 bg-brand-bg border-2 border-brand-text/20 rounded-2xl font-mono text-xs focus:outline-none focus:border-brand-text transition-colors"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyLink()}
+                              className="h-11 px-4 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-xs hover:bg-brand-dark transition-colors flex items-center justify-center gap-2"
+                            >
+                              {copiedLink ? (
+                                <Check className="w-3.5 h-3.5" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                              {copiedLink ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void handleRevokeLink()}
+                            disabled={isRevokingLink}
+                            className="font-mono text-[11px] uppercase tracking-[0.14em] text-brand-text/50 hover:text-brand-accent transition-colors disabled:opacity-60"
+                          >
+                            {isRevokingLink ? "Revoking…" : "Revoke link"}
+                          </button>
+                        </>
+                      ) : linkInfo === undefined ? (
+                        <p className="font-mono text-xs text-brand-text/40">Loading…</p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void handleGenerateLink()}
+                          disabled={isGeneratingLink}
+                          className="h-11 px-4 border-2 border-brand-text/20 rounded-2xl font-mono font-bold text-xs hover:border-brand-text transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          {isGeneratingLink ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <LinkIcon className="w-3.5 h-3.5" />
+                          )}
+                          Create invite link
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-brand-text/10 bg-brand-primary px-4 py-3">

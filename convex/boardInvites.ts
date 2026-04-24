@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import {
@@ -9,6 +10,15 @@ import {
   requireBoardOwner,
   requireCurrentUser,
 } from "./helpers/boardAccess";
+
+function generateInviteToken() {
+  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let token = "";
+  for (let i = 0; i < 24; i++) {
+    token += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return token;
+}
 
 export const listMine = query({
   args: {},
@@ -210,6 +220,124 @@ export const accept = mutation({
     });
 
     return { boardId: invite.boardId };
+  },
+});
+
+export const getLinkInfo = query({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, { boardId }) => {
+    const access = await getBoardAccess(ctx, boardId);
+    if (!access || access.role !== "owner") {
+      return null;
+    }
+    return { inviteToken: access.board.inviteToken ?? null };
+  },
+});
+
+export const ensureLink = mutation({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, { boardId }) => {
+    const { board } = await requireBoardOwner(ctx, boardId);
+    if (board.inviteToken) {
+      return { inviteToken: board.inviteToken };
+    }
+
+    let token = generateInviteToken();
+    let existing = await ctx.db
+      .query("boards")
+      .withIndex("by_inviteToken", (q) => q.eq("inviteToken", token))
+      .first();
+    while (existing) {
+      token = generateInviteToken();
+      existing = await ctx.db
+        .query("boards")
+        .withIndex("by_inviteToken", (q) => q.eq("inviteToken", token))
+        .first();
+    }
+
+    await ctx.db.patch(boardId, { inviteToken: token, updatedAt: Date.now() });
+    return { inviteToken: token };
+  },
+});
+
+export const revokeLink = mutation({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, { boardId }) => {
+    await requireBoardOwner(ctx, boardId);
+    await ctx.db.patch(boardId, { inviteToken: undefined, updatedAt: Date.now() });
+    return null;
+  },
+});
+
+export const lookupByToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    if (!token) {
+      return null;
+    }
+    const board = await ctx.db
+      .query("boards")
+      .withIndex("by_inviteToken", (q) => q.eq("inviteToken", token))
+      .first();
+    if (!board) {
+      return null;
+    }
+
+    const inviter = await ctx.db.get(board.userId as Id<"users">);
+    return {
+      boardId: board._id,
+      boardName: board.name,
+      boardColor: board.color,
+      boardIcon: board.icon ?? null,
+      inviterName: inviter?.name ?? null,
+      inviterEmail: inviter?.email ?? null,
+    };
+  },
+});
+
+export const joinViaLink = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const { userId, user } = await requireCurrentUser(ctx);
+    if (!token) {
+      throw new Error("Invalid invite link");
+    }
+
+    const board = await ctx.db
+      .query("boards")
+      .withIndex("by_inviteToken", (q) => q.eq("inviteToken", token))
+      .first();
+    if (!board) {
+      throw new Error("This invite link is no longer active");
+    }
+
+    if (board.userId === userId) {
+      return { boardId: board._id, alreadyMember: true };
+    }
+
+    const existing = await getBoardMembership(ctx, board._id, userId);
+    if (existing) {
+      return { boardId: board._id, alreadyMember: true };
+    }
+
+    const now = Date.now();
+    await ctx.db.insert("boardMembers", {
+      boardId: board._id,
+      userId,
+      invitedByUserId: board.userId as Id<"users">,
+      joinedAt: now,
+      canBeAssigned: false,
+    });
+
+    await ctx.db.insert("activityLogs", {
+      boardId: board._id,
+      userId,
+      action: "joined-via-link",
+      details: `${user.name ?? user.email ?? "A collaborator"} joined via invite link`,
+      createdAt: now,
+    });
+
+    return { boardId: board._id, alreadyMember: false };
   },
 });
 

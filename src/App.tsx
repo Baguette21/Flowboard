@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { useConvexAuth } from "convex/react";
 import { HomePage } from "./pages/HomePage";
 import { BoardPage } from "./pages/BoardPage";
 import { NotesPage } from "./pages/NotesPage";
 import { DrawPage } from "./pages/DrawPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { JoinBoardPage } from "./pages/JoinBoardPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 
@@ -35,13 +36,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function GuestGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const [searchParams] = useSearchParams();
 
   if (isLoading) {
     return <AuthScreen message="Checking your session..." />;
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    const redirect = searchParams.get("redirect");
+    const safeRedirect =
+      redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+        ? redirect
+        : "/";
+    return <Navigate to={safeRedirect} replace />;
   }
 
   return <>{children}</>;
@@ -119,6 +126,7 @@ export default function App() {
           </AuthGuard>
         }
       />
+      <Route path="/join/:token" element={<JoinBoardPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
