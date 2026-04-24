@@ -24,6 +24,10 @@ function getErrorMessage(error: unknown) {
       return "The reset code is invalid or expired.";
     }
 
+    if (error.message === "PasswordResetDeliveryFailed") {
+      return "We couldn't send the reset email right now. Please try again once email delivery is fixed.";
+    }
+
     return error.message;
   }
 

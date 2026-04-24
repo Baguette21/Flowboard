@@ -1,6 +1,7 @@
 import type { Theme } from "@auth/core/types";
 import { convexAuth } from "@convex-dev/auth/server";
 import type {
+  ConvexAuthConfig,
   EmailConfig,
   GenericActionCtxWithAuthConfig,
 } from "@convex-dev/auth/server";
@@ -27,27 +28,56 @@ type VerificationRequestParams = {
   request: Request;
 };
 
+function buildUserData(
+  profile: Record<string, unknown> & {
+    emailVerified?: boolean;
+    phoneVerified?: boolean;
+  },
+) {
+  const {
+    emailVerified,
+    phoneVerified,
+    ...userProfile
+  } = profile;
+
+  return {
+    ...(emailVerified ? { emailVerificationTime: Date.now() } : null),
+    ...(phoneVerified ? { phoneVerificationTime: Date.now() } : null),
+    ...userProfile,
+  };
+}
+
 const sendSmtpVerificationRequest = (async (
   { identifier, token }: Pick<VerificationRequestParams, "identifier" | "token">,
   ctx: GenericActionCtxWithAuthConfig<DataModel>,
 ) => {
-  await ctx.runAction(internal.smtp.sendVerificationEmail, {
-    to: identifier,
-    code: token,
-  });
+  try {
+    await ctx.runAction(internal.smtp.sendVerificationEmail, {
+      to: identifier,
+      code: token,
+    });
+  } catch (error) {
+    console.error("Failed to send verification email", error);
+    throw new Error("EmailDeliveryFailed");
+  }
 }) as unknown as (params: VerificationRequestParams) => Promise<void>;
 
 const sendSmtpPasswordResetRequest = (async (
   { identifier, token }: Pick<VerificationRequestParams, "identifier" | "token">,
   ctx: GenericActionCtxWithAuthConfig<DataModel>,
 ) => {
-  await ctx.runAction(internal.smtp.sendPasswordResetEmail, {
-    to: identifier,
-    code: token,
-  });
+  try {
+    await ctx.runAction(internal.smtp.sendPasswordResetEmail, {
+      to: identifier,
+      code: token,
+    });
+  } catch (error) {
+    console.error("Failed to send password reset email", error);
+    throw new Error("PasswordResetDeliveryFailed");
+  }
 }) as unknown as (params: VerificationRequestParams) => Promise<void>;
 
-export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+const authConfig: ConvexAuthConfig = {
   providers: [
     Password({
       profile(params) {
@@ -84,4 +114,33 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       }),
     }),
   ],
-});
+  callbacks: {
+    async createOrUpdateUser(ctx, args) {
+      const userData = buildUserData(args.profile);
+
+      if (args.existingUserId) {
+        const existingUser = await ctx.db.get(args.existingUserId);
+        if (existingUser) {
+          await ctx.db.patch(args.existingUserId, userData);
+          return args.existingUserId;
+        }
+      }
+
+      if (typeof args.profile.email === "string") {
+        const existingUserByEmail = await (ctx.db as any)
+          .query("users")
+          .withIndex("email", (q: any) => q.eq("email", args.profile.email!))
+          .unique();
+
+        if (existingUserByEmail) {
+          await ctx.db.patch(existingUserByEmail._id, userData);
+          return existingUserByEmail._id;
+        }
+      }
+
+      return await ctx.db.insert("users", userData);
+    },
+  },
+};
+
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth(authConfig);

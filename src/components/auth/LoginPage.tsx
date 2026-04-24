@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
-import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -24,12 +22,24 @@ const secondaryButtonClass =
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
+    if (
+      error.message.includes("Server Error") ||
+      error.message.includes("Uncaught Error:") ||
+      error.message.includes("[CONVEX")
+    ) {
+      return "We couldn't complete sign-up right now. Please try again in a moment.";
+    }
+
     if (error.message === "InvalidAccountId") {
       return "Invalid username";
     }
 
-     if (error.message === "InvalidSecret" || error.message === "Invalid credentials") {
+    if (error.message === "InvalidSecret" || error.message === "Invalid credentials") {
       return "Invalid password";
+    }
+
+    if (error.message === "EmailDeliveryFailed") {
+      return "We couldn't send the verification email right now. Please try again once email delivery is fixed.";
     }
 
     return error.message;
@@ -52,13 +62,6 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [awaitingVerification, setAwaitingVerification] = useState(false);
-  const normalizedEmail = email.trim().toLowerCase();
-  const emailExists = useQuery(
-    api.users.emailExists,
-    !awaitingVerification && normalizedEmail
-      ? { email: normalizedEmail }
-      : "skip",
-  );
   const otpDigits = useMemo(
     () => Array.from({ length: 6 }, (_, index) => verificationCode[index] ?? ""),
     [verificationCode],
@@ -70,12 +73,34 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (flow === "signIn" && !awaitingVerification && emailExists === false) {
-        throw new Error("Invalid username");
-      }
+      if (flow === "signUp" && !awaitingVerification) {
+        try {
+          const result = await signIn("password", {
+            email,
+            password,
+            flow: "signIn",
+          });
 
-      if (flow === "signUp" && !awaitingVerification && emailExists) {
-        throw new Error("There is already an existing user with that email");
+          if (!result.signingIn) {
+            setAwaitingVerification(true);
+            setVerificationCode("");
+            toast.success(`Verification code sent to ${email}.`);
+            return;
+          }
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : "";
+
+          if (message === "InvalidAccountId") {
+            // No password account exists yet, continue with sign-up.
+          } else if (
+            message === "Invalid credentials" ||
+            message === "InvalidSecret"
+          ) {
+            throw new Error("There is already an existing user with that email");
+          } else {
+            throw error;
+          }
+        }
       }
 
       if (awaitingVerification) {
@@ -234,11 +259,6 @@ export function LoginPage() {
                   )}
                 />
               </div>
-              {flow === "signUp" && !awaitingVerification && emailExists && (
-                <p className="mt-2 text-brand-accent font-mono text-xs">
-                  There is already an existing user with that email
-                </p>
-              )}
             </div>
 
             {awaitingVerification ? (

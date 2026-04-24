@@ -41,7 +41,45 @@ export const emailExists = query({
       .withIndex("email", (q) => q.eq("email", normalizedEmail))
       .unique();
 
-    return existingUser !== null;
+    if (existingUser !== null) {
+      return true;
+    }
+
+    const existingPasswordAccount = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", normalizedEmail),
+      )
+      .unique();
+
+    return existingPasswordAccount !== null;
+  },
+});
+
+export const emailAuthState = query({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+    if (!normalizedEmail) {
+      return {
+        exists: false,
+        verified: false,
+      };
+    }
+
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", normalizedEmail),
+      )
+      .unique();
+
+    return {
+      exists: account !== null,
+      verified: Boolean(account?.emailVerified),
+    };
   },
 });
 
@@ -82,5 +120,38 @@ export const setProfileImageKey = mutation({
     }
 
     return { previousKey };
+  },
+});
+
+export const cleanupOrphanedPasswordAccounts = mutation({
+  args: {
+    emails: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const removed: string[] = [];
+
+    for (const rawEmail of args.emails) {
+      const email = normalizeEmail(rawEmail);
+      if (!email) {
+        continue;
+      }
+
+      const accounts = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) =>
+          q.eq("provider", "password").eq("providerAccountId", email),
+        )
+        .collect();
+
+      for (const account of accounts) {
+        const user = await ctx.db.get(account.userId);
+        if (!user || user.email !== email) {
+          await ctx.db.delete(account._id);
+          removed.push(email);
+        }
+      }
+    }
+
+    return { removed };
   },
 });

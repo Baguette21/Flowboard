@@ -32,6 +32,9 @@ function getErrorMessage(error: unknown, fallback: string) {
     if (error.message === "Invalid code") {
       return "The code is invalid or expired.";
     }
+    if (error.message === "PasswordResetDeliveryFailed") {
+      return "We couldn't send the reset email right now. Please try again once email delivery is fixed.";
+    }
     return error.message;
   }
   return fallback;
