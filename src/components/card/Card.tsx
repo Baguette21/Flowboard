@@ -5,6 +5,8 @@ import { cn } from "../../lib/utils";
 import { FileText, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import type { BoardMemberSummary } from "../../lib/types";
+import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
+import { UserAvatar } from "../ui/UserAvatar";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   card: Doc<"cards">;
@@ -27,14 +29,11 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     ref,
   ) => {
     const isOverdue = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
+    const assigneeImageUrls = useProfileImageUrls([assignee?.imageKey]);
+    const assigneeImageUrl =
+      assignee?.imageKey ? assigneeImageUrls[assignee.imageKey] ?? null : null;
 
     const assigneeLabel = assignee?.name ?? assignee?.email ?? "Assigned";
-    const assigneeInitials = assigneeLabel
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("");
 
     const hasMetadata =
       labels.length > 0 || card.priority || card.dueDate || card.isComplete || assignee;
@@ -115,10 +114,16 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
             {assignee && (
               <span
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-text/15 text-[9px] font-bold uppercase text-brand-text"
+                className="flex items-center gap-1.5"
                 title={assigneeLabel}
               >
-                {assigneeInitials || "?"}
+                <UserAvatar
+                  name={assignee.name}
+                  email={assignee.email}
+                  imageUrl={assigneeImageUrl}
+                  size="sm"
+                  className="h-5 w-5 text-[9px]"
+                />
               </span>
             )}
           </div>

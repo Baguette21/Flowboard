@@ -1,6 +1,12 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { getCurrentUser, normalizeEmail } from "./helpers/boardAccess";
+import { mutation, query } from "./_generated/server";
+import {
+  getCurrentUser,
+  normalizeEmail,
+  requireCurrentUser,
+} from "./helpers/boardAccess";
+
+const MAX_NAME_LENGTH = 60;
 
 export const me = query({
   args: {},
@@ -14,6 +20,8 @@ export const me = query({
       _id: currentUser.user._id,
       name: currentUser.user.name ?? null,
       email: currentUser.user.email ?? null,
+      imageKey: currentUser.user.imageKey ?? null,
+      role: currentUser.user.role === "PRO" ? "PRO" : "FREE",
     };
   },
 });
@@ -33,6 +41,117 @@ export const emailExists = query({
       .withIndex("email", (q) => q.eq("email", normalizedEmail))
       .unique();
 
-    return existingUser !== null;
+    if (existingUser !== null) {
+      return true;
+    }
+
+    const existingPasswordAccount = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", normalizedEmail),
+      )
+      .unique();
+
+    return existingPasswordAccount !== null;
+  },
+});
+
+export const emailAuthState = query({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+    if (!normalizedEmail) {
+      return {
+        exists: false,
+        verified: false,
+      };
+    }
+
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", normalizedEmail),
+      )
+      .unique();
+
+    return {
+      exists: account !== null,
+      verified: Boolean(account?.emailVerified),
+    };
+  },
+});
+
+export const updateProfile = mutation({
+  args: {
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireCurrentUser(ctx);
+
+    if (args.name !== undefined) {
+      const trimmed = args.name.trim();
+      if (trimmed.length === 0) {
+        throw new Error("Name cannot be empty");
+      }
+      if (trimmed.length > MAX_NAME_LENGTH) {
+        throw new Error(`Name must be at most ${MAX_NAME_LENGTH} characters`);
+      }
+      await ctx.db.patch(userId, { name: trimmed });
+    }
+
+    return null;
+  },
+});
+
+export const setProfileImageKey = mutation({
+  args: {
+    imageKey: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, { imageKey }) => {
+    const { userId, user } = await requireCurrentUser(ctx);
+    const previousKey = user.imageKey ?? null;
+
+    if (imageKey === null) {
+      await ctx.db.patch(userId, { imageKey: undefined });
+    } else {
+      await ctx.db.patch(userId, { imageKey });
+    }
+
+    return { previousKey };
+  },
+});
+
+export const cleanupOrphanedPasswordAccounts = mutation({
+  args: {
+    emails: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const removed: string[] = [];
+
+    for (const rawEmail of args.emails) {
+      const email = normalizeEmail(rawEmail);
+      if (!email) {
+        continue;
+      }
+
+      const accounts = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) =>
+          q.eq("provider", "password").eq("providerAccountId", email),
+        )
+        .collect();
+
+      for (const account of accounts) {
+        const user = await ctx.db.get(account.userId);
+        if (!user || user.email !== email) {
+          await ctx.db.delete(account._id);
+          removed.push(email);
+        }
+      }
+    }
+
+    return { removed };
   },
 });

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
@@ -8,14 +7,15 @@ import { toast } from "sonner";
 import { extractPlainTextFromBlockNoteContent } from "../../lib/blocknote";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Dropdown } from "../ui/Dropdown";
+import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 interface NoteCardProps {
   note: Doc<"notes">;
 }
 
 export function NoteCard({ note }: NoteCardProps) {
-  const navigate = useNavigate();
   const removeNote = useMutation(api.notes.remove);
+  const { openInActiveTab } = useBoardTabs();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -46,7 +46,7 @@ export function NoteCard({ note }: NoteCardProps) {
   return (
     <>
       <div
-        onClick={() => navigate(`/notes/${note._id}`)}
+        onClick={() => openInActiveTab({ kind: "note", id: note._id })}
         className="group relative cursor-pointer select-none bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)]"
       >
         <div className="flex items-start justify-between gap-3">

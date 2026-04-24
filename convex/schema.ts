@@ -9,6 +9,7 @@ export default defineSchema({
     authId: v.optional(v.string()),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
+    imageKey: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.optional(v.union(v.literal("USER"), v.literal("PRO"))),
     emailVerificationTime: v.optional(v.number()),
@@ -27,6 +28,7 @@ export default defineSchema({
     color: v.string(),
     icon: v.optional(v.string()),
     isFavorite: v.boolean(),
+    order: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -137,6 +139,7 @@ export default defineSchema({
     title: v.string(),
     content: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
+    order: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -147,6 +150,7 @@ export default defineSchema({
     userId: v.id("users"),
     title: v.string(),
     drawingDocument: v.optional(v.string()),
+    order: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

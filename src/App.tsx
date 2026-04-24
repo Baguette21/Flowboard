@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useConvexAuth } from "convex/react";
 import { HomePage } from "./pages/HomePage";
 import { BoardPage } from "./pages/BoardPage";
@@ -45,6 +45,11 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+function BoardRoute() {
+  const { boardId } = useParams<{ boardId: string }>();
+  return <BoardPage key={boardId} />;
 }
 
 export default function App() {
@@ -110,7 +115,7 @@ export default function App() {
         path="/board/:boardId"
         element={
           <AuthGuard>
-            <BoardPage />
+            <BoardRoute />
           </AuthGuard>
         }
       />
