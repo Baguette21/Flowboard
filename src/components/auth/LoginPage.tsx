@@ -20,29 +20,37 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "flex h-14 w-full cursor-pointer items-center justify-center rounded-[2rem] border-2 border-brand-text/15 bg-brand-primary/80 font-mono text-sm font-bold text-brand-text transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-brand-text/40 hover:bg-brand-primary hover:shadow-[0_14px_24px_rgba(17,17,17,0.06)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none";
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boolean) {
   if (error instanceof Error && error.message) {
-    if (
-      error.message.includes("Server Error") ||
-      error.message.includes("Uncaught Error:") ||
-      error.message.includes("[CONVEX")
-    ) {
-      return "We couldn't complete sign-up right now. Please try again in a moment.";
-    }
+    const message = error.message;
 
-    if (error.message === "InvalidAccountId") {
+    if (message.includes("InvalidAccountId")) {
       return "Invalid username";
     }
 
-    if (error.message === "InvalidSecret" || error.message === "Invalid credentials") {
+    if (message.includes("InvalidSecret") || message.includes("Invalid credentials")) {
       return "Invalid password";
     }
 
-    if (error.message === "EmailDeliveryFailed") {
+    if (message.includes("EmailDeliveryFailed")) {
       return "We couldn't send the verification email right now. Please try again once email delivery is fixed.";
     }
 
-    return error.message;
+    if (
+      message.includes("Server Error") ||
+      message.includes("Uncaught Error:") ||
+      message.includes("[CONVEX")
+    ) {
+      if (awaitingVerification) {
+        return "We couldn't verify the code right now. Please try again in a moment.";
+      }
+
+      return flow === "signUp"
+        ? "We couldn't complete sign-up right now. Please try again in a moment."
+        : "We couldn't complete sign-in right now. Please try again in a moment.";
+    }
+
+    return message;
   }
 
   return "Authentication failed. Please try again.";
@@ -87,14 +95,16 @@ export function LoginPage() {
             toast.success(`Verification code sent to ${email}.`);
             return;
           }
+
+          throw new Error("There is already an existing user with that email");
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : "";
 
-          if (message === "InvalidAccountId") {
+          if (message.includes("InvalidAccountId")) {
             // No password account exists yet, continue with sign-up.
           } else if (
-            message === "Invalid credentials" ||
-            message === "InvalidSecret"
+            message.includes("Invalid credentials") ||
+            message.includes("InvalidSecret")
           ) {
             throw new Error("There is already an existing user with that email");
           } else {
@@ -135,7 +145,7 @@ export function LoginPage() {
       navigate("/");
       toast.success(flow === "signIn" ? "Welcome back." : "Account created.");
     } catch (error: unknown) {
-      setError(getErrorMessage(error));
+      setError(getErrorMessage(error, flow, awaitingVerification));
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +164,7 @@ export function LoginPage() {
       await signIn("password", params);
       toast.success(`New verification code sent to ${email}.`);
     } catch (error: unknown) {
-      setError(getErrorMessage(error));
+      setError(getErrorMessage(error, flow, awaitingVerification));
     } finally {
       setIsLoading(false);
     }
