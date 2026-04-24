@@ -12,6 +12,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   card: Doc<"cards">;
   labels: Doc<"labels">[];
   assignee?: BoardMemberSummary | null;
+  assignees?: BoardMemberSummary[];
   statusColor?: string;
   isDragging?: boolean;
 }
@@ -25,18 +26,26 @@ const priorityColors: Record<string, string> = {
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   (
-    { card, labels, assignee, statusColor, isDragging, className, onClick, style, ...props },
+    { card, labels, assignee, assignees, statusColor, isDragging, className, onClick, style, ...props },
     ref,
   ) => {
     const isOverdue = card.dueDate && card.dueDate < Date.now() && !card.isComplete;
-    const assigneeImageUrls = useProfileImageUrls([assignee?.imageKey]);
-    const assigneeImageUrl =
-      assignee?.imageKey ? assigneeImageUrls[assignee.imageKey] ?? null : null;
+    const visibleAssignees = assignees ?? (assignee ? [assignee] : []);
+    const assigneeImageUrls = useProfileImageUrls(
+      visibleAssignees.map((entry) => entry.imageKey),
+    );
 
-    const assigneeLabel = assignee?.name ?? assignee?.email ?? "Assigned";
+    const assigneeLabel =
+      visibleAssignees
+        .map((entry) => entry.name ?? entry.email ?? "Assigned")
+        .join(", ") || "Assigned";
 
     const hasMetadata =
-      labels.length > 0 || card.priority || card.dueDate || card.isComplete || assignee;
+      labels.length > 0 ||
+      card.priority ||
+      card.dueDate ||
+      card.isComplete ||
+      visibleAssignees.length > 0;
 
     return (
       <div
@@ -112,18 +121,30 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
               </span>
             )}
 
-            {assignee && (
+            {visibleAssignees.length > 0 && (
               <span
                 className="flex items-center gap-1.5"
                 title={assigneeLabel}
               >
-                <UserAvatar
-                  name={assignee.name}
-                  email={assignee.email}
-                  imageUrl={assigneeImageUrl}
-                  size="sm"
-                  className="h-5 w-5 text-[9px]"
-                />
+                <span className="flex -space-x-1.5">
+                  {visibleAssignees.slice(0, 3).map((entry) => (
+                    <UserAvatar
+                      key={entry.userId}
+                      name={entry.name}
+                      email={entry.email}
+                      imageUrl={
+                        entry.imageKey ? assigneeImageUrls[entry.imageKey] ?? null : null
+                      }
+                      size="sm"
+                      className="h-5 w-5 border border-brand-primary text-[9px]"
+                    />
+                  ))}
+                </span>
+                {visibleAssignees.length > 3 && (
+                  <span className="font-mono text-[10px] font-semibold text-brand-text/45">
+                    +{visibleAssignees.length - 3}
+                  </span>
+                )}
               </span>
             )}
           </div>

@@ -12,12 +12,28 @@ export const list = query({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    return drawings.sort((a, b) => {
+    return drawings.filter((drawing) => !drawing.archivedAt).sort((a, b) => {
       if (a.order && b.order) return a.order.localeCompare(b.order);
       if (a.order) return -1;
       if (b.order) return 1;
       return b.updatedAt - a.updatedAt;
     });
+  },
+});
+
+export const listArchived = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireCurrentUser(ctx);
+
+    const drawings = await ctx.db
+      .query("drawings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    return drawings
+      .filter((drawing) => drawing.archivedAt)
+      .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   },
 });
 
@@ -62,6 +78,7 @@ export const create = mutation({
     const drawingId = await ctx.db.insert("drawings", {
       userId,
       title: title ?? "Untitled",
+      isFavorite: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -75,8 +92,10 @@ export const update = mutation({
     drawingId: v.id("drawings"),
     title: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
+    isFavorite: v.optional(v.boolean()),
+    archivedAt: v.optional(v.union(v.number(), v.null())),
   },
-  handler: async (ctx, { drawingId, title, drawingDocument }) => {
+  handler: async (ctx, { drawingId, title, drawingDocument, isFavorite, archivedAt }) => {
     const { userId } = await requireCurrentUser(ctx);
     const drawing = await ctx.db.get(drawingId);
 
@@ -94,6 +113,14 @@ export const update = mutation({
 
     if (drawingDocument !== undefined) {
       patch.drawingDocument = drawingDocument;
+    }
+
+    if (isFavorite !== undefined) {
+      patch.isFavorite = isFavorite;
+    }
+
+    if (archivedAt !== undefined) {
+      patch.archivedAt = archivedAt ?? undefined;
     }
 
     await ctx.db.patch(drawingId, patch);

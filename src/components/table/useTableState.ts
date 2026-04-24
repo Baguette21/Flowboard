@@ -14,6 +14,7 @@ import type {
   ColumnType,
 } from "./types";
 import { DEFAULT_STATUS_OPTIONS, DEFAULT_SELECT_COLORS } from "./types";
+import { getAssignedUserIds } from "../../lib/assignees";
 
 // ── Storage Keys ───────────────────────────────────────────────────────────
 const storageKey = (boardId: string, suffix: string) =>
@@ -67,6 +68,16 @@ const DEFAULT_COLUMNS: TableColumnDef[] = [
     options: DEFAULT_STATUS_OPTIONS,
   },
   {
+    id: "labels",
+    name: "Labels",
+    type: "multiSelect",
+    width: 180,
+    visible: true,
+    frozen: false,
+    wrapContent: false,
+    builtIn: "labels",
+  },
+  {
     id: "priority",
     name: "Priority",
     type: "select",
@@ -93,6 +104,30 @@ const DEFAULT_COLUMNS: TableColumnDef[] = [
     builtIn: "assignee",
   },
 ];
+
+function withDefaultBuiltIns(columns: TableColumnDef[]) {
+  const hasLabels = columns.some((column) => column.builtIn === "labels" || column.id === "labels");
+  if (hasLabels) {
+    return columns;
+  }
+
+  const labelColumn = DEFAULT_COLUMNS.find((column) => column.id === "labels");
+  if (!labelColumn) {
+    return columns;
+  }
+
+  const next = [...columns];
+  const priorityIndex = next.findIndex(
+    (column) => column.builtIn === "priority" || column.id === "priority",
+  );
+  const statusIndex = next.findIndex(
+    (column) => column.builtIn === "status" || column.id === "status",
+  );
+  const insertIndex =
+    priorityIndex >= 0 ? priorityIndex : statusIndex >= 0 ? statusIndex + 1 : next.length;
+  next.splice(insertIndex, 0, { ...labelColumn });
+  return next;
+}
 
 const DEFAULT_VIEW_CONFIG: ViewConfig = {
   mode: "table",
@@ -123,14 +158,7 @@ function tableReducer(state: TableState, action: TableAction): TableState {
       const cols = state.columns.filter(
         (c) => c.id !== action.columnId || c.locked,
       );
-      const cells = { ...state.customCells };
-      for (const rowId of Object.keys(cells)) {
-        if (cells[rowId]?.[action.columnId] !== undefined) {
-          const { [action.columnId]: _, ...rest } = cells[rowId];
-          cells[rowId] = rest;
-        }
-      }
-      return { ...state, columns: cols, customCells: cells };
+      return { ...state, columns: cols };
     }
 
     case "UPDATE_COLUMN":
@@ -290,7 +318,7 @@ export function useTableState(
   const viewKey = storageKey(boardId, "view");
 
   const initialState: TableState = {
-    columns: loadJSON<TableColumnDef[]>(colsKey, DEFAULT_COLUMNS),
+    columns: withDefaultBuiltIns(loadJSON<TableColumnDef[]>(colsKey, DEFAULT_COLUMNS)),
     customCells: loadJSON<AllCellData>(cellsKey, {}),
     rowOrder: loadJSON<string[]>(orderKey, []),
     viewConfig: loadJSON<ViewConfig>(viewKey, DEFAULT_VIEW_CONFIG),
@@ -354,7 +382,9 @@ export function useTableState(
     if (prevBoardRef.current !== boardId) {
       prevBoardRef.current = boardId;
       const freshState: TableState = {
-        columns: loadJSON<TableColumnDef[]>(storageKey(boardId, "columns"), DEFAULT_COLUMNS),
+        columns: withDefaultBuiltIns(
+          loadJSON<TableColumnDef[]>(storageKey(boardId, "columns"), DEFAULT_COLUMNS),
+        ),
         customCells: loadJSON<AllCellData>(storageKey(boardId, "cells"), {}),
         rowOrder: loadJSON<string[]>(storageKey(boardId, "row-order"), []),
         viewConfig: loadJSON<ViewConfig>(storageKey(boardId, "view"), DEFAULT_VIEW_CONFIG),
@@ -389,7 +419,7 @@ export function useTableState(
           case "dueDate":
             return card.dueDate ? format(card.dueDate, "yyyy-MM-dd'T'HH:mm") : "";
           case "assignee":
-            return card.assignedUserId ?? "";
+            return getAssignedUserIds(card) as string[];
           case "status":
             return card.isComplete ? "completed" : "todo";
           case "labels":
@@ -575,7 +605,7 @@ export function useTableState(
           id: `custom-${Date.now()}`,
           name: name || `New ${type}`,
           type,
-          width: type === "checkbox" ? 100 : type === "button" ? 130 : 180,
+          width: type === "checkbox" ? 100 : type === "button" ? 130 : type === "date" ? 180 : 180,
           visible: true,
           frozen: false,
           wrapContent: false,
@@ -592,10 +622,13 @@ export function useTableState(
         };
         dispatch({ type: "ADD_COLUMN", column: col, afterId });
       },
+      addColumnDef: (column: TableColumnDef, afterId?: string) =>
+        dispatch({ type: "ADD_COLUMN", column, afterId }),
       removeColumn: (id: string) => dispatch({ type: "REMOVE_COLUMN", columnId: id }),
       updateColumn: (id: string, patch: Partial<TableColumnDef>) =>
         dispatch({ type: "UPDATE_COLUMN", columnId: id, patch }),
       duplicateColumn: (id: string) => dispatch({ type: "DUPLICATE_COLUMN", columnId: id }),
+      batch: (actions: TableAction[]) => dispatch({ type: "BATCH", actions }),
       reorderColumns: (ids: string[]) => dispatch({ type: "REORDER_COLUMNS", columnIds: ids }),
       setCell: (rowId: string, colId: string, value: CellValue) =>
         dispatch({ type: "SET_CELL", rowId, colId, value }),
@@ -710,7 +743,10 @@ function matchesFilter(
         val = card.columnId;
         break;
       case "assignee":
-        val = card.assignedUserId ?? "";
+        val = getAssignedUserIds(card) as string[];
+        break;
+      case "labels":
+        val = card.labelIds as string[];
         break;
       case "status":
         val = card.isComplete ? "completed" : "todo";
@@ -724,20 +760,25 @@ function matchesFilter(
 
   const strVal = val === null ? "" : String(val);
   const filterVal = filter.value ?? "";
+  const values = Array.isArray(val) ? val.map(String) : null;
 
   switch (filter.operator) {
     case "equals":
-      return strVal === filterVal;
+      return values ? values.includes(filterVal) : strVal === filterVal;
     case "notEquals":
-      return strVal !== filterVal;
+      return values ? !values.includes(filterVal) : strVal !== filterVal;
     case "contains":
-      return strVal.toLowerCase().includes(filterVal.toLowerCase());
+      return values
+        ? values.some((entry) => entry.toLowerCase().includes(filterVal.toLowerCase()))
+        : strVal.toLowerCase().includes(filterVal.toLowerCase());
     case "notContains":
-      return !strVal.toLowerCase().includes(filterVal.toLowerCase());
+      return values
+        ? !values.some((entry) => entry.toLowerCase().includes(filterVal.toLowerCase()))
+        : !strVal.toLowerCase().includes(filterVal.toLowerCase());
     case "isEmpty":
-      return strVal === "" || val === null;
+      return values ? values.length === 0 : strVal === "" || val === null;
     case "isNotEmpty":
-      return strVal !== "" && val !== null;
+      return values ? values.length > 0 : strVal !== "" && val !== null;
     case "gt":
       return Number(strVal) > Number(filterVal);
     case "lt":

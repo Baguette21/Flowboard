@@ -1,16 +1,20 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
+  Archive,
   ChevronRight,
+  Copy,
+  Edit3,
   FileText,
   Home,
   PanelLeftClose,
   PencilLine,
   Plus,
   Star,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -36,6 +40,39 @@ import { getBoardIconOption } from "../../lib/boardIcons";
 import { toast } from "sonner";
 import { useBoardTabs } from "../../hooks/useBoardTabs";
 import { UserMenu } from "../auth/UserMenu";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { Modal } from "../ui/Modal";
+
+type SidebarContextItem =
+  | {
+      kind: "board";
+      id: Id<"boards">;
+      title: string;
+      isFavorite: boolean;
+      canArchive: boolean;
+      canDelete: boolean;
+    }
+  | {
+      kind: "note";
+      id: Id<"notes">;
+      title: string;
+      isFavorite: boolean;
+      canArchive: true;
+      canDelete: true;
+    }
+  | {
+      kind: "draw";
+      id: Id<"drawings">;
+      title: string;
+      isFavorite: boolean;
+      canArchive: true;
+      canDelete: true;
+    };
+
+type SidebarContextMenuState = SidebarContextItem & {
+  x: number;
+  y: number;
+};
 
 function SortableSidebarItem({
   id,
@@ -97,10 +134,23 @@ export function Sidebar({
   const drawings = useQuery(api.drawings.list);
   const createNote = useMutation(api.notes.create);
   const createDrawing = useMutation(api.drawings.create);
+  const updateBoard = useMutation(api.boards.update);
+  const updateNote = useMutation(api.notes.update);
+  const updateDrawing = useMutation(api.drawings.update);
+  const deleteBoard = useMutation(api.boards.remove);
+  const deleteNote = useMutation(api.notes.remove);
+  const deleteDrawing = useMutation(api.drawings.remove);
+  const ensureInviteLink = useMutation(api.boardInvites.ensureLink);
   const reorderBoards = useMutation(api.boards.reorder);
   const reorderNotes = useMutation(api.notes.reorder);
   const reorderDrawings = useMutation(api.drawings.reorder);
   const [showCreate, setShowCreate] = useState(false);
+  const [contextMenu, setContextMenu] = useState<SidebarContextMenuState | null>(null);
+  const [renameItem, setRenameItem] = useState<SidebarContextItem | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteItem, setDeleteItem] = useState<SidebarContextItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [boardsExpanded, setBoardsExpanded] = useState(true);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [drawExpanded, setDrawExpanded] = useState(true);
@@ -169,6 +219,69 @@ export function Sidebar({
   };
 
   const isHome = location.pathname === "/";
+  const favoriteItems = [
+    ...(boards ?? [])
+      .filter((board) => board.isFavorite)
+      .map((board) => ({
+        key: `board-${board._id}`,
+        kind: "board" as const,
+        id: board._id,
+        title: board.name,
+        color: board.color,
+        icon: board.icon,
+        canArchive: board.role === "owner",
+        canDelete: board.role === "owner",
+      })),
+    ...(notes ?? [])
+      .filter((note) => note.isFavorite)
+      .map((note) => ({
+        key: `note-${note._id}`,
+        kind: "note" as const,
+        id: note._id,
+        title: note.title || "Untitled",
+        canArchive: true,
+        canDelete: true,
+      })),
+    ...(drawings ?? [])
+      .filter((drawing) => drawing.isFavorite)
+      .map((drawing) => ({
+        key: `draw-${drawing._id}`,
+        kind: "draw" as const,
+        id: drawing._id,
+        title: drawing.title || "Untitled",
+        canArchive: true,
+        canDelete: true,
+      })),
+  ];
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contextMenu]);
+
+  const openContextMenu = (
+    event: MouseEvent,
+    item: SidebarContextItem,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      ...item,
+      x: Math.min(event.clientX, window.innerWidth - 260),
+      y: Math.min(event.clientY, window.innerHeight - 300),
+    });
+  };
 
   const handleCreateNote = async () => {
     try {
@@ -187,6 +300,123 @@ export function Sidebar({
       onMobileClose?.();
     } catch {
       toast.error("Failed to create drawing");
+    }
+  };
+
+  const handleFavorite = async (item: SidebarContextItem) => {
+    const isFavorite = !item.isFavorite;
+    try {
+      if (item.kind === "board") {
+        await updateBoard({ boardId: item.id, isFavorite });
+      } else if (item.kind === "note") {
+        await updateNote({ noteId: item.id, isFavorite });
+      } else {
+        await updateDrawing({ drawingId: item.id, isFavorite });
+      }
+      toast.success(isFavorite ? "Added to favorites" : "Removed from favorites");
+    } catch {
+      toast.error("Failed to update favorite");
+    }
+  };
+
+  const handleShare = async (item: SidebarContextItem) => {
+    try {
+      let url = `${window.location.origin}${
+        item.kind === "board"
+          ? `/board/${item.id}`
+          : item.kind === "note"
+            ? `/notes/${item.id}`
+            : `/draw/${item.id}`
+      }`;
+      if (item.kind === "board") {
+        try {
+          const result = await ensureInviteLink({ boardId: item.id });
+          url = `${window.location.origin}/join/${result.inviteToken}`;
+        } catch {
+          url = `${window.location.origin}/board/${item.id}`;
+        }
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success(item.kind === "board" ? "Share link copied" : "Link copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleArchive = async (item: SidebarContextItem) => {
+    try {
+      const archivedAt = Date.now();
+      if (item.kind === "board") {
+        await updateBoard({ boardId: item.id, archivedAt });
+      } else if (item.kind === "note") {
+        await updateNote({ noteId: item.id, archivedAt });
+      } else {
+        await updateDrawing({ drawingId: item.id, archivedAt });
+      }
+      if (
+        (item.kind === "board" && activeBoardId === item.id) ||
+        (item.kind === "note" && activeNoteId === item.id) ||
+        (item.kind === "draw" && activeDrawId === item.id)
+      ) {
+        navigate("/");
+      }
+      toast.success("Archived");
+    } catch {
+      toast.error("Failed to archive");
+    }
+  };
+
+  const beginRename = (item: SidebarContextItem) => {
+    setRenameItem(item);
+    setRenameValue(item.title === "Untitled" ? "" : item.title);
+  };
+
+  const handleRename = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!renameItem) return;
+    const nextTitle = renameValue.trim() || "Untitled";
+    setIsRenaming(true);
+    try {
+      if (renameItem.kind === "board") {
+        await updateBoard({ boardId: renameItem.id, name: nextTitle });
+      } else if (renameItem.kind === "note") {
+        await updateNote({ noteId: renameItem.id, title: nextTitle });
+      } else {
+        await updateDrawing({ drawingId: renameItem.id, title: nextTitle });
+      }
+      toast.success("Renamed");
+      setRenameItem(null);
+    } catch {
+      toast.error("Failed to rename");
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setIsDeleting(true);
+    try {
+      if (deleteItem.kind === "board") {
+        await deleteBoard({ boardId: deleteItem.id });
+      } else if (deleteItem.kind === "note") {
+        await deleteNote({ noteId: deleteItem.id });
+      } else {
+        await deleteDrawing({ drawingId: deleteItem.id });
+      }
+      if (
+        (deleteItem.kind === "board" && activeBoardId === deleteItem.id) ||
+        (deleteItem.kind === "note" && activeNoteId === deleteItem.id) ||
+        (deleteItem.kind === "draw" && activeDrawId === deleteItem.id)
+      ) {
+        navigate("/");
+      }
+      toast.success("Deleted");
+      setDeleteItem(null);
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -252,7 +482,7 @@ export function Sidebar({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col">
-          <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 pb-24">
+          <nav className="brand-dark-scroll flex-1 space-y-5 overflow-y-auto px-3 py-4 pb-24">
             <button
               onClick={() => {
                 navigate("/");
@@ -273,6 +503,110 @@ export function Sidebar({
               />
               Home
             </button>
+
+            <div>
+              <div className="flex w-full items-center gap-2 px-3 py-2 text-brand-sidebar-text/40">
+                <Star className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
+                  Favorites
+                </span>
+                {boards && notes && drawings ? (
+                  <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
+                    {favoriteItems.length}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="ml-2 mt-1 space-y-0.5">
+                {boards === undefined || notes === undefined || drawings === undefined ? (
+                  <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
+                    Loading...
+                  </div>
+                ) : favoriteItems.length === 0 ? (
+                  <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
+                    No favorites yet
+                  </div>
+                ) : (
+                  favoriteItems.map((item) => {
+                    const isActive =
+                      (item.kind === "board" && activeBoardId === item.id) ||
+                      (item.kind === "note" && activeNoteId === item.id) ||
+                      (item.kind === "draw" && activeDrawId === item.id);
+                    const boardIcon =
+                      item.kind === "board"
+                        ? getBoardIconOption(item.icon, item.color)
+                        : null;
+
+                    return (
+                      <button
+                        key={item.key}
+                        onContextMenu={(event) => {
+                          if (item.kind === "board") {
+                            openContextMenu(event, {
+                              kind: "board",
+                              id: item.id,
+                              title: item.title,
+                              isFavorite: true,
+                              canArchive: item.canArchive,
+                              canDelete: item.canDelete,
+                            });
+                          } else if (item.kind === "note") {
+                            openContextMenu(event, {
+                              kind: "note",
+                              id: item.id,
+                              title: item.title,
+                              isFavorite: true,
+                              canArchive: true,
+                              canDelete: true,
+                            });
+                          } else {
+                            openContextMenu(event, {
+                              kind: "draw",
+                              id: item.id,
+                              title: item.title,
+                              isFavorite: true,
+                              canArchive: true,
+                              canDelete: true,
+                            });
+                          }
+                        }}
+                        onClick={() => {
+                          openInActiveTab({ kind: item.kind, id: item.id });
+                          onMobileClose?.();
+                        }}
+                        className={cn(
+                          "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                          isActive
+                            ? "bg-brand-primary text-brand-text"
+                            : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
+                        )}
+                      >
+                        {item.kind === "board" && boardIcon ? (
+                          <span
+                            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[8px]"
+                            style={{
+                              backgroundColor: `${item.color}22`,
+                              color: item.color,
+                            }}
+                          >
+                            <boardIcon.Icon className="h-3.5 w-3.5" />
+                          </span>
+                        ) : item.kind === "note" ? (
+                          <FileText className="h-4 w-4 flex-shrink-0 text-brand-sidebar-text/30" />
+                        ) : (
+                          <PencilLine className="h-4 w-4 flex-shrink-0 text-brand-sidebar-text/30" />
+                        )}
+                        <span className="flex-1 truncate">{item.title}</span>
+                        <Star
+                          className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                          fill="currentColor"
+                        />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
 
             <div>
               <button
@@ -337,6 +671,16 @@ export function Sidebar({
                                 onPointerDownCapture={(event) => {
                                   event.stopPropagation();
                                 }}
+                                onContextMenu={(event) =>
+                                  openContextMenu(event, {
+                                    kind: "board",
+                                    id: board._id,
+                                    title: board.name,
+                                    isFavorite: board.isFavorite,
+                                    canArchive: board.role === "owner",
+                                    canDelete: board.role === "owner",
+                                  })
+                                }
                                 onClick={() => {
                                   openInActiveTab({
                                     kind: "board",
@@ -440,6 +784,16 @@ export function Sidebar({
                               onPointerDownCapture={(event) => {
                                 event.stopPropagation();
                               }}
+                              onContextMenu={(event) =>
+                                openContextMenu(event, {
+                                  kind: "note",
+                                  id: note._id,
+                                  title: note.title || "Untitled",
+                                  isFavorite: note.isFavorite ?? false,
+                                  canArchive: true,
+                                  canDelete: true,
+                                })
+                              }
                               onClick={() => {
                                 openInActiveTab({
                                   kind: "note",
@@ -465,6 +819,12 @@ export function Sidebar({
                               <span className="flex-1 truncate">
                                 {note.title || "Untitled"}
                               </span>
+                              {note.isFavorite ? (
+                                <Star
+                                  className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                                  fill="currentColor"
+                                />
+                              ) : null}
                             </button>
                           </SortableSidebarItem>
                         ))}
@@ -535,6 +895,16 @@ export function Sidebar({
                               onPointerDownCapture={(event) => {
                                 event.stopPropagation();
                               }}
+                              onContextMenu={(event) =>
+                                openContextMenu(event, {
+                                  kind: "draw",
+                                  id: drawing._id,
+                                  title: drawing.title || "Untitled",
+                                  isFavorite: drawing.isFavorite ?? false,
+                                  canArchive: true,
+                                  canDelete: true,
+                                })
+                              }
                               onClick={() => {
                                 openInActiveTab({
                                   kind: "draw",
@@ -560,6 +930,12 @@ export function Sidebar({
                               <span className="flex-1 truncate">
                                 {drawing.title || "Untitled"}
                               </span>
+                              {drawing.isFavorite ? (
+                                <Star
+                                  className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                                  fill="currentColor"
+                                />
+                              ) : null}
                             </button>
                           </SortableSidebarItem>
                         ))}
@@ -594,6 +970,143 @@ export function Sidebar({
         open={showCreate}
         onClose={() => setShowCreate(false)}
       />
+
+      {contextMenu ? (
+        <div
+          className="fixed z-[80] w-64 rounded-xl border border-brand-sidebar-text/12 bg-[#232323] p-2 text-brand-sidebar-text shadow-2xl"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <div className="px-3 pb-2 pt-1 font-mono text-[11px] text-brand-sidebar-text/45">
+            {contextMenu.kind === "board"
+              ? "Board"
+              : contextMenu.kind === "note"
+                ? "Note"
+                : "Drawing"}
+          </div>
+          <SidebarMenuButton
+            icon={<Star className="h-4 w-4" />}
+            label={contextMenu.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            onClick={() => {
+              void handleFavorite(contextMenu);
+              setContextMenu(null);
+            }}
+          />
+          <SidebarMenuButton
+            icon={<Copy className="h-4 w-4" />}
+            label={contextMenu.kind === "board" ? "Copy share link" : "Copy link"}
+            onClick={() => {
+              void handleShare(contextMenu);
+              setContextMenu(null);
+            }}
+          />
+          <SidebarMenuButton
+            icon={<Edit3 className="h-4 w-4" />}
+            label="Rename"
+            onClick={() => {
+              beginRename(contextMenu);
+              setContextMenu(null);
+            }}
+          />
+          <SidebarMenuButton
+            icon={<Archive className="h-4 w-4" />}
+            label={contextMenu.canArchive ? "Archive" : "Archive unavailable"}
+            disabled={!contextMenu.canArchive}
+            onClick={() => {
+              void handleArchive(contextMenu);
+              setContextMenu(null);
+            }}
+          />
+          <div className="my-1 border-t border-brand-sidebar-text/10" />
+          <SidebarMenuButton
+            icon={<Trash2 className="h-4 w-4" />}
+            label={contextMenu.canDelete ? "Delete" : "Delete unavailable"}
+            destructive={contextMenu.canDelete}
+            disabled={!contextMenu.canDelete}
+            onClick={() => {
+              setDeleteItem(contextMenu);
+              setContextMenu(null);
+            }}
+          />
+        </div>
+      ) : null}
+
+      <Modal
+        open={renameItem !== null}
+        onClose={() => setRenameItem(null)}
+        title="Rename"
+        size="sm"
+      >
+        <form onSubmit={handleRename} className="space-y-4 p-6">
+          <input
+            autoFocus
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            maxLength={60}
+            className="h-12 w-full rounded-2xl border-2 border-brand-text/20 bg-brand-bg px-4 text-sm outline-none transition-colors focus:border-brand-text"
+            placeholder="Untitled"
+          />
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setRenameItem(null)}
+              className="h-11 rounded-2xl border-2 border-brand-text/20 px-5 font-mono text-sm font-bold transition-colors hover:border-brand-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isRenaming}
+              className="h-11 rounded-2xl bg-brand-text px-5 font-mono text-sm font-bold text-brand-bg transition-colors hover:bg-brand-dark disabled:opacity-60"
+            >
+              {isRenaming ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={deleteItem !== null}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={() => void handleDelete()}
+        title={`Delete ${deleteItem?.kind ?? "item"}`}
+        description={`This will permanently delete "${deleteItem?.title ?? "Untitled"}". This action cannot be undone.`}
+        confirmLabel="Delete"
+        isDestructive
+        isLoading={isDeleting}
+      />
     </>
+  );
+}
+
+function SidebarMenuButton({
+  icon,
+  label,
+  onClick,
+  destructive = false,
+  disabled = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45",
+        destructive
+          ? "text-red-300 hover:bg-red-500/12"
+          : "text-brand-sidebar-text/86 hover:bg-brand-sidebar-text/10 hover:text-brand-sidebar-text",
+      )}
+    >
+      <span className="flex h-5 w-5 items-center justify-center">{icon}</span>
+      <span className="truncate">{label}</span>
+    </button>
   );
 }

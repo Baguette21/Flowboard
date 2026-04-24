@@ -17,9 +17,10 @@ import "./noteEditorTheme.css";
 interface NoteEditorProps {
   note: Doc<"notes">;
   onTitleChange?: (title: string) => void;
+  actions?: React.ReactNode;
 }
 
-export function NoteEditor({ note, onTitleChange }: NoteEditorProps) {
+export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
   const { theme } = useTheme();
   const updateNote = useMutation(api.notes.update);
   const [title, setTitle] = useState(() => note.title);
@@ -111,19 +112,22 @@ export function NoteEditor({ note, onTitleChange }: NoteEditorProps) {
     <div className="flex flex-1 flex-col min-h-0">
       {/* Note header: title + metadata */}
       <div className="flex-shrink-0 px-6 pt-8 pb-4 sm:px-10 md:px-16 lg:px-24">
-        <textarea
-          ref={titleRef}
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          onKeyDown={handleTitleKeyDown}
-          placeholder="Untitled"
-          rows={1}
-          className={cn(
-            "w-full resize-none bg-transparent font-serif italic font-bold text-3xl sm:text-4xl tracking-tight text-brand-text",
-            "placeholder:text-brand-text/25 focus:outline-none border-none p-0",
-            "overflow-hidden",
-          )}
-        />
+        <div className="flex items-start gap-3">
+          <textarea
+            ref={titleRef}
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
+            placeholder="Untitled"
+            rows={1}
+            className={cn(
+              "min-w-0 flex-1 resize-none bg-transparent font-serif italic font-bold text-3xl sm:text-4xl tracking-tight text-brand-text",
+              "placeholder:text-brand-text/25 focus:outline-none border-none p-0",
+              "overflow-hidden",
+            )}
+          />
+          {actions}
+        </div>
         <div className="mt-2 flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest text-brand-text/35">
           <span>
             Created {format(new Date(note.createdAt), "MMM d, yyyy")}
