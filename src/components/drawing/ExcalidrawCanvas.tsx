@@ -14,6 +14,7 @@ import type {
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { Eye, EyeOff, PencilLine, RotateCcw, RotateCw } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
+import { cn } from "../../lib/utils";
 
 import "@excalidraw/excalidraw/index.css";
 import "./excalidrawCanvas.css";
@@ -24,6 +25,8 @@ interface ExcalidrawCanvasProps {
   onSave: (drawingDocument: string) => Promise<void> | void;
   heightClassName?: string;
   compact?: boolean;
+  readOnly?: boolean;
+  lockedMessage?: string;
 }
 
 const PROPERTIES_VISIBILITY_STORAGE_KEY =
@@ -90,6 +93,8 @@ export function ExcalidrawCanvas({
   onSave,
   heightClassName = "h-[420px]",
   compact = false,
+  readOnly = false,
+  lockedMessage = "Upgrade to Pro to use draw.",
 }: ExcalidrawCanvasProps) {
   const { theme } = useTheme();
   const [isReady, setIsReady] = useState(false);
@@ -139,6 +144,10 @@ export function ExcalidrawCanvas({
       appState: AppState,
       files: BinaryFiles,
     ) => {
+      if (readOnly) {
+        return;
+      }
+
       const nextDrawingDocument = createPersistedDrawingDocument(
         elements,
         appState,
@@ -159,7 +168,7 @@ export function ExcalidrawCanvas({
         void onSave(nextDrawingDocument);
       }, 900);
     },
-    [onSave],
+    [onSave, readOnly],
   );
 
   const frameClassName = compact
@@ -209,7 +218,7 @@ export function ExcalidrawCanvas({
             propertiesVisible ? "" : "flowboard-excalidraw--properties-hidden"
           }`}
         >
-          <div className="flowboard-excalidraw-controls">
+          <div className={cn("flowboard-excalidraw-controls", readOnly && "hidden")}>
             <button
               type="button"
               onClick={() => triggerHistoryShortcut("undo")}
@@ -253,6 +262,7 @@ export function ExcalidrawCanvas({
             }}
             theme={theme === "dark" ? "dark" : "light"}
             autoFocus={false}
+            viewModeEnabled={readOnly}
             UIOptions={{
               canvasActions: {
                 loadScene: false,
@@ -264,6 +274,19 @@ export function ExcalidrawCanvas({
               },
             }}
           />
+          {readOnly ? (
+            <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-brand-bg/72 backdrop-blur-[1px]">
+              <div className="mx-4 max-w-sm rounded-xl border border-brand-text/10 bg-brand-bg px-5 py-4 text-center shadow-lg">
+                <PencilLine className="mx-auto h-6 w-6 text-brand-text/25" />
+                <p className="mt-3 font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-text/45">
+                  Pro feature
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-brand-text/55">
+                  {lockedMessage}
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
       {!isReady ? (

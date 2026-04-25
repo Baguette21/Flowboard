@@ -132,6 +132,7 @@ export function Sidebar({
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
+  const me = useQuery(api.users.me);
   const createNote = useMutation(api.notes.create);
   const createDrawing = useMutation(api.drawings.create);
   const updateBoard = useMutation(api.boards.update);
@@ -154,6 +155,7 @@ export function Sidebar({
   const [boardsExpanded, setBoardsExpanded] = useState(true);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [drawExpanded, setDrawExpanded] = useState(true);
+  const isPro = me?.role === "PRO";
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -242,7 +244,7 @@ export function Sidebar({
         canArchive: true,
         canDelete: true,
       })),
-    ...(drawings ?? [])
+    ...(isPro ? drawings ?? [] : [])
       .filter((drawing) => drawing.isFavorite)
       .map((drawing) => ({
         key: `draw-${drawing._id}`,
@@ -294,6 +296,11 @@ export function Sidebar({
   };
 
   const handleCreateDrawing = async () => {
+    if (!isPro) {
+      toast.error("Draw is available to Pro users only");
+      return;
+    }
+
     try {
       const drawingId = await createDrawing({ title: "Untitled" });
       openInActiveTab({ kind: "draw", id: drawingId });
@@ -835,6 +842,7 @@ export function Sidebar({
               ) : null}
             </div>
 
+            {isPro ? (
             <div>
               <button
                 onClick={() => setDrawExpanded((current) => !current)}
@@ -945,6 +953,7 @@ export function Sidebar({
                 </div>
               ) : null}
             </div>
+            ) : null}
           </nav>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-brand-dark via-brand-dark/58 to-transparent" />
