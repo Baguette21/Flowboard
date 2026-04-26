@@ -13,7 +13,7 @@ interface SearchBarProps {
 export function SearchBar({
   value,
   onChange,
-  placeholder = "Search tasks...",
+  placeholder = "Search your things...",
   className,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);

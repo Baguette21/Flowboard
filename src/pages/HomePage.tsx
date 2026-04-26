@@ -104,7 +104,7 @@ export function HomePage() {
     <Layout
       searchValue={search}
       onSearchChange={setSearch}
-      searchPlaceholder="Search boards & notes... (/)"
+      searchPlaceholder="Search your things..."
     >
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 sm:p-8 max-w-7xl mx-auto">

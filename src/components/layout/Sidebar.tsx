@@ -624,7 +624,7 @@ export function Sidebar({
                   type="text"
                   value={sidebarSearch}
                   onChange={(event) => setSidebarSearch(event.target.value)}
-                  placeholder="Search boards & notes..."
+                  placeholder="Search your things..."
                   className="h-10 w-full rounded-none border-0 border-b border-brand-sidebar-text/15 bg-transparent pl-10 pr-10 text-sm text-brand-sidebar-text outline-none transition-colors placeholder:text-brand-sidebar-text/30 focus:border-brand-sidebar-text/35"
                 />
                 {sidebarSearch ? (
