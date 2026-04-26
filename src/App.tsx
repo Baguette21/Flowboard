@@ -6,6 +6,8 @@ import { NotesPage } from "./pages/NotesPage";
 import { DrawPage } from "./pages/DrawPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { JoinBoardPage } from "./pages/JoinBoardPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { FeedbackPage } from "./pages/FeedbackPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 
@@ -83,6 +85,22 @@ export default function App() {
         element={
           <AuthGuard>
             <HomePage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <AuthGuard>
+            <ProfilePage />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/feedback"
+        element={
+          <AuthGuard>
+            <FeedbackPage />
           </AuthGuard>
         }
       />
