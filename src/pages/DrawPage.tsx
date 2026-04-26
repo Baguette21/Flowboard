@@ -17,10 +17,12 @@ function DrawEditor({
   drawing,
   onUpdate,
   actions,
+  readOnly = false,
 }: {
   drawing: Doc<"drawings">;
   onUpdate: ReturnType<typeof useMutation<typeof api.drawings.update>>;
   actions?: ReactNode;
+  readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(() => drawing.title);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -105,6 +107,8 @@ function DrawEditor({
             });
           }}
           heightClassName="h-[72rem] sm:h-[84rem]"
+          readOnly={readOnly}
+          lockedMessage="Drawing pages are available to Pro users only."
         />
       </div>
     </div>
@@ -115,6 +119,7 @@ export function DrawPage() {
   const { drawingId } = useParams<{ drawingId?: string }>();
   const navigate = useNavigate();
   const drawings = useQuery(api.drawings.list);
+  const me = useQuery(api.users.me);
   const createDrawing = useMutation(api.drawings.create);
   const updateDrawing = useMutation(api.drawings.update);
   const deleteDrawing = useMutation(api.drawings.remove);
@@ -145,13 +150,18 @@ export function DrawPage() {
   }, [activeDrawId, ensureInActiveTab]);
 
   const handleCreateDrawing = useCallback(async () => {
+    if (me?.role !== "PRO") {
+      toast.error("Draw is available to Pro users only");
+      return;
+    }
+
     try {
       const createdDrawingId = await createDrawing({ title: "Untitled" });
       openInActiveTab({ kind: "draw", id: createdDrawingId });
     } catch {
       toast.error("Failed to create drawing");
     }
-  }, [createDrawing, openInActiveTab]);
+  }, [createDrawing, me?.role, openInActiveTab]);
 
   const openLatestDrawing = useCallback(() => {
     if (!drawings || drawings.length === 0) {
@@ -236,8 +246,21 @@ export function DrawPage() {
   );
 
   let content: ReactNode;
+  const isPro = me?.role === "PRO";
 
-  if (!activeDrawId) {
+  if (me !== undefined && !isPro) {
+    content = renderEmptyState(
+      "Draw is a Pro feature",
+      "Upgrade to Pro to create and edit drawings.",
+      <button
+        onClick={() => navigate("/")}
+        className="inline-flex items-center gap-2 rounded-2xl border border-brand-text/12 px-5 py-2.5 font-sans text-sm font-bold text-brand-text transition-colors hover:border-brand-text/24 hover:bg-brand-text/4"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back Home
+      </button>,
+    );
+  } else if (!activeDrawId) {
     if (drawings === undefined) {
       content = (
         <div className="flex flex-1 items-center justify-center px-4">
@@ -290,6 +313,7 @@ export function DrawPage() {
         key={activeDrawing._id}
         drawing={activeDrawing}
         onUpdate={updateDrawing}
+        readOnly={!isPro}
         actions={
           <WorkspaceItemMenu
             isFavorite={activeDrawing.isFavorite ?? false}

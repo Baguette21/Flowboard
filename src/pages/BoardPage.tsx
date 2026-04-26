@@ -61,6 +61,8 @@ export function BoardPage() {
   const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
   const updateBoard = useMutation(api.boards.update);
   const { ensureInActiveTab } = useBoardTabs();
+  const me = useQuery(api.users.me);
+  const isPro = me?.role === "PRO";
 
   const board = useQuery(
     api.boards.get,
@@ -89,6 +91,12 @@ export function BoardPage() {
     setViewOrder(nextViewOrder);
     setMode(nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0]);
   }, [typedBoardId]);
+
+  useEffect(() => {
+    if (me !== undefined && !isPro && mode === "draw") {
+      setMode("board");
+    }
+  }, [isPro, me, mode]);
 
   useEffect(() => {
     if (!typedBoardId) {
@@ -168,7 +176,7 @@ export function BoardPage() {
     <Layout key={typedBoardId} boardId={typedBoardId}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-text/10 bg-brand-bg/60 px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
-          {viewOrder.map((viewKey) => {
+          {viewOrder.filter((viewKey) => viewKey !== "draw" || isPro).map((viewKey) => {
             const view = ({
               board: { key: "board" as const, label: "Board", icon: LayoutGrid },
               calendar: { key: "calendar" as const, label: "Calendar", icon: CalendarDays },
@@ -246,13 +254,13 @@ export function BoardPage() {
             columns={columns ?? []}
             labels={labels ?? []}
           />
-        ) : mode === "draw" ? (
+        ) : mode === "draw" && isPro ? (
           <BoardDrawView
             key={`draw-${typedBoardId}`}
             boardId={typedBoardId}
             drawingDocument={board.drawingDocument}
           />
-        ) : (
+        ) : mode !== "draw" ? (
           <Table
             key={`${mode}-${typedBoardId}`}
             boardId={typedBoardId}
@@ -262,6 +270,8 @@ export function BoardPage() {
             forcedMode={mode}
             showViewModeTabs={false}
           />
+        ) : (
+          <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
         )}
       </div>
 

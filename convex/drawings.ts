@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireCurrentUser } from "./helpers/boardAccess";
+import { requireCurrentUser, requireProUser } from "./helpers/boardAccess";
 
 export const list = query({
   args: {},
@@ -72,7 +72,8 @@ export const create = mutation({
     title: v.optional(v.string()),
   },
   handler: async (ctx, { title }) => {
-    const { userId } = await requireCurrentUser(ctx);
+    const { userId, user } = await requireCurrentUser(ctx);
+    requireProUser(user);
     const now = Date.now();
 
     const drawingId = await ctx.db.insert("drawings", {
@@ -96,11 +97,15 @@ export const update = mutation({
     archivedAt: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, { drawingId, title, drawingDocument, isFavorite, archivedAt }) => {
-    const { userId } = await requireCurrentUser(ctx);
+    const { userId, user } = await requireCurrentUser(ctx);
     const drawing = await ctx.db.get(drawingId);
 
     if (!drawing || drawing.userId !== userId) {
       throw new Error("Drawing not found or access denied");
+    }
+
+    if (drawingDocument !== undefined) {
+      requireProUser(user);
     }
 
     const patch: Record<string, unknown> = {

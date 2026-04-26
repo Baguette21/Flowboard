@@ -49,6 +49,32 @@ export function Layout({
     );
   }, [desktopSidebarCollapsed]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName;
+      if (
+        activeTag === "INPUT" ||
+        activeTag === "TEXTAREA" ||
+        activeTag === "SELECT"
+      ) {
+        return;
+      }
+
+      if (event.ctrlKey && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        if (window.innerWidth >= 1024) {
+          setDesktopSidebarCollapsed((current) => !current);
+        } else {
+          setMobileSidebarOpen((current) => !current);
+        }
+        setSidebarPeek(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleOpenSidebar = () => {
     if (typeof window !== "undefined" && window.innerWidth >= 1024) {
       setDesktopSidebarCollapsed(false);

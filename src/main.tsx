@@ -7,10 +7,12 @@ import { Toaster } from "sonner";
 import "./index.css";
 import App from "./App.tsx";
 import { ThemeProvider, initializeTheme } from "./hooks/useTheme";
+import { initializeAppearance } from "./hooks/useAppearance";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
 
 initializeTheme();
+initializeAppearance();
 
 // Show a setup guide if Convex is not yet configured
 if (!convexUrl || convexUrl.includes("your-deployment")) {
