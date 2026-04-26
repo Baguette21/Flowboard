@@ -18,6 +18,7 @@ import type * as cardAttachments from "../cardAttachments.js";
 import type * as cards from "../cards.js";
 import type * as columns from "../columns.js";
 import type * as drawings from "../drawings.js";
+import type * as feedback from "../feedback.js";
 import type * as helpers_boardAccess from "../helpers/boardAccess.js";
 import type * as helpers_ordering from "../helpers/ordering.js";
 import type * as helpers_validators from "../helpers/validators.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   cards: typeof cards;
   columns: typeof columns;
   drawings: typeof drawings;
+  feedback: typeof feedback;
   "helpers/boardAccess": typeof helpers_boardAccess;
   "helpers/ordering": typeof helpers_ordering;
   "helpers/validators": typeof helpers_validators;

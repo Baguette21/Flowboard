@@ -35,27 +35,24 @@ export function SearchBar({
 
   return (
     <div className={cn("relative group w-full", className)}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text/40 group-focus-within:text-brand-text transition-colors" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text/40 group-focus-within:text-brand-text/70 transition-colors" />
       <input
         ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full min-w-0 bg-brand-bg border-2 border-brand-text/20 pl-10 pr-10 text-sm font-sans placeholder:text-brand-text/30 rounded-2xl focus:outline-none focus:border-brand-text transition-all lg:w-64 lg:focus:w-80"
+        className="h-10 w-full min-w-0 border-0 border-b border-brand-text/15 bg-transparent pl-10 pr-10 text-sm font-sans placeholder:text-brand-text/35 rounded-none focus:outline-none focus:border-brand-text/35 transition-all lg:w-64 lg:focus:w-80"
       />
       {value ? (
         <button
           onClick={() => onChange("")}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text/40 hover:text-brand-text transition-colors"
+          aria-label="Clear search"
         >
           <X className="w-3.5 h-3.5" />
         </button>
-      ) : (
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-brand-text/30 border border-brand-text/20 rounded px-1.5 py-0.5">
-          /
-        </kbd>
-      )}
+      ) : null}
     </div>
   );
 }

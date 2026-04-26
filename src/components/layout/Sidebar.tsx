@@ -51,6 +51,7 @@ import { useBoardTabs } from "../../hooks/useBoardTabs";
 import { UserMenu } from "../auth/UserMenu";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
+import { usePrivacyMode } from "../../hooks/usePrivacyMode";
 
 type SidebarContextItem =
   | {
@@ -146,6 +147,7 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const { openInActiveTab } = useBoardTabs();
+  const { enabled: privacyMode } = usePrivacyMode();
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
@@ -177,6 +179,7 @@ export function Sidebar({
   const [sidebarSearch, setSidebarSearch] = useState("");
   const sidebarSearchRef = useRef<HTMLInputElement>(null);
   const isPro = me?.role === "PRO";
+  const accountName = me?.name?.trim() || me?.email?.trim() || "Account";
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -622,7 +625,7 @@ export function Sidebar({
                   value={sidebarSearch}
                   onChange={(event) => setSidebarSearch(event.target.value)}
                   placeholder="Search boards & notes..."
-                  className="h-10 w-full rounded-2xl border-2 border-brand-sidebar-text/12 bg-brand-sidebar-text/7 pl-10 pr-10 text-sm text-brand-sidebar-text outline-none transition-colors placeholder:text-brand-sidebar-text/30 focus:border-brand-sidebar-text/30 focus:bg-brand-sidebar-text/10"
+                  className="h-10 w-full rounded-none border-0 border-b border-brand-sidebar-text/15 bg-transparent pl-10 pr-10 text-sm text-brand-sidebar-text outline-none transition-colors placeholder:text-brand-sidebar-text/30 focus:border-brand-sidebar-text/35"
                 />
                 {sidebarSearch ? (
                   <button
@@ -634,11 +637,7 @@ export function Sidebar({
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
-                ) : (
-                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-brand-sidebar-text/16 px-1.5 py-0.5 font-mono text-[10px] text-brand-sidebar-text/30">
-                    /
-                  </kbd>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -1091,15 +1090,16 @@ export function Sidebar({
         </div>
 
         <div className="relative flex-shrink-0 border-t-2 border-brand-sidebar-text/10 p-3">
-          <div className="rounded-[1.4rem] border border-brand-sidebar-text/10 bg-brand-sidebar-text/6 p-3 shadow-[0_-10px_30px_rgba(0,0,0,0.14)]">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-sidebar-text/10 bg-brand-bg/65">
-                  <UserMenu />
-                </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-sidebar-text/36">
-                  Account
-                </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <UserMenu />
+              <div
+                className={cn(
+                  "min-w-0 truncate text-sm font-bold text-brand-sidebar-text/88",
+                  privacyMode && "blur-sm",
+                )}
+              >
+                {accountName}
               </div>
             </div>
           </div>

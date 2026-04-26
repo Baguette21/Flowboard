@@ -5,11 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { useProfileAvatar } from "../../hooks/useProfileAvatar";
 import { UserAvatar } from "../ui/UserAvatar";
 import { cn } from "../../lib/utils";
+import { usePrivacyMode } from "../../hooks/usePrivacyMode";
 
 export function UserMenu() {
   const navigate = useNavigate();
   const { signOut } = useAuthActions();
   const { name, email, imageUrl, role } = useProfileAvatar();
+  const { enabled: privacyMode } = usePrivacyMode();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -53,8 +55,11 @@ export function UserMenu() {
           name={name}
           email={email}
           imageUrl={imageUrl}
-          size="md"
-          className="h-8 w-8 border-white/20"
+          size="lg"
+          className={cn(
+            "h-10 w-10 border-white/20",
+            privacyMode && "blur-sm",
+          )}
         />
       </button>
 
@@ -62,7 +67,9 @@ export function UserMenu() {
         <div className="absolute bottom-full left-0 z-[90] mb-3 w-56 overflow-hidden rounded-xl border border-brand-sidebar-text/12 bg-brand-dark text-brand-sidebar-text shadow-2xl">
           <div className="flex items-center justify-between gap-3 border-b border-brand-sidebar-text/10 px-4 py-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{name ?? "Profile"}</p>
+              <p className={cn("truncate text-sm font-bold", privacyMode && "blur-sm")}>
+                {name ?? "Profile"}
+              </p>
               {email ? (
                 <p className="mt-0.5 truncate text-[11px] text-brand-sidebar-text/45">
                   {email}

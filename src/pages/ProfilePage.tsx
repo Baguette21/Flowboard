@@ -19,13 +19,15 @@ import { api } from "../../convex/_generated/api";
 import { SettingsPanel } from "../components/auth/SettingsModal";
 import { UserAvatar } from "../components/ui/UserAvatar";
 import { useProfileAvatar } from "../hooks/useProfileAvatar";
+import { usePrivacyMode } from "../hooks/usePrivacyMode";
 import { useTheme } from "../hooks/useTheme";
 import { cn } from "../lib/utils";
 
-type ProfileTab = "account" | "customization" | "archive" | "shortcuts";
+type ProfileTab = "account" | "privacy" | "customization" | "archive" | "shortcuts";
 
 const tabs: { id: ProfileTab; label: string }[] = [
   { id: "account", label: "Account" },
+  { id: "privacy", label: "Privacy" },
   { id: "customization", label: "Customization" },
   { id: "archive", label: "Archive" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -39,6 +41,7 @@ export function ProfilePage() {
   const { signOut } = useAuthActions();
   const { toggle } = useTheme();
   const { name, email, imageKey, imageUrl, role } = useProfileAvatar();
+  const { enabled: privacyMode } = usePrivacyMode();
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
@@ -190,7 +193,10 @@ export function ProfilePage() {
                   email={email}
                   imageUrl={localPreview ?? imageUrl}
                   size="lg"
-                  className="h-28 w-28 border-brand-text/10 text-5xl"
+                  className={cn(
+                    "h-28 w-28 border-brand-text/10 text-5xl",
+                    privacyMode && "blur-md",
+                  )}
                 />
                 <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   {isUploadingAvatar || isDeletingAvatar ? (
@@ -213,7 +219,12 @@ export function ProfilePage() {
                 </button>
               ) : null}
             </div>
-            <h1 className="mt-4 max-w-full truncate text-2xl font-bold">
+            <h1
+              className={cn(
+                "mt-4 max-w-full truncate text-2xl font-bold",
+                privacyMode && "blur-sm",
+              )}
+            >
               {name ?? "Profile"}
             </h1>
             {email ? (
@@ -304,21 +315,7 @@ export function ProfilePage() {
             </button>
           </div>
 
-          <div className="rounded-[12px] bg-brand-primary card-whisper card-elevation">
-            <div className="border-b border-brand-text/8 px-5 py-4">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-brand-text/38">
-                {activeTab}
-              </p>
-              <h2 className="mt-1 text-2xl font-bold">
-                {activeTab === "account"
-                  ? "Profile and account"
-                  : activeTab === "customization"
-                    ? "Customize FlowBoard"
-                    : activeTab === "archive"
-                      ? "Archived workspace items"
-                      : "Keyboard shortcuts"}
-              </h2>
-            </div>
+          <div>
             <SettingsPanel activeSection={activeTab} />
           </div>
         </main>

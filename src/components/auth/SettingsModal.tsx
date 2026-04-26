@@ -28,6 +28,7 @@ import {
   useAppearance,
   type AppFont,
 } from "../../hooks/useAppearance";
+import { usePrivacyMode } from "../../hooks/usePrivacyMode";
 
 interface SettingsModalProps {
   open: boolean;
@@ -36,7 +37,7 @@ interface SettingsModalProps {
 
 interface SettingsPanelProps {
   onClose?: () => void;
-  activeSection?: "account" | "customization" | "archive" | "shortcuts";
+  activeSection?: "account" | "privacy" | "customization" | "archive" | "shortcuts";
 }
 
 type PasswordStep = "idle" | "awaitingCode";
@@ -62,6 +63,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
   const navigate = useNavigate();
   const { signIn, signOut } = useAuthActions();
   const { name, email, role } = useProfileAvatar();
+  const { enabled: privacyMode, setEnabled: setPrivacyMode } = usePrivacyMode();
   const { theme, toggle } = useTheme();
   const {
     settings: appearance,
@@ -496,6 +498,41 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                 ? "Your account has PRO upload access."
                 : "Your account is on the FREE plan."}
             </p>
+          </div>
+        </section>
+
+        <div className={cn("h-px bg-brand-text/8", !showSection("privacy") && "hidden")} />
+
+        <section className={cn(!showSection("privacy") && "hidden")}>
+          <p className={sectionLabel}>Privacy</p>
+          <div className="rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-brand-text">Privacy mode</p>
+                <p className="mt-1 text-xs leading-relaxed text-brand-text/55">
+                  Blur your profile picture and username on this device only.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={privacyMode}
+                onClick={() => setPrivacyMode(!privacyMode)}
+                className={cn(
+                  "relative h-7 w-12 flex-shrink-0 rounded-full border transition-colors",
+                  privacyMode
+                    ? "border-brand-accent/50 bg-brand-accent"
+                    : "border-brand-text/15 bg-brand-text/10",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-brand-bg shadow-sm transition-transform",
+                    privacyMode ? "translate-x-5" : "translate-x-1",
+                  )}
+                />
+              </button>
+            </div>
           </div>
         </section>
 

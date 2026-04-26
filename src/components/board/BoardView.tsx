@@ -13,6 +13,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
   defaultDropAnimationSideEffects,
 } from "@dnd-kit/core";
 import type {
@@ -34,10 +35,13 @@ import { Card as CardComponent } from "../card/Card";
 import { CreateColumn } from "../column/CreateColumn";
 import { CardDetail } from "../card/CardDetail";
 import { ColumnSkeleton } from "../ui/Skeleton";
-import { Layers } from "lucide-react";
+import { Layers, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { BoardMemberSummary } from "../../lib/types";
 import { getAssignedUserIds } from "../../lib/assignees";
+import { toast } from "sonner";
+
+const TRASH_DROP_ID = "board-trash-drop";
 
 function compareCardsByOrder(
   a: Pick<Doc<"cards">, "_id" | "order" | "createdAt">,
@@ -70,6 +74,39 @@ interface BoardViewProps {
   boardId: Id<"boards">;
 }
 
+function TrashDropZone({ visible }: { visible: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: TRASH_DROP_ID,
+    data: { type: "Trash" },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ left: "auto", right: "1.75rem", bottom: "1.75rem" }}
+      className={cn(
+        "pointer-events-none fixed z-40 transition-all duration-200",
+        visible
+          ? "translate-y-0 scale-100 opacity-100"
+          : "translate-y-3 scale-95 opacity-0",
+      )}
+      aria-hidden={!visible}
+    >
+      <div
+        className={cn(
+          "flex h-16 min-w-16 items-center justify-center rounded-full border bg-brand-bg/95 px-5 shadow-[0_18px_48px_rgba(17,17,17,0.2)] backdrop-blur-xl transition-all duration-150",
+          isOver
+            ? "border-red-500 bg-red-50 text-red-600 shadow-[0_20px_54px_rgba(220,38,38,0.28)]"
+            : "border-brand-text/15 text-[color:var(--color-text-muted)]",
+        )}
+      >
+        <Trash2 className="h-6 w-6" aria-hidden="true" />
+        <span className="sr-only">Drop to delete task</span>
+      </div>
+    </div>
+  );
+}
+
 export function BoardView({ boardId }: BoardViewProps) {
   const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
   const columns = useQuery(api.columns.listByBoard, { boardId });
@@ -78,6 +115,7 @@ export function BoardView({ boardId }: BoardViewProps) {
   const members = useQuery(api.boardMembers.listForBoard, { boardId });
 
   const moveCardMutation = useMutation(api.cards.move);
+  const removeCardMutation = useMutation(api.cards.remove);
   const reorderColumnMutation = useMutation(api.columns.reorder);
 
   // Local optimistic state for smooth DnD
@@ -191,6 +229,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
     const isActiveCard = active.data.current?.type === "Card";
     if (!isActiveCard) return;
+    if (over.data.current?.type === "Trash") return;
 
     const activeId = active.id as Id<"cards">;
     const isOverCard = over.data.current?.type === "Card";
@@ -264,6 +303,20 @@ export function BoardView({ boardId }: BoardViewProps) {
       const activeCard = (cards ?? []).find((c) => c._id === activeId);
       if (!activeCard) { setLocalCards(null); return; }
 
+      if (over.data.current?.type === "Trash") {
+        setLocalCards((prev) => (prev ?? []).filter((card) => card._id !== activeId));
+        try {
+          await removeCardMutation({ cardId: activeId as Id<"cards"> });
+          toast.success("Task deleted");
+        } catch {
+          setLocalCards(null);
+          toast.error("Failed to delete task");
+        } finally {
+          setLocalCards(null);
+        }
+        return;
+      }
+
       let targetColumnId: Id<"columns">;
       let targetOrder: string;
 
@@ -306,7 +359,7 @@ export function BoardView({ boardId }: BoardViewProps) {
         });
       }
     }
-  }, [columns, cards, moveCardMutation, reorderColumnMutation]);
+  }, [columns, cards, moveCardMutation, removeCardMutation, reorderColumnMutation]);
 
   const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
@@ -347,6 +400,8 @@ export function BoardView({ boardId }: BoardViewProps) {
         onDragEnd={onDragEnd}
       >
         <div className="flex h-full flex-col">
+          <TrashDropZone visible={Boolean(activeCard)} />
+
           <div className="flex items-center justify-end gap-2 px-4 pt-3 sm:px-6">
             <span className="font-sans text-[11px] font-medium text-[color:var(--color-text-subtle)]">
               Count

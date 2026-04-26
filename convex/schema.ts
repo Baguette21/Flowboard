@@ -180,4 +180,28 @@ export default defineSchema({
     .index("by_recipientUserId_and_isRead", ["recipientUserId", "isRead"])
     .index("by_boardId", ["boardId"])
     .index("by_cardId", ["cardId"]),
+
+  feedback: defineTable({
+    userId: v.id("users"),
+    category: v.union(
+      v.literal("feature"),
+      v.literal("improvement"),
+      v.literal("bug"),
+      v.literal("integration"),
+      v.literal("other"),
+    ),
+    title: v.string(),
+    details: v.string(),
+    status: v.union(
+      v.literal("new"),
+      v.literal("reviewing"),
+      v.literal("planned"),
+      v.literal("closed"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_category", ["category"])
+    .index("by_status", ["status"]),
 });
