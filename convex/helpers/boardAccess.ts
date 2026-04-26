@@ -37,6 +37,12 @@ export async function requireCurrentUser(
   return currentUser;
 }
 
+export function requireProUser(user: Doc<"users">) {
+  if (user.role !== "PRO") {
+    throw new Error("Draw is available to Pro users only");
+  }
+}
+
 export async function findUserByEmail(
   ctx: AccessCtx,
   email: string,

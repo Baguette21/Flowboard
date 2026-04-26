@@ -7,6 +7,7 @@ import {
   getBoardAccess,
   getBoardMembership,
   requireBoardAccess,
+  requireProUser,
 } from "./helpers/boardAccess";
 
 function compareCardOrder(
@@ -382,6 +383,10 @@ export const update = mutation({
     const access = await requireBoardAccess(ctx, card.boardId);
     const { userId } = access;
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
+
+    if (fields.drawingDocument !== undefined) {
+      requireProUser(access.user);
+    }
 
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;

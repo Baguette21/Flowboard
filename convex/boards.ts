@@ -6,6 +6,7 @@ import {
   requireBoardAccess,
   requireBoardOwner,
   requireCurrentUser,
+  requireProUser,
   type BoardRole,
 } from "./helpers/boardAccess";
 import { generateOrderKeyAfter } from "./helpers/ordering";
@@ -251,9 +252,13 @@ export const update = mutation({
     archivedAt: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, { boardId, name, color, icon, drawingDocument, isFavorite, archivedAt }) => {
-    const { board, userId, role } = await requireBoardAccess(ctx, boardId);
+    const { board, user, userId, role } = await requireBoardAccess(ctx, boardId);
     if (archivedAt !== undefined && role !== "owner") {
       throw new Error("Only the board owner can archive this board");
+    }
+
+    if (drawingDocument !== undefined) {
+      requireProUser(user);
     }
 
     const patch: Partial<Doc<"boards">> = {

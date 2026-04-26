@@ -1,5 +1,14 @@
-import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -9,10 +18,10 @@ import {
   Copy,
   Edit3,
   FileText,
-  Home,
   PanelLeftClose,
   PencilLine,
   Plus,
+  Search,
   Star,
   Trash2,
   Users,
@@ -42,6 +51,7 @@ import { useBoardTabs } from "../../hooks/useBoardTabs";
 import { UserMenu } from "../auth/UserMenu";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
+import { usePrivacyMode } from "../../hooks/usePrivacyMode";
 
 type SidebarContextItem =
   | {
@@ -73,6 +83,15 @@ type SidebarContextMenuState = SidebarContextItem & {
   x: number;
   y: number;
 };
+
+const SIDEBAR_WIDTH_STORAGE_KEY = "flowboard.sidebarWidth";
+const DEFAULT_SIDEBAR_WIDTH = 240;
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 420;
+
+function clampSidebarWidth(width: number) {
+  return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
+}
 
 function SortableSidebarItem({
   id,
@@ -127,11 +146,12 @@ export function Sidebar({
   onPeekLeave,
 }: SidebarProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const { openInActiveTab } = useBoardTabs();
+  const { enabled: privacyMode } = usePrivacyMode();
   const boards = useQuery(api.boards.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
+  const me = useQuery(api.users.me);
   const createNote = useMutation(api.notes.create);
   const createDrawing = useMutation(api.drawings.create);
   const updateBoard = useMutation(api.boards.update);
@@ -154,6 +174,12 @@ export function Sidebar({
   const [boardsExpanded, setBoardsExpanded] = useState(true);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [drawExpanded, setDrawExpanded] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const sidebarSearchRef = useRef<HTMLInputElement>(null);
+  const isPro = me?.role === "PRO";
+  const accountName = me?.name?.trim() || me?.email?.trim() || "Account";
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -218,10 +244,28 @@ export function Sidebar({
     });
   };
 
-  const isHome = location.pathname === "/";
+  const sidebarStyle = {
+    "--sidebar-width": `${sidebarWidth}px`,
+  } as CSSProperties;
+  const normalizedSidebarSearch = sidebarSearch.trim().toLowerCase();
+  const matchesSidebarSearch = (title: string) =>
+    normalizedSidebarSearch.length === 0 ||
+    title.toLowerCase().includes(normalizedSidebarSearch);
+  const visibleBoards = (boards ?? []).filter(
+    (board) => !board.isFavorite && matchesSidebarSearch(board.name),
+  );
+  const visibleNotes = (notes ?? []).filter(
+    (note) =>
+      !note.isFavorite && matchesSidebarSearch(note.title || "Untitled"),
+  );
+  const visibleDrawings = (drawings ?? []).filter(
+    (drawing) =>
+      !drawing.isFavorite && matchesSidebarSearch(drawing.title || "Untitled"),
+  );
   const favoriteItems = [
     ...(boards ?? [])
       .filter((board) => board.isFavorite)
+      .filter((board) => matchesSidebarSearch(board.name))
       .map((board) => ({
         key: `board-${board._id}`,
         kind: "board" as const,
@@ -234,6 +278,7 @@ export function Sidebar({
       })),
     ...(notes ?? [])
       .filter((note) => note.isFavorite)
+      .filter((note) => matchesSidebarSearch(note.title || "Untitled"))
       .map((note) => ({
         key: `note-${note._id}`,
         kind: "note" as const,
@@ -242,8 +287,9 @@ export function Sidebar({
         canArchive: true,
         canDelete: true,
       })),
-    ...(drawings ?? [])
+    ...(isPro ? drawings ?? [] : [])
       .filter((drawing) => drawing.isFavorite)
+      .filter((drawing) => matchesSidebarSearch(drawing.title || "Untitled"))
       .map((drawing) => ({
         key: `draw-${drawing._id}`,
         kind: "draw" as const,
@@ -253,6 +299,73 @@ export function Sidebar({
         canDelete: true,
       })),
   ];
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName;
+      if (
+        event.key === "/" &&
+        activeTag !== "INPUT" &&
+        activeTag !== "TEXTAREA"
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        sidebarSearchRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handler, true);
+    return () => document.removeEventListener("keydown", handler, true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const stored = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+    if (Number.isFinite(stored) && stored > 0) {
+      setSidebarWidth(clampSidebarWidth(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.body.style.setProperty("-webkit-user-select", "none");
+
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.body.style.removeProperty("-webkit-user-select");
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setIsResizing(true);
+
+    const handlePointerMove = (moveEvent: globalThis.PointerEvent) => {
+      setSidebarWidth(clampSidebarWidth(moveEvent.clientX));
+    };
+    const handlePointerUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+  };
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -294,6 +407,11 @@ export function Sidebar({
   };
 
   const handleCreateDrawing = async () => {
+    if (!isPro) {
+      toast.error("Draw is available to Pro users only");
+      return;
+    }
+
     try {
       const drawingId = await createDrawing({ title: "Untitled" });
       openInActiveTab({ kind: "draw", id: drawingId });
@@ -431,20 +549,35 @@ export function Sidebar({
       />
 
       <aside
+        style={sidebarStyle}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full max-w-[88vw] flex-col overflow-hidden border-r-2 border-brand-sidebar-text/10 bg-brand-dark text-brand-sidebar-text transition-all duration-300 lg:max-w-none",
+          "fixed inset-y-0 left-0 z-50 flex h-full max-w-[88vw] flex-col overflow-visible border-r-2 border-brand-sidebar-text/10 bg-brand-dark text-brand-sidebar-text transition-all duration-300 lg:max-w-none",
+          isResizing && "lg:transition-none",
           mobileOpen
             ? "translate-x-0 w-[17.5rem]"
             : "-translate-x-full w-[17.5rem]",
           peek && desktopCollapsed
-            ? "lg:fixed lg:z-50 lg:top-3 lg:bottom-3 lg:left-0 lg:h-auto lg:w-60 lg:translate-x-0 lg:opacity-100 lg:rounded-l-none lg:rounded-r-md lg:border-2 lg:border-l-0 lg:shadow-2xl"
+            ? "lg:fixed lg:z-50 lg:top-3 lg:bottom-3 lg:left-0 lg:h-auto lg:w-[var(--sidebar-width)] lg:translate-x-0 lg:opacity-100 lg:rounded-l-none lg:rounded-r-md lg:border-2 lg:border-l-0 lg:shadow-2xl"
             : desktopCollapsed
               ? "lg:static lg:z-auto lg:w-0 lg:min-w-0 lg:-translate-x-4 lg:border-r-0 lg:opacity-0"
-              : "lg:static lg:z-auto lg:w-60 lg:translate-x-0 lg:opacity-100",
+              : "lg:static lg:z-auto lg:w-[var(--sidebar-width)] lg:translate-x-0 lg:opacity-100",
         )}
         aria-hidden={desktopCollapsed && !mobileOpen && !peek}
         onMouseLeave={peek && desktopCollapsed ? onPeekLeave : undefined}
       >
+        {!desktopCollapsed || peek ? (
+          <button
+            type="button"
+            onPointerDown={handleResizeStart}
+            className={cn(
+              "absolute -right-1 top-0 z-[70] hidden h-full w-2 cursor-col-resize touch-none items-stretch justify-center lg:flex",
+              "after:my-3 after:w-px after:rounded-full after:bg-transparent after:transition-colors hover:after:bg-brand-sidebar-text/28",
+              isResizing && "after:bg-brand-sidebar-text/45",
+            )}
+            aria-label="Resize sidebar"
+            title="Resize sidebar"
+          />
+        ) : null}
         <div className="flex h-14 flex-shrink-0 items-center border-b-2 border-brand-sidebar-text/10 px-5">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -483,26 +616,30 @@ export function Sidebar({
 
         <div className="relative flex min-h-0 flex-1 flex-col">
           <nav className="brand-dark-scroll flex-1 space-y-5 overflow-y-auto px-3 py-4 pb-24">
-            <button
-              onClick={() => {
-                navigate("/");
-                onMobileClose?.();
-              }}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-                isHome
-                  ? "bg-brand-primary text-brand-text"
-                  : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
-              )}
-            >
-              <Home
-                className={cn(
-                  "h-4 w-4",
-                  isHome ? "text-brand-accent" : "text-brand-sidebar-text/40",
-                )}
-              />
-              Home
-            </button>
+            <div className="px-1">
+              <div className="group relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-sidebar-text/35 transition-colors group-focus-within:text-brand-sidebar-text/70" />
+                <input
+                  ref={sidebarSearchRef}
+                  type="text"
+                  value={sidebarSearch}
+                  onChange={(event) => setSidebarSearch(event.target.value)}
+                  placeholder="Search your things..."
+                  className="h-10 w-full rounded-none border-0 border-b border-brand-sidebar-text/15 bg-transparent pl-10 pr-10 text-sm text-brand-sidebar-text outline-none transition-colors placeholder:text-brand-sidebar-text/30 focus:border-brand-sidebar-text/35"
+                />
+                {sidebarSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-sidebar-text/40 transition-colors hover:text-brand-sidebar-text"
+                    aria-label="Clear sidebar search"
+                    title="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
 
             <div>
               <div className="flex w-full items-center gap-2 px-3 py-2 text-brand-sidebar-text/40">
@@ -524,7 +661,7 @@ export function Sidebar({
                   </div>
                 ) : favoriteItems.length === 0 ? (
                   <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                    No favorites yet
+                    {normalizedSidebarSearch ? "No favorite results" : "No favorites yet"}
                   </div>
                 ) : (
                   favoriteItems.map((item) => {
@@ -624,7 +761,7 @@ export function Sidebar({
                 </span>
                 {boards ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
-                    {boards.length}
+                    {visibleBoards.length}
                   </span>
                 ) : null}
                 <button
@@ -645,9 +782,9 @@ export function Sidebar({
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
                       Loading...
                     </div>
-                  ) : boards.length === 0 ? (
+                  ) : visibleBoards.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      No boards yet
+                      {normalizedSidebarSearch ? "No board results" : "No boards yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -656,10 +793,10 @@ export function Sidebar({
                       onDragEnd={handleBoardsDragEnd}
                     >
                       <SortableContext
-                        items={boards.map((b) => b._id)}
+                        items={visibleBoards.map((b) => b._id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {boards.map((board) => {
+                        {visibleBoards.map((board) => {
                           const boardIcon = getBoardIconOption(
                             board.icon,
                             board.color,
@@ -743,7 +880,7 @@ export function Sidebar({
                 </span>
                 {notes ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
-                    {notes.length}
+                    {visibleNotes.length}
                   </span>
                 ) : null}
                 <button
@@ -764,9 +901,9 @@ export function Sidebar({
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
                       Loading...
                     </div>
-                  ) : notes.length === 0 ? (
+                  ) : visibleNotes.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      No notes yet
+                      {normalizedSidebarSearch ? "No note results" : "No notes yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -775,10 +912,10 @@ export function Sidebar({
                       onDragEnd={handleNotesDragEnd}
                     >
                       <SortableContext
-                        items={notes.map((n) => n._id)}
+                        items={visibleNotes.map((n) => n._id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {notes.map((note) => (
+                        {visibleNotes.map((note) => (
                           <SortableSidebarItem key={note._id} id={note._id}>
                             <button
                               onPointerDownCapture={(event) => {
@@ -835,6 +972,7 @@ export function Sidebar({
               ) : null}
             </div>
 
+            {isPro ? (
             <div>
               <button
                 onClick={() => setDrawExpanded((current) => !current)}
@@ -851,7 +989,7 @@ export function Sidebar({
                 </span>
                 {drawings ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
-                    {drawings.length}
+                    {visibleDrawings.length}
                   </span>
                 ) : null}
                 <button
@@ -872,9 +1010,9 @@ export function Sidebar({
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
                       Loading...
                     </div>
-                  ) : drawings.length === 0 ? (
+                  ) : visibleDrawings.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      No drawings yet
+                      {normalizedSidebarSearch ? "No draw results" : "No drawings yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -883,10 +1021,10 @@ export function Sidebar({
                       onDragEnd={handleDrawingsDragEnd}
                     >
                       <SortableContext
-                        items={drawings.map((d) => d._id)}
+                        items={visibleDrawings.map((d) => d._id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {drawings.map((drawing) => (
+                        {visibleDrawings.map((drawing) => (
                           <SortableSidebarItem
                             key={drawing._id}
                             id={drawing._id}
@@ -945,21 +1083,23 @@ export function Sidebar({
                 </div>
               ) : null}
             </div>
+            ) : null}
           </nav>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-brand-dark via-brand-dark/58 to-transparent" />
         </div>
 
         <div className="relative flex-shrink-0 border-t-2 border-brand-sidebar-text/10 p-3">
-          <div className="rounded-[1.4rem] border border-brand-sidebar-text/10 bg-brand-sidebar-text/6 p-3 shadow-[0_-10px_30px_rgba(0,0,0,0.14)]">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-sidebar-text/10 bg-brand-bg/65">
-                  <UserMenu />
-                </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-sidebar-text/36">
-                  Account
-                </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <UserMenu />
+              <div
+                className={cn(
+                  "min-w-0 truncate text-sm font-bold text-brand-sidebar-text/88",
+                  privacyMode && "blur-sm",
+                )}
+              >
+                {accountName}
               </div>
             </div>
           </div>

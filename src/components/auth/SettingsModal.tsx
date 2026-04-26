@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvex, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   FileText,
   LayoutGrid,
   Loader2,
   LogOut,
   Moon,
+  Palette,
   PencilLine,
   RotateCcw,
   Sun,
   Trash2,
-  Upload,
   User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -23,12 +23,21 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
 import { useProfileAvatar } from "../../hooks/useProfileAvatar";
 import { useTheme } from "../../hooks/useTheme";
-
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+import {
+  APPEARANCE_PRESETS,
+  useAppearance,
+  type AppFont,
+} from "../../hooks/useAppearance";
+import { usePrivacyMode } from "../../hooks/usePrivacyMode";
 
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
+}
+
+interface SettingsPanelProps {
+  onClose?: () => void;
+  activeSection?: "account" | "privacy" | "customization" | "archive" | "shortcuts";
 }
 
 type PasswordStep = "idle" | "awaitingCode";
@@ -50,14 +59,21 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function SettingsModal({ open, onClose }: SettingsModalProps) {
-  const convex = useConvex();
+export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
   const navigate = useNavigate();
   const { signIn, signOut } = useAuthActions();
-  const { name, email, imageKey, imageUrl, role } = useProfileAvatar();
+  const { name, email, role } = useProfileAvatar();
+  const { enabled: privacyMode, setEnabled: setPrivacyMode } = usePrivacyMode();
   const { theme, toggle } = useTheme();
+  const {
+    settings: appearance,
+    stored: storedAppearance,
+    setFont,
+    applyPreset,
+    updateCustomPalette,
+    reset: resetAppearance,
+  } = useAppearance();
   const updateProfile = useMutation(api.users.updateProfile);
-  const setProfileImageKey = useMutation(api.users.setProfileImageKey);
   const archivedBoards = useQuery(api.boards.listArchived);
   const archivedNotes = useQuery(api.notes.listArchived);
   const archivedDrawings = useQuery(api.drawings.listArchived);
@@ -74,11 +90,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [deletingArchivedItem, setDeletingArchivedItem] = useState<ArchivedItem | null>(null);
   const [isDeletingArchivedItem, setIsDeletingArchivedItem] = useState(false);
 
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [passwordStep, setPasswordStep] = useState<PasswordStep>("idle");
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -87,29 +98,13 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
-    if (!open) return;
     setDraftName(name ?? "");
-    setLocalPreview(null);
     setPasswordStep("idle");
     setVerificationCode("");
     setNewPassword("");
     setConfirmPassword("");
     setPasswordError("");
-  }, [open, name]);
-
-  useEffect(() => {
-    return () => {
-      if (localPreview) {
-        URL.revokeObjectURL(localPreview);
-      }
-    };
-  }, [localPreview]);
-
-  const displayImage = localPreview ?? imageUrl;
-  const initial = useMemo(() => {
-    const source = (name ?? email ?? "?").trim();
-    return source.charAt(0).toUpperCase() || "?";
-  }, [name, email]);
+  }, [name]);
 
   const handleSaveName = async () => {
     const trimmed = draftName.trim();
@@ -129,103 +124,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       toast.error(getErrorMessage(error, "Failed to update name"));
     } finally {
       setIsSavingName(false);
-    }
-  };
-
-  const handlePickFile = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelected = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      toast.error("Image must be 5 MB or smaller");
-      return;
-    }
-
-    const preview = URL.createObjectURL(file);
-    setLocalPreview((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return preview;
-    });
-    setIsUploadingAvatar(true);
-
-    try {
-      const { key, uploadUrl } = await convex.action(
-        api.r2.createProfileImageUploadUrl,
-        {
-          fileName: file.name,
-          contentType: file.type,
-        },
-      );
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadResponse.ok) {
-        throw new Error(
-          `Upload failed (${uploadResponse.status} ${uploadResponse.statusText})`,
-        );
-      }
-
-      const { previousKey } = await setProfileImageKey({ imageKey: key });
-
-      if (previousKey) {
-        try {
-          await convex.action(api.r2.deleteProfileImageObject, {
-            key: previousKey,
-          });
-        } catch (error) {
-          console.warn("Failed to remove old profile image", error);
-        }
-      }
-
-      toast.success("Profile picture updated");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to upload image"));
-      setLocalPreview((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return null;
-      });
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
-
-  const handleRemoveAvatar = async () => {
-    if (!imageKey) return;
-    setIsDeletingAvatar(true);
-    try {
-      const { previousKey } = await setProfileImageKey({ imageKey: null });
-      if (previousKey) {
-        try {
-          await convex.action(api.r2.deleteProfileImageObject, {
-            key: previousKey,
-          });
-        } catch (error) {
-          console.warn("Failed to remove old profile image", error);
-        }
-      }
-      setLocalPreview((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return null;
-      });
-      toast.success("Profile picture removed");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to remove image"));
-    } finally {
-      setIsDeletingAvatar(false);
     }
   };
 
@@ -296,7 +194,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
   const handleSignOut = async () => {
     await signOut();
-    onClose();
+    onClose?.();
     navigate("/login");
   };
 
@@ -381,81 +279,21 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const fieldLabel =
     "mb-1.5 block font-mono text-xs uppercase tracking-widest text-brand-text/60";
   const inputClass =
-    "h-11 w-full rounded-[14px] border-2 border-brand-text/15 bg-brand-primary/85 px-4 font-sans text-sm text-brand-text placeholder:text-brand-text/35 transition-colors focus:border-brand-text/45 focus:outline-none";
+    "h-11 w-full rounded-[10px] border-2 border-brand-text/15 bg-brand-primary/85 px-4 font-sans text-sm text-brand-text placeholder:text-brand-text/35 transition-colors focus:border-brand-text/45 focus:outline-none";
   const primaryButton =
-    "inline-flex items-center justify-center gap-2 rounded-[14px] bg-brand-text px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-bg transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60";
+    "inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-text px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-bg transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60";
   const secondaryButton =
-    "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-brand-text/15 bg-brand-primary/70 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-text transition-colors hover:border-brand-text/40 hover:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-60";
+    "inline-flex items-center justify-center gap-2 rounded-[10px] border-2 border-brand-text/15 bg-brand-primary/70 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-text transition-colors hover:border-brand-text/40 hover:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-60";
   const dangerButton =
-    "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-brand-accent/25 bg-brand-accent/8 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-accent transition-colors hover:bg-brand-accent/15 disabled:cursor-not-allowed disabled:opacity-60";
+    "inline-flex items-center justify-center gap-2 rounded-[10px] border-2 border-brand-accent/25 bg-brand-accent/8 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.14em] text-brand-accent transition-colors hover:bg-brand-accent/15 disabled:cursor-not-allowed disabled:opacity-60";
+  const showSection = (
+    section: NonNullable<SettingsPanelProps["activeSection"]>,
+  ) => activeSection === undefined || activeSection === section;
 
   return (
     <>
-    <Modal open={open} onClose={onClose} title="Account settings" size="lg">
       <div className="space-y-8 px-6 py-6">
-        <section>
-          <p className={sectionLabel}>Profile picture</p>
-          <div className="flex items-center gap-5">
-            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-2 border-brand-text/10 bg-brand-primary">
-              {displayImage ? (
-                <img
-                  src={displayImage}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-brand-accent text-white">
-                  <span className="font-serif text-2xl font-bold">
-                    {initial}
-                  </span>
-                </div>
-              )}
-              {(isUploadingAvatar || isDeletingAvatar) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <Loader2 className="h-5 w-5 animate-spin text-white" />
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(event) => void handleFileSelected(event)}
-                className="hidden"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePickFile}
-                  disabled={isUploadingAvatar || isDeletingAvatar}
-                  className={secondaryButton}
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  {imageKey ? "Replace" : "Upload"}
-                </button>
-                {imageKey && (
-                  <button
-                    type="button"
-                    onClick={() => void handleRemoveAvatar()}
-                    disabled={isUploadingAvatar || isDeletingAvatar}
-                    className={dangerButton}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Remove
-                  </button>
-                )}
-              </div>
-              <p className="font-mono text-[11px] text-brand-text/45">
-                PNG, JPG, or GIF. 5 MB max.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <div className="h-px bg-brand-text/8" />
-
-        <section>
+        <section className={cn(!showSection("account") && "hidden")}>
           <p className={sectionLabel}>Username</p>
           <label className={fieldLabel}>Display name</label>
           <div className="flex gap-2">
@@ -492,9 +330,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           )}
         </section>
 
-        <div className="h-px bg-brand-text/8" />
+        <div className={cn("h-px bg-brand-text/8", !showSection("account") && "hidden")} />
 
-        <section>
+        <section className={cn(!showSection("account") && "hidden")}>
           <p className={sectionLabel}>Password</p>
           {passwordStep === "idle" ? (
             <div className="space-y-3">
@@ -538,7 +376,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     aria-label="Verification code"
                     className="absolute inset-0 z-10 cursor-pointer opacity-0 focus:outline-none"
                   />
-                  <div className="grid h-11 grid-cols-6 gap-1.5 rounded-[14px] border-2 border-brand-text/15 bg-brand-primary/85 p-1.5 group-focus-within:border-brand-text/45">
+                  <div className="grid h-11 grid-cols-6 gap-1.5 rounded-[10px] border-2 border-brand-text/15 bg-brand-primary/85 p-1.5 group-focus-within:border-brand-text/45">
                     {otpDigits.map((digit, index) => {
                       const isActive =
                         verificationCode.length < 6 &&
@@ -587,7 +425,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               </div>
 
               {passwordError && (
-                <p className="rounded-xl border border-brand-accent/20 bg-brand-accent/10 px-3 py-2 font-mono text-[11px] text-brand-accent">
+                <p className="rounded-[10px] border border-brand-accent/20 bg-brand-accent/10 px-3 py-2 font-mono text-[11px] text-brand-accent">
                   {passwordError}
                 </p>
               )}
@@ -630,11 +468,11 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           )}
         </section>
 
-        <div className="h-px bg-brand-text/8" />
+        <div className={cn("h-px bg-brand-text/8", !showSection("account") && "hidden")} />
 
-        <section>
+        <section className={cn(!showSection("account") && "hidden")}>
           <p className={sectionLabel}>Account</p>
-          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+          <div className="rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-widest text-brand-text/45">
@@ -663,11 +501,46 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           </div>
         </section>
 
-        <div className="h-px bg-brand-text/8" />
+        <div className={cn("h-px bg-brand-text/8", !showSection("privacy") && "hidden")} />
 
-        <section>
+        <section className={cn(!showSection("privacy") && "hidden")}>
+          <p className={sectionLabel}>Privacy</p>
+          <div className="rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-brand-text">Privacy mode</p>
+                <p className="mt-1 text-xs leading-relaxed text-brand-text/55">
+                  Blur your profile picture and username on this device only.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={privacyMode}
+                onClick={() => setPrivacyMode(!privacyMode)}
+                className={cn(
+                  "relative h-7 w-12 flex-shrink-0 rounded-full border transition-colors",
+                  privacyMode
+                    ? "border-brand-accent/50 bg-brand-accent"
+                    : "border-brand-text/15 bg-brand-text/10",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-brand-bg shadow-sm transition-transform",
+                    privacyMode ? "translate-x-5" : "translate-x-1",
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className={cn("h-px bg-brand-text/8", !showSection("archive") && "hidden")} />
+
+        <section className={cn(!showSection("archive") && "hidden")}>
           <p className={sectionLabel}>Archive</p>
-          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+          <div className="rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
             {archivedItems === undefined ? (
               <div className="flex items-center gap-2 font-mono text-xs text-brand-text/45">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -696,15 +569,69 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           </div>
         </section>
 
-        <div className="h-px bg-brand-text/8" />
+        <div className={cn("h-px bg-brand-text/8", !showSection("customization") && "hidden")} />
 
-        <section>
-          <p className={sectionLabel}>Preferences</p>
-          <div className="rounded-[18px] border-2 border-brand-text/10 bg-brand-primary/70 p-4">
+        <section className={cn(!showSection("customization") && "hidden")}>
+          <p className={sectionLabel}>Customization</p>
+          <div className="space-y-3 rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
+            <div className="rounded-[10px] card-whisper bg-brand-bg/70 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
+                Presets
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {APPEARANCE_PRESETS.map((preset) => {
+                  const isActive = appearance.presetId === preset.id;
+
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPreset(preset.id)}
+                      className={cn(
+                        "flex min-h-20 items-start gap-3 rounded-[10px] border p-3 text-left transition-colors",
+                        isActive
+                          ? "border-brand-text/35 bg-brand-text/8"
+                          : "border-brand-text/10 bg-brand-bg/65 hover:border-brand-text/25",
+                      )}
+                    >
+                      <span className="mt-0.5 flex flex-shrink-0 overflow-hidden rounded-md border border-brand-text/10">
+                        <span
+                          className="h-8 w-4"
+                          style={{
+                            backgroundColor: preset.light.backgroundColor,
+                          }}
+                        />
+                        <span
+                          className="h-8 w-4"
+                          style={{ backgroundColor: preset.light.accentColor }}
+                        />
+                        <span
+                          className="h-8 w-4 border-l border-brand-text/10"
+                          style={{ backgroundColor: preset.dark.backgroundColor }}
+                        />
+                        <span
+                          className="h-8 w-4"
+                          style={{ backgroundColor: preset.dark.accentColor }}
+                        />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-brand-text">
+                          {preset.name}
+                        </span>
+                        <span className="mt-1 block text-xs leading-relaxed text-brand-text/55">
+                          {preset.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={toggle}
-              className="flex w-full items-center justify-between rounded-[14px] border border-brand-text/10 bg-brand-bg/45 px-4 py-3 text-left transition-colors hover:border-brand-text/30"
+              className="flex w-full items-center justify-between rounded-[10px] card-whisper bg-brand-bg/70 px-4 py-3 text-left transition-colors hover:border-brand-text/30"
             >
               <span>
                 <span className="block font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
@@ -720,14 +647,130 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 <Moon className="h-4 w-4 text-brand-text/60" />
               )}
             </button>
+
+            {appearance.presetId === "custom" ? (
+            <>
+            <div className="rounded-[10px] card-whisper bg-brand-bg/70 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
+                    App font
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-brand-text">
+                    Choose the typeface used across FlowBoard.
+                  </p>
+                </div>
+                <Palette className="h-4 w-4 flex-shrink-0 text-brand-text/50" />
+              </div>
+              <select
+                value={appearance.font}
+                onChange={(event) =>
+                  setFont(event.target.value as AppFont)
+                }
+                className="h-10 w-full rounded-[10px] card-whisper bg-brand-bg px-3 text-sm text-brand-text outline-none transition-colors focus:border-brand-text/35"
+              >
+                <option value="inter">Inter</option>
+                <option value="system">System</option>
+                <option value="serif">Serif</option>
+                <option value="mono">Mono</option>
+              </select>
+            </div>
+
+            <div className="rounded-[10px] card-whisper bg-brand-bg/70 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-brand-text/45">
+                Custom colors
+              </p>
+              <div className="mt-3 grid gap-5">
+                <div>
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/45">
+                    Light mode
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <ColorField
+                      label="Accent"
+                      value={storedAppearance.custom.light.accentColor}
+                      onChange={(value) =>
+                        updateCustomPalette("light", { accentColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Background"
+                      value={storedAppearance.custom.light.backgroundColor}
+                      onChange={(value) =>
+                        updateCustomPalette("light", { backgroundColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Text"
+                      value={storedAppearance.custom.light.textColor}
+                      onChange={(value) =>
+                        updateCustomPalette("light", { textColor: value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/45">
+                    Dark mode
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <ColorField
+                      label="Accent"
+                      value={storedAppearance.custom.dark.accentColor}
+                      onChange={(value) =>
+                        updateCustomPalette("dark", { accentColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Background"
+                      value={storedAppearance.custom.dark.backgroundColor}
+                      onChange={(value) =>
+                        updateCustomPalette("dark", { backgroundColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Text"
+                      value={storedAppearance.custom.dark.textColor}
+                      onChange={(value) =>
+                        updateCustomPalette("dark", { textColor: value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={resetAppearance}
+                className="mt-4 inline-flex items-center gap-2 rounded-[10px] border border-brand-text/12 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-brand-text/60 transition-colors hover:border-brand-text/30 hover:text-brand-text"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset appearance
+              </button>
+            </div>
+            </>
+            ) : null}
           </div>
         </section>
 
-        <div className="h-px bg-brand-text/8" />
+        <div className={cn("h-px bg-brand-text/8", !showSection("shortcuts") && "hidden")} />
 
-        <section>
+        <section className={cn(!showSection("shortcuts") && "hidden")}>
+          <p className={sectionLabel}>Keyboard shortcuts</p>
+          <div className="grid gap-2 rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
+            <ShortcutRow label="Search" keys="/" />
+            <ShortcutRow label="Toggle sidebar" keys="Ctrl + B" />
+            <ShortcutRow label="New board" keys="Use + in Boards" />
+            <ShortcutRow label="New note" keys="Use + in Notes" />
+            <ShortcutRow label="New drawing" keys="Use + in Draw" />
+          </div>
+        </section>
+
+        <div className={cn("h-px bg-brand-text/8", !showSection("account") && "hidden")} />
+
+        <section className={cn(!showSection("account") && "hidden")}>
           <p className={sectionLabel}>Session</p>
-          <div className="rounded-[18px] border-2 border-brand-accent/16 bg-brand-accent/6 p-4">
+          <div className="rounded-[12px] border border-brand-accent/20 bg-brand-accent/6 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-brand-text">Sign out of this account</p>
@@ -747,7 +790,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           </div>
         </section>
       </div>
-    </Modal>
 
     <ConfirmDialog
       open={deletingArchivedItem !== null}
@@ -760,6 +802,53 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       isLoading={isDeletingArchivedItem}
     />
     </>
+  );
+}
+
+export function SettingsModal({ open, onClose }: SettingsModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title="Account settings" size="lg">
+      <SettingsPanel onClose={onClose} />
+    </Modal>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-text/45">
+        {label}
+      </span>
+      <span className="flex h-10 items-center gap-2 rounded-[10px] card-whisper bg-brand-bg px-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-6 w-8 rounded border-0 bg-transparent p-0"
+          aria-label={`${label} color`}
+        />
+        <span className="font-mono text-xs text-brand-text/60">{value}</span>
+      </span>
+    </label>
+  );
+}
+
+function ShortcutRow({ label, keys }: { label: string; keys: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[12px] bg-brand-bg/45 px-3 py-2">
+      <span className="text-sm font-medium text-brand-text">{label}</span>
+      <kbd className="rounded-lg bg-brand-text/8 px-2 py-1 font-mono text-[11px] font-bold text-brand-text/65">
+        {keys}
+      </kbd>
+    </div>
   );
 }
 
@@ -780,7 +869,7 @@ function ArchivedItemRow({
     item.kind === "board" ? "Board" : item.kind === "note" ? "Note" : "Drawing";
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[14px] border border-brand-text/10 bg-brand-bg/45 px-3 py-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-[10px] card-whisper bg-brand-bg/70 px-3 py-2.5">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[12px] bg-brand-primary text-brand-text/55">
           <Icon className="h-4 w-4" />
@@ -826,3 +915,4 @@ function ArchivedItemRow({
     </div>
   );
 }
+

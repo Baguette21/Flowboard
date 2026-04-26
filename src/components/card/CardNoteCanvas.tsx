@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import type { Block, PartialBlock } from "@blocknote/core";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useTheme } from "../../hooks/useTheme";
@@ -26,6 +26,8 @@ export function CardNoteCanvas({
 }: CardNoteCanvasProps) {
   const { theme } = useTheme();
   const updateCard = useMutation(api.cards.update);
+  const me = useQuery(api.users.me);
+  const isPro = me?.role === "PRO";
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
   const latestSavedContentRef = useRef(content ?? "");
@@ -108,6 +110,8 @@ export function CardNoteCanvas({
         }}
         heightClassName="h-[340px]"
         compact
+        readOnly={me !== undefined && !isPro}
+        lockedMessage="Card drawing is available to Pro users only."
       />
     </div>
   );
