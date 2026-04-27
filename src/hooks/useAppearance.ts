@@ -8,6 +8,7 @@ export type AppearanceMode = "light" | "dark";
 export interface AppearancePalette {
   accentColor: string;
   backgroundColor: string;
+  cardColor: string;
   textColor: string;
 }
 
@@ -25,12 +26,14 @@ export interface StoredAppearance {
 export const DEFAULT_LIGHT_PALETTE: AppearancePalette = {
   accentColor: "#E63B2E",
   backgroundColor: "#F5F3EE",
+  cardColor: "#E8E4DD",
   textColor: "#111111",
 };
 
 export const DEFAULT_DARK_PALETTE: AppearancePalette = {
   accentColor: "#F05C4F",
   backgroundColor: "#161215",
+  cardColor: "#26222B",
   textColor: "#F2EDF5",
 };
 
@@ -67,11 +70,13 @@ export const APPEARANCE_PRESETS: Array<{
     light: {
       accentColor: "#6B7280",
       backgroundColor: "#F2F2F0",
+      cardColor: "#E5E5E2",
       textColor: "#1C1C1A",
     },
     dark: {
       accentColor: "#9CA3AF",
       backgroundColor: "#111111",
+      cardColor: "#1F1F1F",
       textColor: "#E5E5E5",
     },
   },
@@ -83,11 +88,13 @@ export const APPEARANCE_PRESETS: Array<{
     light: {
       accentColor: "#2563EB",
       backgroundColor: "#F8F6F1",
+      cardColor: "#ECE8DD",
       textColor: "#1D1B16",
     },
     dark: {
       accentColor: "#7CA7FF",
       backgroundColor: "#171A20",
+      cardColor: "#212530",
       textColor: "#F4EFE5",
     },
   },
@@ -99,11 +106,13 @@ export const APPEARANCE_PRESETS: Array<{
     light: {
       accentColor: "#15803D",
       backgroundColor: "#F4F8F1",
+      cardColor: "#E4ECDF",
       textColor: "#132017",
     },
     dark: {
       accentColor: "#22C55E",
       backgroundColor: "#0F1411",
+      cardColor: "#1A211C",
       textColor: "#E7F3EA",
     },
   },
@@ -115,11 +124,13 @@ export const APPEARANCE_PRESETS: Array<{
     light: {
       accentColor: "#0891B2",
       backgroundColor: "#F3F6F8",
+      cardColor: "#E1E7EC",
       textColor: "#111827",
     },
     dark: {
       accentColor: "#22D3EE",
       backgroundColor: "#101820",
+      cardColor: "#1B2530",
       textColor: "#EAF2F8",
     },
   },
@@ -160,6 +171,7 @@ function sanitizePalette(
     backgroundColor: isHexColor(value?.backgroundColor)
       ? value.backgroundColor
       : fallback.backgroundColor,
+    cardColor: isHexColor(value?.cardColor) ? value.cardColor : fallback.cardColor,
     textColor: isHexColor(value?.textColor) ? value.textColor : fallback.textColor,
   };
 }
@@ -232,12 +244,14 @@ function applyAppearance(settings: StoredAppearance) {
   if (effective.presetId === "classic") {
     root.style.removeProperty("--color-brand-accent");
     root.style.removeProperty("--color-brand-bg");
+    root.style.removeProperty("--color-brand-primary");
     root.style.removeProperty("--color-brand-text");
     return;
   }
 
   root.style.setProperty("--color-brand-accent", effective.accentColor);
   root.style.setProperty("--color-brand-bg", effective.backgroundColor);
+  root.style.setProperty("--color-brand-primary", effective.cardColor);
   root.style.setProperty("--color-brand-text", effective.textColor);
 }
 
@@ -282,6 +296,7 @@ export function useAppearance() {
         [mode]: {
           accentColor: next.accentColor,
           backgroundColor: next.backgroundColor,
+          cardColor: next.cardColor,
           textColor: next.textColor,
         },
       },
