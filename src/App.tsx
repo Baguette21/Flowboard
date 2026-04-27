@@ -10,14 +10,12 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { FeedbackPage } from "./pages/FeedbackPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { PlanthingLoading } from "./components/branding/PlanthingLoading";
 
 function AuthScreen({ message }: { message: string }) {
   return (
     <div className="h-screen w-full bg-brand-bg flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 rounded bg-brand-accent animate-pulse" />
-        <p className="font-mono text-sm text-brand-text/60">{message}</p>
-      </div>
+      <PlanthingLoading message={message} />
     </div>
   );
 }
