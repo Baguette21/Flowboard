@@ -1,0 +1,145 @@
+.planthing-loader__stem {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: planthing-stem-grow 2.6s ease-in-out infinite;
+}
+
+.planthing-loader__leaf-right,
+.planthing-loader__leaf-left,
+.planthing-loader__bud {
+  transform-box: view-box;
+  opacity: 0;
+}
+
+.planthing-loader__leaf-right {
+  transform-origin: 40px 36px;
+  animation: planthing-leaf-right 2.6s ease-in-out infinite;
+}
+
+.planthing-loader__leaf-left {
+  transform-origin: 40px 48px;
+  animation: planthing-leaf-left 2.6s ease-in-out infinite;
+}
+
+.planthing-loader__bud {
+  transform-origin: 40px 22px;
+  animation: planthing-bud-pop 2.6s ease-in-out infinite;
+}
+
+.planthing-loader__ground {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: planthing-ground-draw 2.6s ease-in-out infinite;
+}
+
+@keyframes planthing-stem-grow {
+  0% {
+    stroke-dashoffset: 44;
+    opacity: 1;
+  }
+  28% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  82% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes planthing-leaf-right {
+  0%,
+  20% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes planthing-leaf-left {
+  0%,
+  32% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes planthing-bud-pop {
+  0%,
+  55% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  68% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  78%,
+  82% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes planthing-ground-draw {
+  0% {
+    stroke-dashoffset: 40;
+    opacity: 0.35;
+  }
+  18% {
+    stroke-dashoffset: 0;
+    opacity: 0.35;
+  }
+  82% {
+    stroke-dashoffset: 0;
+    opacity: 0.35;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planthing-loader__stem,
+  .planthing-loader__leaf-right,
+  .planthing-loader__leaf-left,
+  .planthing-loader__bud,
+  .planthing-loader__ground {
+    animation: none;
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: none;
+  }
+}

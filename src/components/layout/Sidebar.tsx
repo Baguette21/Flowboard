@@ -52,6 +52,7 @@ import { UserMenu } from "../auth/UserMenu";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { usePrivacyMode } from "../../hooks/usePrivacyMode";
+import { PlanthingMark } from "../branding/PlanthingMark";
 
 type SidebarContextItem =
   | {
@@ -587,7 +588,7 @@ export function Sidebar({
               }}
               className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
             >
-              <div className="h-5 w-5 rounded bg-brand-accent" />
+              <PlanthingMark className="h-5 w-5" />
               <span className="pt-1 font-serif text-lg font-bold italic leading-none tracking-tight">
                 Planthing<span className="text-brand-accent">.</span>
               </span>
