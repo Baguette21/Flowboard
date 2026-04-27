@@ -1,5 +1,5 @@
 /* ===================================================================
-   BlockNote Editor — FlowBoard Design System Overrides
+   BlockNote Editor — Planthing Design System Overrides
    =================================================================== */
 
 /* ---- Root editor container ---- */
@@ -13,15 +13,15 @@
   font-family: "Space Grotesk", sans-serif;
 }
 
-.flowboard-note-editor--compact {
+.planthing-note-editor--compact {
   min-height: clamp(34rem, 72vh, 52rem);
 }
 
-.flowboard-note-editor--compact .ProseMirror {
+.planthing-note-editor--compact .ProseMirror {
   min-height: clamp(30rem, 68vh, 48rem);
 }
 
-.flowboard-note-editor--compact [class*="blockContent"] {
+.planthing-note-editor--compact [class*="blockContent"] {
   font-size: 0.95rem;
   line-height: 1.75;
 }

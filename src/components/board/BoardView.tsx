@@ -61,7 +61,7 @@ function compareCardsByOrder(
 }
 
 function getCountModeStorageKey(boardId: Id<"boards">) {
-  return `flowboard-count-mode-${boardId}`;
+  return `planthing-count-mode-${boardId}`;
 }
 
 function loadStoredCountMode(boardId: Id<"boards">): ColumnCountMode {

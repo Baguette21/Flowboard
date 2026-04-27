@@ -19,7 +19,7 @@ type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 const DEFAULT_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list", "draw"];
 
 function getViewOrderStorageKey(boardId: Id<"boards">) {
-  return `flowboard-view-order-${boardId}`;
+  return `planthing-view-order-${boardId}`;
 }
 
 function loadStoredViewOrder(boardId: Id<"boards">): BoardMode[] {

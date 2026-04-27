@@ -70,15 +70,15 @@ const priorityOptions = [
 ] as const;
 
 function getColumnsStorageKey(boardId: Id<"boards">) {
-  return `flowboard-table-columns-${boardId}`;
+  return `planthing-table-columns-${boardId}`;
 }
 
 function getCellsStorageKey(boardId: Id<"boards">) {
-  return `flowboard-table-custom-cells-${boardId}`;
+  return `planthing-table-custom-cells-${boardId}`;
 }
 
 function getRowOrderStorageKey(boardId: Id<"boards">) {
-  return `flowboard-table-row-order-${boardId}`;
+  return `planthing-table-row-order-${boardId}`;
 }
 
 function loadStoredRowOrder(boardId: Id<"boards">): string[] {

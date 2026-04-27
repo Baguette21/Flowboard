@@ -30,7 +30,7 @@ interface ExcalidrawCanvasProps {
 }
 
 const PROPERTIES_VISIBILITY_STORAGE_KEY =
-  "flowboard.excalidraw.propertiesVisible";
+  "planthing.excalidraw.propertiesVisible";
 
 type PersistedDrawingDocument = {
   appState?: ExcalidrawInitialDataState["appState"];
@@ -215,14 +215,14 @@ export function ExcalidrawCanvas({
       <div className={frameClassName}>
         <div
           className={`relative ${heightClassName} ${
-            propertiesVisible ? "" : "flowboard-excalidraw--properties-hidden"
+            propertiesVisible ? "" : "planthing-excalidraw--properties-hidden"
           }`}
         >
-          <div className={cn("flowboard-excalidraw-controls", readOnly && "hidden")}>
+          <div className={cn("planthing-excalidraw-controls", readOnly && "hidden")}>
             <button
               type="button"
               onClick={() => triggerHistoryShortcut("undo")}
-              className="flowboard-excalidraw-control"
+              className="planthing-excalidraw-control"
               aria-label="Undo"
               title="Undo"
             >
@@ -231,7 +231,7 @@ export function ExcalidrawCanvas({
             <button
               type="button"
               onClick={() => triggerHistoryShortcut("redo")}
-              className="flowboard-excalidraw-control"
+              className="planthing-excalidraw-control"
               aria-label="Redo"
               title="Redo"
             >
@@ -240,7 +240,7 @@ export function ExcalidrawCanvas({
             <button
               type="button"
               onClick={() => setPropertiesVisible((current) => !current)}
-              className="flowboard-excalidraw-control"
+              className="planthing-excalidraw-control"
               data-active={propertiesVisible ? "true" : "false"}
               aria-label={propertiesVisible ? "Hide properties" : "Show properties"}
               title={propertiesVisible ? "Hide properties" : "Show properties"}

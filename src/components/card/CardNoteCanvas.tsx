@@ -41,7 +41,7 @@ export function CardNoteCanvas({
     uploadFile: fileToBase64,
     domAttributes: {
       editor: {
-        class: "flowboard-note-editor flowboard-note-editor--compact",
+        class: "planthing-note-editor planthing-note-editor--compact",
       },
     },
   });

@@ -487,7 +487,7 @@ const DEFAULT_BOARD_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "li
 
 function getStoredFirstView(boardId: string): BoardMode {
   if (typeof window === "undefined") return DEFAULT_BOARD_VIEW_ORDER[0];
-  const raw = window.localStorage.getItem(`flowboard-view-order-${boardId}`);
+  const raw = window.localStorage.getItem(`planthing-view-order-${boardId}`);
   if (!raw) return DEFAULT_BOARD_VIEW_ORDER[0];
   try {
     const parsed = JSON.parse(raw) as string[];

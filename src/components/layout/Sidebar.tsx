@@ -84,7 +84,7 @@ type SidebarContextMenuState = SidebarContextItem & {
   y: number;
 };
 
-const SIDEBAR_WIDTH_STORAGE_KEY = "flowboard.sidebarWidth";
+const SIDEBAR_WIDTH_STORAGE_KEY = "planthing.sidebarWidth";
 const DEFAULT_SIDEBAR_WIDTH = 240;
 const MIN_SIDEBAR_WIDTH = 220;
 const MAX_SIDEBAR_WIDTH = 420;
@@ -589,7 +589,7 @@ export function Sidebar({
             >
               <div className="h-5 w-5 rounded bg-brand-accent" />
               <span className="pt-1 font-serif text-lg font-bold italic leading-none tracking-tight">
-                FlowBoard<span className="text-brand-accent">.</span>
+                Planthing<span className="text-brand-accent">.</span>
               </span>
             </button>
 

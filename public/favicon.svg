@@ -14,21 +14,17 @@
       <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
       <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
     </filter>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&amp;display=swap");
-      .mark {
-        font-family: "DM Serif Display", Georgia, serif;
-        font-size: 32px;
-        font-style: italic;
-        font-weight: 700;
-        letter-spacing: -0.06em;
-      }
-    </style>
   </defs>
 
   <g filter="url(#shadow)">
     <rect x="6" y="6" width="52" height="52" rx="16" fill="url(#bg)"/>
-    <rect x="12" y="12" width="8" height="8" rx="2.5" fill="#E63B2E"/>
-    <text x="31.5" y="40" text-anchor="middle" fill="#E8E4DD" class="mark">FB</text>
+
+    <path d="M 32 48 L 32 20" stroke="#E8E4DD" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+    <path d="M 32 38 Q 22 42 18 34 Q 24 31 32 34 Z" fill="#E8E4DD"/>
+
+    <path d="M 32 30 Q 42 32 46 24 Q 40 21 32 26 Z" fill="#E8E4DD"/>
+
+    <circle cx="32" cy="18" r="4" fill="#E63B2E"/>
   </g>
 </svg>

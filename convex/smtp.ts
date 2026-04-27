@@ -55,10 +55,10 @@ export const sendVerificationEmail = internalAction({
     await transporter.sendMail({
       from,
       to: args.to,
-      subject: "Your FlowBoard verification code",
-      text: `Your FlowBoard verification code is ${args.code}. It expires in 10 minutes.`,
+      subject: "Your Planthing verification code",
+      text: `Your Planthing verification code is ${args.code}. It expires in 10 minutes.`,
       html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-<p>Your FlowBoard verification code is:</p>
+<p>Your Planthing verification code is:</p>
 <p style="font-size:32px;font-weight:700;letter-spacing:0.3em;margin:20px 0">${args.code}</p>
 <p>This code expires in 10 minutes.</p>
 </div>`,
@@ -101,10 +101,10 @@ export const sendPasswordResetEmail = internalAction({
     await transporter.sendMail({
       from,
       to: args.to,
-      subject: "Your FlowBoard password reset code",
-      text: `Your FlowBoard password reset code is ${args.code}. It expires in 10 minutes.`,
+      subject: "Your Planthing password reset code",
+      text: `Your Planthing password reset code is ${args.code}. It expires in 10 minutes.`,
       html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-<p>You requested a password reset for FlowBoard.</p>
+<p>You requested a password reset for Planthing.</p>
 <p style="font-size:32px;font-weight:700;letter-spacing:0.3em;margin:20px 0">${args.code}</p>
 <p>This code expires in 10 minutes.</p>
 </div>`,
@@ -148,21 +148,21 @@ export const sendBoardInviteEmail = internalAction({
     });
 
     const inviterLabel =
-      args.inviterName ?? args.inviterEmail ?? "A FlowBoard user";
+      args.inviterName ?? args.inviterEmail ?? "A Planthing user";
 
     await transporter.sendMail({
       from,
       to: args.to,
-      subject: `${inviterLabel} invited you to ${args.boardName} on FlowBoard`,
+      subject: `${inviterLabel} invited you to ${args.boardName} on Planthing`,
       text:
-        `${inviterLabel} invited you to join the board "${args.boardName}" on FlowBoard.\n\n` +
+        `${inviterLabel} invited you to join the board "${args.boardName}" on Planthing.\n\n` +
         `Sign in with ${args.to} to view and accept the invite:\n${siteUrl}`,
       html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-<p><strong>${inviterLabel}</strong> invited you to join the board <strong>${args.boardName}</strong> on FlowBoard.</p>
+<p><strong>${inviterLabel}</strong> invited you to join the board <strong>${args.boardName}</strong> on Planthing.</p>
 <p>Sign in with <strong>${args.to}</strong> to view and accept the invite.</p>
 <p style="margin:24px 0">
   <a href="${siteUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">
-    Open FlowBoard
+    Open Planthing
   </a>
 </p>
 </div>`,

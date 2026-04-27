@@ -167,7 +167,7 @@ export function ProfilePage() {
               className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-brand-text/65 transition-colors hover:bg-brand-text/5 hover:text-brand-text"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to FlowBoard
+              Back to Planthing
             </button>
           </div>
 
@@ -239,7 +239,7 @@ export function ProfilePage() {
 
           <div className="mt-7 rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-bold">FlowBoard apps</h2>
+              <h2 className="text-sm font-bold">Planthing apps</h2>
               <Sparkles className="h-4 w-4 text-brand-text/35" />
             </div>
             <div className="space-y-2">
