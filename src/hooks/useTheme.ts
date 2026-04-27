@@ -16,7 +16,7 @@ interface ThemeContextValue {
   toggle: () => void;
 }
 
-const THEME_STORAGE_KEY = "flowboard-theme";
+const THEME_STORAGE_KEY = "planthing-theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const APPEARANCE_STORAGE_KEY = "flowboard.appearance";
+const APPEARANCE_STORAGE_KEY = "planthing.appearance";
 
 export type AppFont = "inter" | "system" | "serif" | "mono";
 export type AppearanceMode = "light" | "dark";
@@ -57,7 +57,7 @@ export const APPEARANCE_PRESETS: Array<{
   {
     id: "classic",
     name: "Classic",
-    description: "FlowBoard's built-in light and dark theme.",
+    description: "Planthing's built-in light and dark theme.",
     font: "inter",
     light: DEFAULT_LIGHT_PALETTE,
     dark: DEFAULT_DARK_PALETTE,

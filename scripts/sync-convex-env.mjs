@@ -115,7 +115,7 @@ async function main() {
 
   const npxCommand = "npx";
   const syncKeys = REQUIRED_KEYS.filter((key) => key !== "CONVEX_DEPLOYMENT");
-  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "flowboard-convex-env-"));
+  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "planthing-convex-env-"));
   const tempEnvFilePath = path.join(tempDirectory, ".env.sync");
 
   try {

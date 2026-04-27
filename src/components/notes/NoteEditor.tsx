@@ -38,7 +38,7 @@ export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
     },
     domAttributes: {
       editor: {
-        class: "flowboard-note-editor",
+        class: "planthing-note-editor",
       },
     },
   });

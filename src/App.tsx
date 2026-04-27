@@ -26,7 +26,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
 
   if (isLoading) {
-    return <AuthScreen message="Loading FlowBoard..." />;
+    return <AuthScreen message="Loading Planthing..." />;
   }
 
   if (!isAuthenticated) {

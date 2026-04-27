@@ -14,7 +14,7 @@ interface LayoutProps {
   searchPlaceholder?: string;
 }
 
-const DESKTOP_SIDEBAR_STORAGE_KEY = "flowboard.desktopSidebarCollapsed";
+const DESKTOP_SIDEBAR_STORAGE_KEY = "planthing.desktopSidebarCollapsed";
 
 export function Layout({
   children,

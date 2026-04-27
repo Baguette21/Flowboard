@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-const PRIVACY_MODE_STORAGE_KEY = "flowboard:privacy-mode";
-const PRIVACY_MODE_EVENT = "flowboard:privacy-mode-change";
+const PRIVACY_MODE_STORAGE_KEY = "planthing:privacy-mode";
+const PRIVACY_MODE_EVENT = "planthing:privacy-mode-change";
 
 function readPrivacyMode() {
   if (typeof window === "undefined") return false;
