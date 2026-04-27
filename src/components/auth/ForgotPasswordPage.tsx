@@ -5,6 +5,7 @@ import { Loader2, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
+import { PlanthingMark } from "../branding/PlanthingMark";
 
 const fieldShellClass =
   "group flex h-14 items-center rounded-[2rem] border-2 border-brand-text/15 bg-brand-primary/90 px-5 shadow-[0_12px_30px_rgba(17,17,17,0.03)] transition-[border-color,box-shadow,background-color] duration-200 hover:border-brand-text/35 focus-within:border-brand-text/45 focus-within:bg-brand-primary focus-within:shadow-[0_0_0_4px_rgba(17,17,17,0.06)]";
@@ -141,7 +142,7 @@ export function ForgotPasswordPage() {
 
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-brand-dark p-12 text-brand-bg">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-brand-accent" />
+          <PlanthingMark className="h-7 w-7" />
           <span className="font-serif italic font-bold text-2xl tracking-tight leading-none pt-1">
             Planthing<span className="text-brand-accent">.</span>
           </span>
@@ -162,7 +163,7 @@ export function ForgotPasswordPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div className="w-6 h-6 rounded bg-brand-accent" />
+            <PlanthingMark className="h-6 w-6" />
             <span className="font-serif italic font-bold text-xl tracking-tight leading-none pt-1">
               Planthing<span className="text-brand-accent">.</span>
             </span>

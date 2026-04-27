@@ -13,6 +13,7 @@ import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, 
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
+import { PlanthingLoading } from "../components/branding/PlanthingLoading";
 
 type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
@@ -120,9 +121,8 @@ export function BoardPage() {
   if (board === undefined) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-full gap-4">
-          <div className="w-8 h-8 rounded bg-brand-accent animate-pulse" />
-          <p className="font-mono text-sm text-brand-text/60">Loading board...</p>
+        <div className="flex flex-col items-center justify-center h-full">
+          <PlanthingLoading message="Loading board..." />
         </div>
       </Layout>
     );

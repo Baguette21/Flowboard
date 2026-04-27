@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
+import { PlanthingMark } from "../branding/PlanthingMark";
 
 function resolveRedirectPath(raw: string | null): string {
   if (!raw) return "/";
@@ -191,7 +192,7 @@ export function LoginPage() {
 
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-brand-dark p-12 text-brand-sidebar-text">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-brand-accent" />
+          <PlanthingMark className="h-7 w-7" />
           <span className="font-serif italic font-bold text-2xl tracking-tight leading-none pt-1">
             Planthing<span className="text-brand-accent">.</span>
           </span>
@@ -212,7 +213,7 @@ export function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div className="w-6 h-6 rounded bg-brand-accent" />
+            <PlanthingMark className="h-6 w-6" />
             <span className="font-serif italic font-bold text-xl tracking-tight leading-none pt-1">
               Planthing<span className="text-brand-accent">.</span>
             </span>
