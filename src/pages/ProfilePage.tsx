@@ -21,6 +21,7 @@ import { UserAvatar } from "../components/ui/UserAvatar";
 import { useProfileAvatar } from "../hooks/useProfileAvatar";
 import { usePrivacyMode } from "../hooks/usePrivacyMode";
 import { useTheme } from "../hooks/useTheme";
+import { convertToWebP } from "../lib/image";
 import { cn } from "../lib/utils";
 
 type ProfileTab = "account" | "privacy" | "customization" | "archive" | "shortcuts";
@@ -69,18 +70,20 @@ export function ProfilePage() {
   const handleAvatarFileSelected = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const original = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!original) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!original.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    if (original.size > MAX_IMAGE_SIZE_BYTES) {
       toast.error("Image must be 5 MB or smaller");
       return;
     }
+
+    const file = await convertToWebP(original);
 
     const preview = URL.createObjectURL(file);
     setLocalPreview((previous) => {

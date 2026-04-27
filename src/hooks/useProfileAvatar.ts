@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import {
+  getCachedProfileImageUrl,
+  setCachedProfileImageUrl,
+} from "../lib/profileImageCache";
 
 export function useProfileAvatar() {
   const me = useQuery(api.users.me);
   const convex = useConvex();
-  const [url, setUrl] = useState<string | null>(null);
-
   const imageKey = me?.imageKey ?? null;
+  const [url, setUrl] = useState<string | null>(() =>
+    imageKey ? getCachedProfileImageUrl(imageKey) : null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -19,12 +24,21 @@ export function useProfileAvatar() {
       };
     }
 
+    const cached = getCachedProfileImageUrl(imageKey);
+    if (cached) {
+      setUrl(cached);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
         const result = await convex.action(api.r2.getProfileImageUrl, {
           key: imageKey,
         });
         if (!cancelled) {
+          setCachedProfileImageUrl(imageKey, result.url);
           setUrl(result.url);
         }
       } catch (error) {

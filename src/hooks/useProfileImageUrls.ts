@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import {
+  getCachedProfileImageUrl,
+  setCachedProfileImageUrl,
+} from "../lib/profileImageCache";
+
+function buildCachedUrls(keys: readonly string[]) {
+  const urls: Record<string, string> = {};
+  for (const key of keys) {
+    const cached = getCachedProfileImageUrl(key);
+    if (cached) urls[key] = cached;
+  }
+  return urls;
+}
 
 export function useProfileImageUrls(
   imageKeys: Array<string | null | undefined>,
 ) {
   const convex = useConvex();
-  const [urls, setUrls] = useState<Record<string, string>>({});
 
   const normalizedKeys = useMemo(
     () =>
@@ -25,11 +37,35 @@ export function useProfileImageUrls(
     [normalizedKeys],
   );
 
+  const [urls, setUrls] = useState<Record<string, string>>(() =>
+    buildCachedUrls(normalizedKeys),
+  );
+
   useEffect(() => {
     let cancelled = false;
 
     if (normalizedKeys.length === 0) {
-      setUrls({});
+      setUrls((current) => (Object.keys(current).length === 0 ? current : {}));
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fromCache = buildCachedUrls(normalizedKeys);
+    setUrls((current) => {
+      const currentKeys = Object.keys(current);
+      const cacheKeys = Object.keys(fromCache);
+      if (
+        currentKeys.length === cacheKeys.length &&
+        cacheKeys.every((key) => current[key] === fromCache[key])
+      ) {
+        return current;
+      }
+      return fromCache;
+    });
+
+    const missingKeys = normalizedKeys.filter((key) => !fromCache[key]);
+    if (missingKeys.length === 0) {
       return () => {
         cancelled = true;
       };
@@ -38,30 +74,28 @@ export function useProfileImageUrls(
     (async () => {
       try {
         const result = await convex.action(api.r2.getProfileImageUrls, {
-          keys: normalizedKeys,
+          keys: missingKeys,
         });
-        if (!cancelled) {
-          setUrls((current) => {
-            const currentKeys = Object.keys(current);
-            const nextKeys = Object.keys(result.urls);
+        if (cancelled) return;
 
-            if (
-              currentKeys.length === nextKeys.length &&
-              currentKeys.every(
-                (key) => current[key] === result.urls[key],
-              )
-            ) {
-              return current;
-            }
-
-            return result.urls;
-          });
+        for (const [key, url] of Object.entries(result.urls)) {
+          setCachedProfileImageUrl(key, url);
         }
+
+        setUrls((current) => {
+          const next = { ...current, ...result.urls };
+          const currentKeys = Object.keys(current);
+          const nextKeys = Object.keys(next);
+          if (
+            currentKeys.length === nextKeys.length &&
+            nextKeys.every((key) => current[key] === next[key])
+          ) {
+            return current;
+          }
+          return next;
+        });
       } catch (error) {
         console.error("Failed to load profile images", error);
-        if (!cancelled) {
-          setUrls({});
-        }
       }
     })();
 
