@@ -20,8 +20,8 @@ interface BoardTabsState {
   isPinnedOpen: boolean;
 }
 
-const BOARD_TABS_STORAGE_KEY = "flowboard.boardTabs";
-const BOARD_TABS_EVENT = "flowboard:board-tabs";
+const BOARD_TABS_STORAGE_KEY = "planthing.boardTabs";
+const BOARD_TABS_EVENT = "planthing:board-tabs";
 const MAX_OPEN_BOARD_TABS = 8;
 
 const DEFAULT_BOARD_TABS_STATE: BoardTabsState = {

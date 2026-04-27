@@ -657,7 +657,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                     App font
                   </p>
                   <p className="mt-1 text-sm font-medium text-brand-text">
-                    Choose the typeface used across FlowBoard.
+                    Choose the typeface used across Planthing.
                   </p>
                 </div>
                 <Palette className="h-4 w-4 flex-shrink-0 text-brand-text/50" />
@@ -685,7 +685,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/45">
                     Light mode
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <ColorField
                       label="Accent"
                       value={storedAppearance.custom.light.accentColor}
@@ -698,6 +698,13 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                       value={storedAppearance.custom.light.backgroundColor}
                       onChange={(value) =>
                         updateCustomPalette("light", { backgroundColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Card"
+                      value={storedAppearance.custom.light.cardColor}
+                      onChange={(value) =>
+                        updateCustomPalette("light", { cardColor: value })
                       }
                     />
                     <ColorField
@@ -714,7 +721,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-text/45">
                     Dark mode
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <ColorField
                       label="Accent"
                       value={storedAppearance.custom.dark.accentColor}
@@ -727,6 +734,13 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                       value={storedAppearance.custom.dark.backgroundColor}
                       onChange={(value) =>
                         updateCustomPalette("dark", { backgroundColor: value })
+                      }
+                    />
+                    <ColorField
+                      label="Card"
+                      value={storedAppearance.custom.dark.cardColor}
+                      onChange={(value) =>
+                        updateCustomPalette("dark", { cardColor: value })
                       }
                     />
                     <ColorField

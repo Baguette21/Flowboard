@@ -69,14 +69,14 @@ export function BoardCalendarView({
 
   const [calendarColor, setCalendarColor] = useState<string>(() => {
     return (
-      localStorage.getItem(`flowboard-cal-color-${boardId}`) ??
+      localStorage.getItem(`planthing-cal-color-${boardId}`) ??
       CALENDAR_COLORS[0]
     );
   });
 
   const handleCalendarColorChange = (color: string) => {
     setCalendarColor(color);
-    localStorage.setItem(`flowboard-cal-color-${boardId}`, color);
+    localStorage.setItem(`planthing-cal-color-${boardId}`, color);
     setShowColorPicker(false);
   };
 

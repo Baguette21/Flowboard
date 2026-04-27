@@ -143,7 +143,7 @@ export function ForgotPasswordPage() {
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded bg-brand-accent" />
           <span className="font-serif italic font-bold text-2xl tracking-tight leading-none pt-1">
-            FlowBoard<span className="text-brand-accent">.</span>
+            Planthing<span className="text-brand-accent">.</span>
           </span>
         </div>
 
@@ -164,7 +164,7 @@ export function ForgotPasswordPage() {
           <div className="flex lg:hidden items-center gap-2 mb-8">
             <div className="w-6 h-6 rounded bg-brand-accent" />
             <span className="font-serif italic font-bold text-xl tracking-tight leading-none pt-1">
-              FlowBoard<span className="text-brand-accent">.</span>
+              Planthing<span className="text-brand-accent">.</span>
             </span>
           </div>
 
