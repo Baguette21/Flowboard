@@ -10,11 +10,30 @@ import { BoardDrawView } from "../components/board/BoardDrawView";
 import { AssistantChat } from "../components/ai/AssistantChat";
 import { Table } from "../components/table/Table";
 import { BoardSettings } from "../components/board/BoardSettings";
-import { ArrowLeft, BotMessageSquare, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 import { PlanthingLoading } from "../components/branding/PlanthingLoading";
+
+function AssistantLeaf({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+      <path
+        d="M 12 22 Q 3 18 5 9 Q 7 3 14 4 Q 21 5 21 12 Q 21 19 12 22 Z"
+        fill="currentColor"
+      />
+      <path
+        d="M 12 22 L 14 5"
+        stroke="var(--color-brand-bg)"
+        strokeWidth="0.7"
+        strokeLinecap="round"
+        opacity="0.4"
+      />
+      <circle cx="14.5" cy="5" r="1.6" fill="var(--color-brand-accent)" />
+    </svg>
+  );
+}
 
 type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
@@ -233,16 +252,6 @@ export function BoardPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowAssistant(true)}
-            className="relative rounded-xl p-2 text-brand-text/55 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
-            title="Open AI assistant"
-            aria-label="Open AI assistant"
-          >
-            <BotMessageSquare className="h-4 w-4" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-brand-accent" />
-          </button>
-
-          <button
             onClick={() => void handleFavorite()}
             className={cn(
               "rounded-xl p-2 transition-colors",
@@ -308,6 +317,17 @@ export function BoardPage() {
         onClose={() => setShowSettings(false)}
         board={board}
       />
+
+      {!showAssistant && (
+        <button
+          onClick={() => setShowAssistant(true)}
+          className="ai-fab group fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-text text-brand-bg shadow-lg shadow-brand-text/25 transition-transform hover:scale-105 hover:shadow-xl active:scale-95 sm:bottom-6 sm:right-6"
+          title="Open AI assistant"
+          aria-label="Open AI assistant"
+        >
+          <AssistantLeaf className="h-7 w-7 transition-transform group-hover:-rotate-6" />
+        </button>
+      )}
 
       <AssistantChat
         open={showAssistant}
