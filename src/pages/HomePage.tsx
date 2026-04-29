@@ -178,7 +178,7 @@ export function HomePage() {
                 <Layers className="w-8 h-8 text-brand-text/20" />
               </div>
               <h2 className="font-serif italic font-bold text-2xl mb-2">
-                Welcome to Planthing
+                Welcome to PlanThing
               </h2>
               <p className="text-brand-text/50 font-mono text-sm mb-6 max-w-xs">
                 Create your first board or note to get started.

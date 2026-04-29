@@ -1,6 +1,6 @@
-# Planthing
+# PlanThing
 
-Planthing is a collaborative Kanban-style task manager built with React, Vite, TypeScript, Tailwind CSS, and Convex.
+PlanThing is a collaborative Kanban-style task manager built with React, Vite, TypeScript, Tailwind CSS, and Convex.
 
 It lets teams create boards, organize work into columns, manage tasks with labels, due dates, priorities, and assignees, and collaborate in real time without manual refreshes.
 

@@ -57,7 +57,7 @@ export const APPEARANCE_PRESETS: Array<{
   {
     id: "classic",
     name: "Classic",
-    description: "Planthing's built-in light and dark theme.",
+    description: "PlanThing's built-in light and dark theme.",
     font: "inter",
     light: DEFAULT_LIGHT_PALETTE,
     dark: DEFAULT_DARK_PALETTE,

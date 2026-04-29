@@ -100,7 +100,7 @@ export const mockCards: Card[] = [
 export const mockBoard: Board = {
   id: 'board_1',
   userId: 'user_1',
-  name: 'Planthing Demo',
+  name: 'PlanThing Demo',
   slug: 'planthing-demo',
   color: '#E8E4DD',
   isFavorite: true,

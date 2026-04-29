@@ -7,9 +7,10 @@ import { Layout } from "../components/layout/Layout";
 import { BoardView } from "../components/board/BoardView";
 import { BoardCalendarView } from "../components/board/BoardCalendarView";
 import { BoardDrawView } from "../components/board/BoardDrawView";
+import { AssistantChat } from "../components/ai/AssistantChat";
 import { Table } from "../components/table/Table";
 import { BoardSettings } from "../components/board/BoardSettings";
-import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
+import { ArrowLeft, BotMessageSquare, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
@@ -59,11 +60,13 @@ export function BoardPage() {
   const [viewOrder, setViewOrder] = useState<BoardMode[]>(() => getInitialViewOrder(typedBoardId));
   const [mode, setMode] = useState<BoardMode>(() => getInitialViewOrder(typedBoardId)[0]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
   const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
   const updateBoard = useMutation(api.boards.update);
   const { ensureInActiveTab } = useBoardTabs();
   const me = useQuery(api.users.me);
   const isPro = me?.role === "PRO";
+  const activeMode = !isPro && mode === "draw" ? "board" : mode;
 
   const board = useQuery(
     api.boards.get,
@@ -82,22 +85,32 @@ export function BoardPage() {
     typedBoardId ? { boardId: typedBoardId } : "skip",
   );
 
-  if (!typedBoardId) {
-    navigate("/");
-    return null;
-  }
-
   useEffect(() => {
-    const nextViewOrder = loadStoredViewOrder(typedBoardId);
-    setViewOrder(nextViewOrder);
-    setMode(nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0]);
-  }, [typedBoardId]);
-
-  useEffect(() => {
-    if (me !== undefined && !isPro && mode === "draw") {
-      setMode("board");
+    if (!typedBoardId) {
+      navigate("/");
+      return;
     }
-  }, [isPro, me, mode]);
+  }, [navigate, typedBoardId]);
+
+  useEffect(() => {
+    if (!typedBoardId) {
+      return;
+    }
+
+    let cancelled = false;
+    const nextViewOrder = loadStoredViewOrder(typedBoardId);
+    queueMicrotask(() => {
+      if (cancelled) {
+        return;
+      }
+      setViewOrder(nextViewOrder);
+      setMode(nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [typedBoardId]);
 
   useEffect(() => {
     if (!typedBoardId) {
@@ -108,7 +121,7 @@ export function BoardPage() {
   }, [ensureInActiveTab, typedBoardId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!typedBoardId || typeof window === "undefined") {
       return;
     }
 
@@ -117,6 +130,10 @@ export function BoardPage() {
       JSON.stringify(viewOrder),
     );
   }, [typedBoardId, viewOrder]);
+
+  if (!typedBoardId) {
+    return null;
+  }
 
   if (board === undefined) {
     return (
@@ -201,7 +218,7 @@ export function BoardPage() {
                 onClick={() => setMode(view.key)}
                 className={cn(
                   "inline-flex items-center gap-2 px-2 py-2 font-sans text-base font-medium transition-colors sm:px-3",
-                  mode === view.key
+                  activeMode === view.key
                     ? "rounded-[18px] bg-brand-text/10 px-4 text-brand-text"
                     : "text-brand-text/60 hover:text-brand-text",
                   draggedView === view.key && "opacity-40",
@@ -215,6 +232,16 @@ export function BoardPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAssistant(true)}
+            className="relative rounded-xl p-2 text-brand-text/55 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
+            title="Open AI assistant"
+            aria-label="Open AI assistant"
+          >
+            <BotMessageSquare className="h-4 w-4" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-brand-accent" />
+          </button>
+
           <button
             onClick={() => void handleFavorite()}
             className={cn(
@@ -243,9 +270,9 @@ export function BoardPage() {
 
 
       <div className="flex-1 md:min-h-0 md:overflow-hidden">
-        {mode === "board" ? (
+        {activeMode === "board" ? (
           <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
-        ) : mode === "calendar" ? (
+        ) : activeMode === "calendar" ? (
           <BoardCalendarView
             key={`calendar-${typedBoardId}`}
             boardId={typedBoardId}
@@ -254,20 +281,20 @@ export function BoardPage() {
             columns={columns ?? []}
             labels={labels ?? []}
           />
-        ) : mode === "draw" && isPro ? (
+        ) : activeMode === "draw" && isPro ? (
           <BoardDrawView
             key={`draw-${typedBoardId}`}
             boardId={typedBoardId}
             drawingDocument={board.drawingDocument}
           />
-        ) : mode !== "draw" ? (
+        ) : activeMode !== "draw" ? (
           <Table
-            key={`${mode}-${typedBoardId}`}
+            key={`${activeMode}-${typedBoardId}`}
             boardId={typedBoardId}
             cards={cards}
             columns={columns ?? []}
             labels={labels ?? []}
-            forcedMode={mode}
+            forcedMode={activeMode}
             showViewModeTabs={false}
           />
         ) : (
@@ -280,6 +307,13 @@ export function BoardPage() {
         open={showSettings}
         onClose={() => setShowSettings(false)}
         board={board}
+      />
+
+      <AssistantChat
+        open={showAssistant}
+        onClose={() => setShowAssistant(false)}
+        boardId={typedBoardId}
+        columns={columns ?? []}
       />
     </Layout>
   );

@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "drawer";
   className?: string;
 }
 
@@ -44,28 +44,43 @@ export function Modal({
 
   if (!open) return null;
 
+  const isDrawer = size === "drawer";
+
   const sizeClasses = {
     sm: "max-w-sm",
     md: "max-w-lg",
     lg: "max-w-2xl",
     xl: "max-w-4xl",
+    drawer: "max-w-md",
   };
 
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4"
+      className={cn(
+        "fixed inset-0 z-50 flex overflow-hidden",
+        isDrawer
+          ? "items-stretch justify-end"
+          : "items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4",
+      )}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-brand-text/40 backdrop-blur-sm" />
+      <div
+        className={cn(
+          "absolute inset-0 bg-brand-text/40 backdrop-blur-sm",
+          isDrawer && "task-panel-backdrop",
+        )}
+      />
 
       {/* Panel */}
       <div
         className={cn(
-          "relative my-auto flex w-full max-h-[calc(100vh-1.5rem)] flex-col overflow-hidden bg-brand-bg border-2 border-brand-text/10 rounded-[1.5rem] shadow-2xl sm:max-h-[calc(100vh-2rem)] sm:rounded-[2rem]",
+          isDrawer
+            ? "chat-drawer-slide relative flex h-full w-full flex-col overflow-hidden bg-brand-bg border-l-2 border-brand-text/10 shadow-2xl sm:rounded-l-[2rem] sm:border-y-2"
+            : "relative my-auto flex w-full max-h-[calc(100vh-1.5rem)] flex-col overflow-hidden bg-brand-bg border-2 border-brand-text/10 rounded-[1.5rem] shadow-2xl sm:max-h-[calc(100vh-2rem)] sm:rounded-[2rem]",
           sizeClasses[size],
           className,
         )}
@@ -91,7 +106,12 @@ export function Modal({
             <X className="w-5 h-5" />
           </button>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div
+          className={cn(
+            "min-h-0 flex-1",
+            isDrawer ? "flex flex-col overflow-hidden" : "overflow-y-auto overscroll-contain",
+          )}
+        >
           {children}
         </div>
       </div>

@@ -273,4 +273,59 @@
   .task-panel-backdrop {
     animation: fadeInBackdrop 0.18s ease forwards;
   }
+
+  @keyframes chat-drawer-slide {
+    from { transform: translateX(100%); opacity: 0.6; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  .chat-drawer-slide {
+    animation: chat-drawer-slide 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  @keyframes chat-message-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .chat-message-in {
+    animation: chat-message-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes chat-suggestion-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-suggestion-in {
+    animation: chat-suggestion-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes chat-typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+    30%           { transform: translateY(-4px); opacity: 1; }
+  }
+
+  .chat-typing-dot {
+    animation: chat-typing-bounce 1.05s ease-in-out infinite;
+  }
+
+  @keyframes chat-sparkle-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-2px) rotate(6deg); }
+  }
+
+  .chat-sparkle-float {
+    animation: chat-sparkle-float 3.6s ease-in-out infinite;
+  }
+
+  @keyframes chat-thinking-glow {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.04); }
+  }
+
+  .chat-thinking-glow {
+    animation: chat-thinking-glow 1.6s ease-in-out infinite;
+  }
 }
