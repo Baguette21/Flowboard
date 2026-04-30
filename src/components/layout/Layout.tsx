@@ -84,7 +84,7 @@ export function Layout({
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden bg-brand-bg text-brand-text md:h-screen md:overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-brand-bg text-brand-text">
       {desktopSidebarCollapsed ? (
         <div
           className="fixed left-0 top-0 z-30 hidden h-full w-2 lg:block"
@@ -106,7 +106,7 @@ export function Layout({
         onMobileClose={() => setMobileSidebarOpen(false)}
         onPeekLeave={() => setSidebarPeek(false)}
       />
-      <div className="flex flex-1 min-w-0 flex-col md:min-h-0 md:overflow-hidden">
+      <div className="flex flex-1 min-w-0 min-h-0 flex-col overflow-hidden">
         <Header
           onOpenSidebar={handleOpenSidebar}
           sidebarCollapsed={desktopSidebarCollapsed}
@@ -114,7 +114,7 @@ export function Layout({
           onSearchChange={onSearchChange}
           searchPlaceholder={searchPlaceholder}
         />
-        <main className="flex flex-1 flex-col md:min-h-0 md:overflow-hidden">
+        <main className="flex flex-1 flex-col min-h-0 overflow-hidden">
           {children}
         </main>
       </div>

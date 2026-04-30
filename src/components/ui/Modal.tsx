@@ -51,7 +51,7 @@ export function Modal({
     md: "max-w-lg",
     lg: "max-w-2xl",
     xl: "max-w-4xl",
-    drawer: "max-w-md",
+    drawer: "max-w-xl",
   };
 
   return createPortal(

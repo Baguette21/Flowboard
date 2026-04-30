@@ -43,11 +43,24 @@ export function NoteCard({ note }: NoteCardProps) {
     },
   ];
 
+  const noteTitle = note.title || "Untitled";
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openInActiveTab({ kind: "note", id: note._id });
+    }
+  };
+
   return (
     <>
       <div
         onClick={() => openInActiveTab({ kind: "note", id: note._id })}
-        className="group relative cursor-pointer select-none bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)]"
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`Open note ${noteTitle}`}
+        className="group relative cursor-pointer select-none bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/35"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -56,7 +69,7 @@ export function NoteCard({ note }: NoteCardProps) {
                 <FileText className="h-4.5 w-4.5" />
               </div>
               <h3 className="truncate font-sans text-[22px] font-bold leading-tight tracking-display text-brand-text">
-                {note.title || "Untitled"}
+                {noteTitle}
               </h3>
             </div>
 
@@ -85,7 +98,9 @@ export function NoteCard({ note }: NoteCardProps) {
               trigger={
                 <button
                   onClick={(event) => event.stopPropagation()}
-                  className="rounded-lg p-1.5 text-[color:var(--color-text-subtle)] opacity-0 transition-all hover:bg-brand-text/5 hover:text-brand-text group-hover:opacity-100"
+                  aria-label={`More actions for ${noteTitle}`}
+                  title="More actions"
+                  className="rounded-lg p-1.5 text-[color:var(--color-text-subtle)] opacity-65 transition-all hover:bg-brand-text/5 hover:text-brand-text group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/30"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -101,7 +116,7 @@ export function NoteCard({ note }: NoteCardProps) {
         onClose={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
         title="Delete note"
-        description={`This will permanently delete "${note.title || "Untitled"}". This action cannot be undone.`}
+        description={`This will permanently delete "${noteTitle}". This action cannot be undone.`}
         confirmLabel="Delete Note"
         isDestructive
         isLoading={isDeleting}

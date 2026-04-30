@@ -10,30 +10,11 @@ import { BoardDrawView } from "../components/board/BoardDrawView";
 import { AssistantChat } from "../components/ai/AssistantChat";
 import { Table } from "../components/table/Table";
 import { BoardSettings } from "../components/board/BoardSettings";
-import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Star, Table2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Sparkles, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 import { PlanthingLoading } from "../components/branding/PlanthingLoading";
-
-function AssistantLeaf({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <path
-        d="M 12 22 Q 3 18 5 9 Q 7 3 14 4 Q 21 5 21 12 Q 21 19 12 22 Z"
-        fill="currentColor"
-      />
-      <path
-        d="M 12 22 L 14 5"
-        stroke="var(--color-brand-bg)"
-        strokeWidth="0.7"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      <circle cx="14.5" cy="5" r="1.6" fill="var(--color-brand-accent)" />
-    </svg>
-  );
-}
 
 type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
@@ -278,7 +259,7 @@ export function BoardPage() {
       </div>
 
 
-      <div className="flex-1 md:min-h-0 md:overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeMode === "board" ? (
           <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
         ) : activeMode === "calendar" ? (
@@ -325,7 +306,7 @@ export function BoardPage() {
           title="Open AI assistant"
           aria-label="Open AI assistant"
         >
-          <AssistantLeaf className="h-7 w-7 transition-transform group-hover:-rotate-6" />
+          <Sparkles className="h-6 w-6 transition-transform group-hover:rotate-12" />
         </button>
       )}
 

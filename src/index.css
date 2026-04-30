@@ -275,12 +275,19 @@
   }
 
   @keyframes chat-drawer-slide {
-    from { transform: translateX(100%); opacity: 0.6; }
-    to   { transform: translateX(0); opacity: 1; }
+    from {
+      transform: translate(40%, 60%) scale(0.4);
+      opacity: 0;
+    }
+    to {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
   }
 
   .chat-drawer-slide {
-    animation: chat-drawer-slide 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transform-origin: bottom right;
+    animation: chat-drawer-slide 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     will-change: transform, opacity;
   }
 

@@ -3,9 +3,10 @@ import { useAction, useMutation } from "convex/react";
 import {
   AlertCircle,
   ArrowUp,
-  Calendar,
   Check,
+  Clock,
   Eraser,
+  FileText,
   Loader2,
   X,
 } from "lucide-react";
@@ -41,11 +42,11 @@ interface AssistantChatProps {
   columns: Doc<"columns">[];
 }
 
-const priorityStyles: Record<Priority, string> = {
-  low: "bg-blue-500/15 text-blue-700",
-  medium: "bg-amber-500/15 text-amber-700",
-  high: "bg-orange-500/15 text-orange-700",
-  urgent: "bg-red-500/15 text-red-700",
+const priorityColors: Record<Priority, string> = {
+  low: "#3B82F6",
+  medium: "#CA8A04",
+  high: "#F97316",
+  urgent: "#E63B2E",
 };
 
 const SUGGESTIONS = [
@@ -142,6 +143,10 @@ function formatDueDate(timestamp?: number) {
     month: "short",
     day: "numeric",
   });
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function makeId() {
@@ -348,7 +353,7 @@ export function AssistantChat({
                     type="button"
                     onClick={() => setInput(suggestion)}
                     style={{ animationDelay: `${140 + index * 80}ms` }}
-                    className="chat-suggestion-in group flex items-center gap-3 rounded-2xl bg-brand-text/5 px-4 py-3.5 text-left text-sm leading-6 text-brand-text/75 transition-all hover:-translate-y-0.5 hover:bg-brand-text/10 hover:text-brand-text hover:shadow-sm"
+                    className="chat-suggestion-in group flex items-center gap-3 rounded-[8px] bg-brand-text/5 px-4 py-3.5 text-left text-sm leading-6 text-brand-text/75 transition-all hover:-translate-y-0.5 hover:bg-brand-text/10 hover:text-brand-text hover:shadow-sm"
                   >
                     <MiniLeaf className="h-4 w-4 flex-shrink-0 text-brand-text/35 transition-all group-hover:rotate-12 group-hover:text-brand-text/60" />
                     <span className="flex-1">{suggestion}</span>
@@ -428,7 +433,7 @@ function MessageBubble({ message, onApply }: MessageBubbleProps) {
     return (
       <div className="chat-message-in flex justify-end">
         <div
-          className="max-w-[85%] whitespace-pre-wrap break-words rounded-3xl bg-brand-text px-4 py-3 text-sm leading-6 text-brand-bg"
+          className="max-w-[85%] whitespace-pre-wrap break-words rounded-[8px] bg-brand-text px-4 py-3 text-sm leading-6 text-brand-bg"
           style={{ overflowWrap: "anywhere" }}
         >
           {message.content}
@@ -458,8 +463,8 @@ function MessageBubble({ message, onApply }: MessageBubbleProps) {
         </div>
 
         {hasTasks && (
-          <div className="ml-9 space-y-2.5 rounded-2xl bg-brand-text/[0.04] p-3">
-            <div className="flex items-center justify-between gap-2 pl-0.5 pr-0.5">
+          <div className="ml-9 space-y-3 rounded-[8px] bg-brand-text/[0.04] p-3.5">
+            <div className="flex items-center justify-between gap-2 px-0.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-text/40">
                 {tasks.length} task{tasks.length === 1 ? "" : "s"}
               </span>
@@ -468,7 +473,7 @@ function MessageBubble({ message, onApply }: MessageBubbleProps) {
                 onClick={onApply}
                 disabled={isApplied}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                  "inline-flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-xs font-semibold transition-all",
                   isApplied
                     ? "bg-emerald-500/15 text-emerald-700"
                     : "bg-brand-text text-brand-bg hover:scale-[1.02] hover:bg-brand-dark active:scale-95",
@@ -515,38 +520,41 @@ function TypingIndicator() {
 function ProposedTaskRow({ task }: { task: DraftTask }) {
   const due = formatDueDate(task.dueDate);
   return (
-    <div className="rounded-2xl bg-brand-bg px-4 py-3 shadow-sm transition-shadow hover:shadow">
-      <div className="text-sm font-semibold leading-5 text-brand-text">
-        {task.title}
+    <div className="card-whisper rounded-[8px] bg-brand-primary px-3 py-2.5 transition-all duration-150 hover:card-elevation hover:border-[color:var(--color-border-whisper-strong)]">
+      <div className="flex items-start gap-2.5">
+        <FileText className="mt-[2px] h-3.5 w-3.5 flex-shrink-0 text-[color:var(--color-text-subtle)]" />
+        <h3 className="text-[14px] font-medium leading-snug text-brand-text">
+          {task.title}
+        </h3>
       </div>
       {task.description && (
-        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-brand-text/55">
+        <div className="mt-1.5 ml-6 line-clamp-2 text-xs leading-5 text-brand-text/55">
           {task.description}
         </div>
       )}
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        {task.columnTitle && (
-          <span className="rounded-full bg-brand-text/10 px-2.5 py-1 text-[11px] font-medium text-brand-text/65">
-            {task.columnTitle}
-          </span>
-        )}
-        {task.priority && (
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize",
-              priorityStyles[task.priority],
-            )}
-          >
-            {task.priority}
-          </span>
-        )}
-        {due && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-text/5 px-2.5 py-1 text-[11px] font-medium text-brand-text/60">
-            <Calendar className="h-3 w-3" />
-            {due}
-          </span>
-        )}
-      </div>
+      {(task.columnTitle || task.priority || due) && (
+        <div className="mt-2.5 ml-6 flex flex-col items-start gap-1.5">
+          {task.priority && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white/95"
+              style={{ backgroundColor: priorityColors[task.priority] }}
+            >
+              {capitalize(task.priority)} Priority
+            </span>
+          )}
+          {due && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-[color:var(--color-text-muted)]">
+              <Clock className="h-2.5 w-2.5" />
+              {due}
+            </span>
+          )}
+          {task.columnTitle && (
+            <span className="rounded-full bg-brand-text/10 px-2 py-0.5 text-[11px] font-medium text-brand-text/65">
+              {task.columnTitle}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

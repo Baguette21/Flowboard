@@ -14,6 +14,7 @@ import {
   FileText,
   Search,
   Layers,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
@@ -91,6 +92,20 @@ export function HomePage() {
   const boardCount = boards?.length ?? 0;
   const noteCount = notes?.length ?? 0;
   const hasSearch = normalizedSearch.length > 0;
+  const continueItems = !hasSearch && filter === "all" ? feed.slice(0, 3) : [];
+  const libraryFeed =
+    continueItems.length > 0
+      ? feed.filter(
+          (item) =>
+            !continueItems.some((continued) =>
+              continued.kind === "board" && item.kind === "board"
+                ? continued.board._id === item.board._id
+                : continued.kind === "note" && item.kind === "note"
+                  ? continued.note._id === item.note._id
+                  : false,
+            ),
+        )
+      : feed;
   const showFavorites =
     !hasSearch && filter !== "notes" && favorites.length > 0;
 
@@ -104,24 +119,27 @@ export function HomePage() {
     <Layout
       searchValue={search}
       onSearchChange={setSearch}
-      searchPlaceholder="Search your things..."
+      searchPlaceholder="Search workspace..."
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8">
           {/* ── Page header ── */}
-          <div className="flex flex-col gap-4 mb-6 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-7 flex flex-col gap-5 sm:mb-9 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-serif italic font-bold">
+              <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-brand-text/40">
+                PlanThing
+              </p>
+              <h1 className="text-2xl font-bold tracking-[-0.01em] sm:text-3xl">
                 Workspace
               </h1>
-              <p className="font-mono text-sm text-brand-text/50 mt-1">
+              <p className="mt-2 max-w-xl text-sm leading-6 text-brand-text/54">
                 {hasSearch
-                  ? `${filteredBoards.length + filteredNotes.length} result${filteredBoards.length + filteredNotes.length !== 1 ? "s" : ""} for "${search.trim()}"`
+                  ? `${filteredBoards.length + filteredNotes.length} result${filteredBoards.length + filteredNotes.length !== 1 ? "s" : ""} for "${search.trim()}".`
                   : `${boardCount} board${boardCount !== 1 ? "s" : ""} · ${noteCount} note${noteCount !== 1 ? "s" : ""}`}
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 lg:pt-6">
               <button
                 onClick={() => setShowCreateBoard(true)}
                 className="flex items-center justify-center gap-2 h-10 px-4 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
@@ -142,28 +160,6 @@ export function HomePage() {
           </div>
 
           {/* ── Filter tabs ── */}
-          <div className="flex items-center gap-1 mb-6 sm:mb-8">
-            {filterTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = filter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilter(tab.key)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl transition-colors",
-                    isActive
-                      ? "bg-brand-text/10 text-brand-text"
-                      : "text-brand-text/45 hover:text-brand-text/70 hover:bg-brand-text/5",
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
           {/* ── Content ── */}
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -215,7 +211,37 @@ export function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-8 sm:space-y-10">
+            <div className="space-y-10 sm:space-y-12">
+              {continueItems.length > 0 && (
+                <section>
+                  <div className="mb-4">
+                    <div className="mb-1 flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4 text-brand-accent" />
+                      <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-brand-text/64">
+                        Continue
+                      </h2>
+                    </div>
+                    <p className="text-sm text-brand-text/45">
+                      The last things you touched, ready to pick back up.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    {continueItems.map((item) =>
+                      item.kind === "board" ? (
+                        <BoardCard
+                          key={`continue-${item.board._id}`}
+                          board={item.board}
+                        />
+                      ) : (
+                        <NoteCard
+                          key={`continue-${item.note._id}`}
+                          note={item.note}
+                        />
+                      ),
+                    )}
+                  </div>
+                </section>
+              )}
               {/* ── Favorites ── */}
               {showFavorites && (
                 <section>
@@ -228,7 +254,7 @@ export function HomePage() {
                       Favorites
                     </h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {favorites.map((board) => (
                       <BoardCard key={board._id} board={board} />
                     ))}
@@ -237,16 +263,46 @@ export function HomePage() {
               )}
 
               {/* ── Recent ── */}
-              {feed.length > 0 && (
+              {libraryFeed.length > 0 && (
                 <section>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock className="w-4 h-4 text-brand-text/40" />
-                    <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-brand-text/60">
-                      Recent
-                    </h2>
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <div className="mb-1 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-brand-text/40" />
+                        <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-brand-text/60">
+                          {hasSearch ? "Results" : "Library"}
+                        </h2>
+                      </div>
+                      <p className="text-sm text-brand-text/45">
+                        {hasSearch
+                          ? "Filtered boards and notes from this workspace."
+                          : "Everything else, sorted by recent activity."}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {filterTabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = filter === tab.key;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setFilter(tab.key)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl transition-colors",
+                              isActive
+                                ? "bg-brand-text/10 text-brand-text"
+                                : "text-brand-text/45 hover:text-brand-text/70 hover:bg-brand-text/5",
+                            )}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {feed.map((item) =>
+                    {libraryFeed.map((item) =>
                       item.kind === "board" ? (
                         <BoardCard
                           key={item.board._id}

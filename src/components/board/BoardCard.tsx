@@ -32,6 +32,13 @@ export function BoardCard({ board }: BoardCardProps) {
     toast.success(board.isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openInActiveTab({ kind: "board", id: board._id });
+    }
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -68,10 +75,14 @@ export function BoardCard({ board }: BoardCardProps) {
     <>
       <div
         onClick={() => openInActiveTab({ kind: "board", id: board._id })}
-        className="group relative select-none cursor-pointer bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)]"
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`Open board ${board.name}`}
+        className="group relative select-none cursor-pointer bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/35"
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 mb-2">
               <div
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]"
@@ -123,11 +134,13 @@ export function BoardCard({ board }: BoardCardProps) {
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={handleFavorite}
+              aria-label={board.isFavorite ? `Remove ${board.name} from favorites` : `Add ${board.name} to favorites`}
+              title={board.isFavorite ? "Remove from favorites" : "Add to favorites"}
               className={cn(
-                "p-1.5 rounded-lg transition-colors",
+                "p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/30",
                 board.isFavorite
                   ? "text-yellow-500 hover:text-yellow-600"
-                  : "text-[color:var(--color-text-subtle)] hover:text-yellow-400 opacity-0 group-hover:opacity-100",
+                  : "text-[color:var(--color-text-subtle)] opacity-65 hover:text-yellow-400 group-hover:opacity-100 focus-visible:opacity-100",
               )}
             >
               <Star
@@ -141,7 +154,9 @@ export function BoardCard({ board }: BoardCardProps) {
               trigger={
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 rounded-lg text-[color:var(--color-text-subtle)] hover:text-brand-text hover:bg-brand-text/5 opacity-0 group-hover:opacity-100 transition-all"
+                  aria-label={`More actions for ${board.name}`}
+                  title="More actions"
+                  className="p-1.5 rounded-lg text-[color:var(--color-text-subtle)] opacity-65 hover:text-brand-text hover:bg-brand-text/5 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/30 transition-all"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
