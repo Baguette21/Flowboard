@@ -19,7 +19,7 @@ const ACTION_COLORS: Record<string, string> = {
   created: "bg-green-500/10 text-green-600",
   moved: "bg-blue-500/10 text-blue-600",
   updated: "bg-yellow-500/10 text-yellow-600",
-  deleted: "bg-red-500/10 text-red-600",
+  deleted: "bg-brand-accent/10 text-brand-accent",
   completed: "bg-green-500/10 text-green-600",
   reopened: "bg-orange-500/10 text-orange-600",
   default: "bg-brand-text/10 text-brand-text/60",

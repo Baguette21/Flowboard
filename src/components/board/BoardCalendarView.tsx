@@ -381,7 +381,7 @@ export function BoardCalendarView({
                                     className={cn(
                                       "inline-flex shrink-0 items-center gap-0.5 text-[10px]",
                                       overdue && !card.isComplete
-                                        ? "text-red-500"
+                                        ? "text-brand-accent"
                                         : "text-[color:var(--color-text-subtle)]",
                                     )}
                                   >

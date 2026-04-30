@@ -96,7 +96,7 @@ function TrashDropZone({ visible }: { visible: boolean }) {
         className={cn(
           "flex h-16 min-w-16 items-center justify-center rounded-full border bg-brand-bg/95 px-5 shadow-[0_18px_48px_rgba(17,17,17,0.2)] backdrop-blur-xl transition-all duration-150",
           isOver
-            ? "border-red-500 bg-red-50 text-red-600 shadow-[0_20px_54px_rgba(220,38,38,0.28)]"
+            ? "border-brand-accent bg-brand-accent/10 text-brand-accent shadow-[0_20px_54px_rgba(230,59,46,0.28)]"
             : "border-brand-text/15 text-[color:var(--color-text-muted)]",
         )}
       >
