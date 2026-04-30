@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
+import { convertToWebP } from "../../lib/image";
 import { Modal } from "../ui/Modal";
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -178,7 +179,8 @@ export function CardImageGallery({
     setIsUploading(true);
 
     try {
-      for (const file of files) {
+      for (const original of files) {
+        const file = await convertToWebP(original);
         const localPreviewUrl = URL.createObjectURL(file);
         let key = "";
         let uploadUrl = "";

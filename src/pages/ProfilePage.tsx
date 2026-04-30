@@ -21,6 +21,7 @@ import { UserAvatar } from "../components/ui/UserAvatar";
 import { useProfileAvatar } from "../hooks/useProfileAvatar";
 import { usePrivacyMode } from "../hooks/usePrivacyMode";
 import { useTheme } from "../hooks/useTheme";
+import { convertToWebP } from "../lib/image";
 import { cn } from "../lib/utils";
 
 type ProfileTab = "account" | "privacy" | "customization" | "archive" | "shortcuts";
@@ -69,18 +70,20 @@ export function ProfilePage() {
   const handleAvatarFileSelected = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const original = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!original) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!original.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    if (original.size > MAX_IMAGE_SIZE_BYTES) {
       toast.error("Image must be 5 MB or smaller");
       return;
     }
+
+    const file = await convertToWebP(original);
 
     const preview = URL.createObjectURL(file);
     setLocalPreview((previous) => {
@@ -167,7 +170,7 @@ export function ProfilePage() {
               className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-brand-text/65 transition-colors hover:bg-brand-text/5 hover:text-brand-text"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Planthing
+              Back to PlanThing
             </button>
           </div>
 
@@ -239,7 +242,7 @@ export function ProfilePage() {
 
           <div className="mt-7 rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-bold">Planthing apps</h2>
+              <h2 className="text-sm font-bold">PlanThing apps</h2>
               <Sparkles className="h-4 w-4 text-brand-text/35" />
             </div>
             <div className="space-y-2">

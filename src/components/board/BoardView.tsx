@@ -369,7 +369,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
   if (columns === undefined || cards === undefined) {
     return (
-      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
+      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-auto pb-6 sm:pb-8 items-start">
         {[1, 2, 3, 4].map((i) => (
           <ColumnSkeleton key={i} />
         ))}
@@ -379,7 +379,7 @@ export function BoardView({ boardId }: BoardViewProps) {
 
   if (columns.length === 0) {
     return (
-      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-x-auto pb-6 sm:pb-8 items-start">
+      <div className="flex gap-4 sm:gap-6 h-full p-3 sm:p-4 overflow-auto pb-6 sm:pb-8 items-start">
         <div className="flex flex-col items-center justify-center w-full py-24 text-center">
           <Layers className="w-12 h-12 text-brand-text/20 mb-4" />
           <h3 className="font-serif italic font-bold text-xl mb-2">No groups yet</h3>
@@ -436,7 +436,7 @@ export function BoardView({ boardId }: BoardViewProps) {
             </div>
           </div>
 
-          <div className="flex flex-1 gap-6 sm:gap-8 p-4 sm:p-6 overflow-x-auto pb-6 sm:pb-8 items-start">
+          <div className="flex flex-1 gap-6 sm:gap-8 p-4 sm:p-6 overflow-auto pb-6 sm:pb-8 items-start min-h-0">
             <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
               {orderedColumns.map((col) => (
                 <SortableColumn
