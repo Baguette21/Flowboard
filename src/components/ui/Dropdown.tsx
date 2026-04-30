@@ -59,7 +59,7 @@ export function Dropdown({ trigger, items, align = "right", className }: Dropdow
 
   return (
     <>
-      <div ref={triggerRef} onClick={handleTriggerClick} className="inline-flex">
+      <div ref={triggerRef} onClickCapture={handleTriggerClick} className="inline-flex">
         {trigger}
       </div>
       {open &&
