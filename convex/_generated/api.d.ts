@@ -10,6 +10,7 @@
 
 import type * as activityLogs from "../activityLogs.js";
 import type * as admin from "../admin.js";
+import type * as aiAssistant from "../aiAssistant.js";
 import type * as auth from "../auth.js";
 import type * as boardInvites from "../boardInvites.js";
 import type * as boardMembers from "../boardMembers.js";
@@ -39,6 +40,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   activityLogs: typeof activityLogs;
   admin: typeof admin;
+  aiAssistant: typeof aiAssistant;
   auth: typeof auth;
   boardInvites: typeof boardInvites;
   boardMembers: typeof boardMembers;

@@ -22,7 +22,7 @@ if (!convexUrl || convexUrl.includes("your-deployment")) {
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F5F3EE;font-family:'Space Mono',monospace;padding:2rem">
       <div style="max-width:480px;text-align:center">
         <div style="width:48px;height:48px;background:#E63B2E;border-radius:12px;margin:0 auto 24px;"></div>
-        <h1 style="font-family:'DM Serif Display',serif;font-style:italic;font-size:2rem;margin-bottom:8px">Planthing needs Convex</h1>
+        <h1 style="font-family:'DM Serif Display',serif;font-style:italic;font-size:2rem;margin-bottom:8px">PlanThing needs Convex</h1>
         <p style="color:#666;margin-bottom:24px;line-height:1.6;font-size:13px">
           This app uses Convex for its real-time backend. Run the command below to connect:
         </p>

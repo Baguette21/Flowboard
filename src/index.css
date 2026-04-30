@@ -273,4 +273,138 @@
   .task-panel-backdrop {
     animation: fadeInBackdrop 0.18s ease forwards;
   }
+
+  @keyframes chat-drawer-slide {
+    from {
+      transform: translate(40%, 60%) scale(0.4);
+      opacity: 0;
+    }
+    to {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .chat-drawer-slide {
+    transform-origin: bottom right;
+    animation: chat-drawer-slide 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  @keyframes chat-message-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .chat-message-in {
+    animation: chat-message-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes chat-suggestion-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-suggestion-in {
+    animation: chat-suggestion-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes chat-leaf-sprout {
+    0%, 70%, 100% { transform: scale(0); opacity: 0; }
+    25%           { transform: scale(0.7); opacity: 0.7; }
+    45%           { transform: scale(1); opacity: 1; }
+    60%           { transform: scale(1); opacity: 0.85; }
+  }
+
+  .chat-leaf-sprout {
+    fill: currentColor;
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: chat-leaf-sprout 1.5s ease-in-out infinite;
+  }
+
+  @keyframes plant-leaf-sway {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50%      { transform: rotate(3deg) scale(1.02); }
+  }
+
+  @keyframes plant-leaf-sway-reverse {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50%      { transform: rotate(-3deg) scale(1.02); }
+  }
+
+  @keyframes plant-bud-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50%      { transform: scale(1.12); filter: brightness(1.15); }
+  }
+
+  @keyframes plant-stem-breathe {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(1.015); }
+  }
+
+  .plant-leaf-right {
+    fill: currentColor;
+    transform-box: fill-box;
+    transform-origin: 10% 50%;
+    animation: plant-leaf-sway 4.2s ease-in-out infinite;
+  }
+
+  .plant-leaf-left {
+    fill: currentColor;
+    transform-box: fill-box;
+    transform-origin: 90% 50%;
+    animation: plant-leaf-sway-reverse 4.2s ease-in-out infinite;
+    animation-delay: 0.3s;
+  }
+
+  .plant-bud {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: plant-bud-pulse 2.4s ease-in-out infinite;
+  }
+
+  .plant-stem {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: plant-stem-breathe 4.2s ease-in-out infinite;
+  }
+
+  @keyframes plant-sprout-grow {
+    0%   { transform: scaleY(0) translateY(8px); opacity: 0; }
+    60%  { transform: scaleY(1.04) translateY(0); opacity: 1; }
+    100% { transform: scaleY(1) translateY(0); opacity: 1; }
+  }
+
+  .plant-sprout-grow {
+    transform-origin: center bottom;
+    animation: plant-sprout-grow 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes chat-thinking-glow {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.04); }
+  }
+
+  .chat-thinking-glow {
+    animation: chat-thinking-glow 2.4s ease-in-out infinite;
+  }
+
+  @keyframes ai-fab-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.85); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .ai-fab {
+    animation: ai-fab-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes ai-fab-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.25); opacity: 0.7; }
+  }
+
+  .ai-fab-pulse {
+    animation: ai-fab-pulse 2.4s ease-in-out infinite;
+  }
 }

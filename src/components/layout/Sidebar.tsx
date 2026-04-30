@@ -625,7 +625,7 @@ export function Sidebar({
                   type="text"
                   value={sidebarSearch}
                   onChange={(event) => setSidebarSearch(event.target.value)}
-                  placeholder="Search your things..."
+                  placeholder="Filter sidebar..."
                   className="h-10 w-full rounded-none border-0 border-b border-brand-sidebar-text/15 bg-transparent pl-10 pr-10 text-sm text-brand-sidebar-text outline-none transition-colors placeholder:text-brand-sidebar-text/30 focus:border-brand-sidebar-text/35"
                 />
                 {sidebarSearch ? (
@@ -662,7 +662,7 @@ export function Sidebar({
                   </div>
                 ) : favoriteItems.length === 0 ? (
                   <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                    {normalizedSidebarSearch ? "No favorite results" : "No favorites yet"}
+                    {normalizedSidebarSearch ? "No pinned matches" : "No favorites yet"}
                   </div>
                 ) : (
                   favoriteItems.map((item) => {
@@ -785,7 +785,7 @@ export function Sidebar({
                     </div>
                   ) : visibleBoards.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      {normalizedSidebarSearch ? "No board results" : "No boards yet"}
+                      {normalizedSidebarSearch ? "No board matches" : "No boards yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -904,7 +904,7 @@ export function Sidebar({
                     </div>
                   ) : visibleNotes.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      {normalizedSidebarSearch ? "No note results" : "No notes yet"}
+                      {normalizedSidebarSearch ? "No note matches" : "No notes yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -986,7 +986,7 @@ export function Sidebar({
                   )}
                 />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
-                  Draw
+                  Drawings
                 </span>
                 {drawings ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
@@ -1013,7 +1013,7 @@ export function Sidebar({
                     </div>
                   ) : visibleDrawings.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      {normalizedSidebarSearch ? "No draw results" : "No drawings yet"}
+                      {normalizedSidebarSearch ? "No drawing matches" : "No drawings yet"}
                     </div>
                   ) : (
                     <DndContext

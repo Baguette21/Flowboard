@@ -9,6 +9,15 @@ export const priorityValidator = v.optional(
   ),
 );
 
+export const aiTaskDraftValidator = v.object({
+  title: v.string(),
+  description: v.optional(v.string()),
+  columnId: v.optional(v.id("columns")),
+  columnTitle: v.optional(v.string()),
+  dueDate: v.optional(v.number()),
+  priority: priorityValidator,
+});
+
 export const colorValidator = v.string(); // hex color
 
 export const slugValidator = v.string(); // url-safe slug

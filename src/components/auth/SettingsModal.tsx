@@ -657,7 +657,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
                     App font
                   </p>
                   <p className="mt-1 text-sm font-medium text-brand-text">
-                    Choose the typeface used across Planthing.
+                    Choose the typeface used across PlanThing.
                   </p>
                 </div>
                 <Palette className="h-4 w-4 flex-shrink-0 text-brand-text/50" />

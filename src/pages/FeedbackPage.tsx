@@ -157,7 +157,7 @@ export function FeedbackPage() {
             className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-brand-text/65 transition-colors hover:bg-brand-text/5 hover:text-brand-text"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Planthing
+            Back to PlanThing
           </button>
         </div>
 

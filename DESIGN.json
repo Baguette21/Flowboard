@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-30T00:00:00+08:00",
+  "title": "Design System: PlanThing",
+  "extensions": {
+    "colorMeta": {
+      "paper-bg": {
+        "role": "primary",
+        "displayName": "Paper Field",
+        "canonical": "#F5F3EE",
+        "tonalRamp": ["oklch(18% 0.01 78)", "oklch(28% 0.012 78)", "oklch(42% 0.015 78)", "oklch(56% 0.018 78)", "oklch(70% 0.02 78)", "oklch(82% 0.02 78)", "oklch(92% 0.018 78)", "#F5F3EE"]
+      },
+      "paper-panel": {
+        "role": "secondary",
+        "displayName": "Paper Panel",
+        "canonical": "#E8E4DD",
+        "tonalRamp": ["oklch(17% 0.012 78)", "oklch(29% 0.014 78)", "oklch(43% 0.016 78)", "oklch(57% 0.018 78)", "oklch(70% 0.02 78)", "oklch(80% 0.02 78)", "#E8E4DD", "oklch(94% 0.016 78)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink Black",
+        "canonical": "#111111",
+        "tonalRamp": ["#111111", "#1A1A1A", "oklch(24% 0.005 78)", "oklch(38% 0.006 78)", "oklch(52% 0.006 78)", "oklch(66% 0.006 78)", "oklch(82% 0.005 78)", "oklch(94% 0.004 78)"]
+      },
+      "sprout-red": {
+        "role": "primary",
+        "displayName": "Sprout Red",
+        "canonical": "#E63B2E",
+        "tonalRamp": ["oklch(20% 0.07 31)", "oklch(31% 0.1 31)", "oklch(42% 0.14 31)", "oklch(54% 0.18 31)", "#E63B2E", "oklch(70% 0.14 31)", "oklch(82% 0.08 31)", "oklch(94% 0.03 31)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles and major workspace headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Board cards, note cards, and item names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Readable interface copy and descriptions."
+      },
+      "label": {
+        "displayName": "Mono Label",
+        "purpose": "Section labels, counts, compact metadata, and filters."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-elevation",
+        "value": "rgba(0, 0, 0, 0.04) 0 4px 18px, rgba(0, 0, 0, 0.027) 0 2.025px 7.84688px, rgba(0, 0, 0, 0.02) 0 0.8px 2.925px, rgba(0, 0, 0, 0.01) 0 0.175px 1.04062px",
+        "purpose": "Default scannable elevation for workspace cards."
+      },
+      {
+        "name": "card-hover-elevation",
+        "value": "rgba(0, 0, 0, 0.06) 0 6px 22px, rgba(0, 0, 0, 0.04) 0 3px 10px, rgba(0, 0, 0, 0.03) 0 1px 4px, rgba(0, 0, 0, 0.02) 0 0.25px 1.5px",
+        "purpose": "Hover feedback for clickable cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "180ms ease",
+        "purpose": "Default color, border, and shadow state changes."
+      },
+      {
+        "name": "drawer-reveal",
+        "value": "220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "purpose": "Task panels and drawer reveals."
+      },
+      {
+        "name": "expressive-chat",
+        "value": "360ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "AI assistant drawer entrance."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default create, save, and confirm action.",
+      "html": "<button class=\"ds-btn-primary\">New Board</button>",
+      "css": ".ds-btn-primary { height: 40px; padding: 0 20px; border: 0; border-radius: 2rem; background: #111111; color: #F5F3EE; font: 700 14px/1 Inter, system-ui, sans-serif; transition: background-color 180ms ease, box-shadow 180ms ease, transform 200ms ease-out; } .ds-btn-primary:hover { background: #1A1A1A; transform: scale(1.03); } .ds-btn-primary:focus-visible { outline: 2px solid #111111; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary creation and low-risk action.",
+      "html": "<button class=\"ds-btn-secondary\">New Note</button>",
+      "css": ".ds-btn-secondary { height: 40px; padding: 0 20px; border: 2px solid rgba(17,17,17,0.2); border-radius: 2rem; background: #E8E4DD; color: #111111; font: 700 14px/1 Inter, system-ui, sans-serif; transition: border-color 180ms ease, transform 200ms ease-out; } .ds-btn-secondary:hover { border-color: #111111; transform: scale(1.03); } .ds-btn-secondary:focus-visible { outline: 2px solid #111111; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Rounded tactile field for search, rename, and form entry.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search your things...\" />",
+      "css": ".ds-input { height: 40px; width: 260px; border: 2px solid rgba(17,17,17,0.3); border-radius: 16px; background: transparent; color: #111111; padding: 0 12px; font: 400 14px/1.4 Space Mono, ui-monospace, monospace; transition: border-color 180ms ease, box-shadow 180ms ease; } .ds-input::placeholder { color: rgba(17,17,17,0.4); } .ds-input:focus-visible { outline: none; border-color: #111111; }"
+    },
+    {
+      "name": "Workspace Card",
+      "kind": "card",
+      "refersTo": "card-board",
+      "description": "Scannable card for boards, notes, and workspace objects.",
+      "html": "<article class=\"ds-workspace-card\"><div class=\"ds-card-icon\">P</div><div><h3>Launch Plan</h3><p>Apr 30, 2026</p></div></article>",
+      "css": ".ds-workspace-card { display: flex; gap: 12px; align-items: flex-start; padding: 20px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08); background: #E8E4DD; color: #111111; box-shadow: rgba(0,0,0,0.04) 0 4px 18px, rgba(0,0,0,0.027) 0 2.025px 7.84688px, rgba(0,0,0,0.02) 0 0.8px 2.925px, rgba(0,0,0,0.01) 0 0.175px 1.04062px; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-workspace-card:hover { border-color: rgba(0,0,0,0.14); box-shadow: rgba(0,0,0,0.06) 0 6px 22px, rgba(0,0,0,0.04) 0 3px 10px, rgba(0,0,0,0.03) 0 1px 4px, rgba(0,0,0,0.02) 0 0.25px 1.5px; } .ds-card-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(230,59,46,0.12); color: #E63B2E; font: 700 14px/1 Inter, system-ui, sans-serif; } .ds-workspace-card h3 { margin: 0 0 6px; font: 700 22px/1.15 Inter, system-ui, sans-serif; } .ds-workspace-card p { margin: 0; color: rgba(0,0,0,0.35); font: 500 12px/1.3 Inter, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Sidebar Item",
+      "kind": "nav",
+      "refersTo": "nav-sidebar-item",
+      "description": "Compact navigation row for boards, notes, and drawings.",
+      "html": "<button class=\"ds-sidebar-item\"><span class=\"ds-sidebar-dot\"></span><span>Roadmap</span></button>",
+      "css": ".ds-sidebar-item { width: 240px; height: 36px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 12px; background: transparent; color: rgba(245,243,238,0.6); padding: 0 12px; text-align: left; font: 500 14px/1 Inter, system-ui, sans-serif; transition: background-color 180ms ease, color 180ms ease; } .ds-sidebar-item:hover { background: rgba(245,243,238,0.08); color: #F5F3EE; } .ds-sidebar-item:focus-visible { outline: 2px solid #F5F3EE; outline-offset: 2px; } .ds-sidebar-dot { width: 20px; height: 20px; border-radius: 8px; background: rgba(230,59,46,0.2); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Working Garden",
+    "overview": "PlanThing should feel like a quiet workbench where plans can grow from rough notes into organized action. The interface is calm and clean first, then tactile and fast in the hand: boards, cards, notes, and drawing surfaces should feel direct, not precious.\n\nThe baseline borrows Notion's clarity and warm restraint, but the product must never read as a generic Notion clone. PlanThing's identity comes from planning, growth, and adaptable structure: a warm paper field, dark anchored navigation, red sprout-like accent, and controls that feel sturdy enough for daily use.",
+    "keyCharacteristics": [
+      "Warm paper backgrounds instead of sterile white or cold gray.",
+      "Dark, grounded sidebar for navigation and workspace memory.",
+      "Red accent used for brand punctuation, danger, and small moments of energy.",
+      "Rounded tactile controls with clear hover and focus states.",
+      "Dense product surfaces that stay calm through hierarchy, not decoration.",
+      "Motion is quick feedback only, with reduced-motion support."
+    ],
+    "rules": [
+      {
+        "name": "The Red Is Alive Rule",
+        "body": "Red is punctuation, not wallpaper. If multiple red elements compete on one screen, the screen is shouting.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paper Before Chrome Rule",
+        "body": "Default to warm paper surfaces and border contrast before adding shadows, gradients, or decorative effects.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Type Rule",
+        "body": "UI labels, data, and controls use Inter or Space Mono. Serif italic is a brand accent, never the default language of the interface.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Until Useful Rule",
+        "body": "Surfaces are flat by default. Elevation appears when it helps scanning, interaction, or temporary layering.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep PlanThing calm and clean even when boards, notes, and drawings grow dense.",
+      "Do use Paper Field, Paper Panel, and Ink Black as the main structural palette.",
+      "Do make customization visible through board colors, icon wells, labels, views, and flexible workspace organization.",
+      "Do provide visible focus states, reduced-motion alternatives, color-blind safe labels, and keyboard-first workflows for core actions.",
+      "Do use Notion as a clarity baseline while giving PlanThing its own planning and growth identity."
+    ],
+    "donts": [
+      "Don't make PlanThing feel like corporate Jira.",
+      "Don't make PlanThing feel like a generic Notion clone.",
+      "Don't use neon AI dashboard styling, glowing dark gradients, or decorative AI visual tropes.",
+      "Don't make the interface feel like a childish task app.",
+      "Don't let boards become a cluttered Trello board without hierarchy.",
+      "Don't use over-designed startup SaaS hero patterns inside product surfaces.",
+      "Don't rely on color alone for labels, statuses, selection, errors, or permissions."
+    ]
+  }
+}

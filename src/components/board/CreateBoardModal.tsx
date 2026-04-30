@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
+import { ChevronDown, Loader2, Plus, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import {
   BOARD_ACCENT_OPTIONS,
@@ -24,6 +24,7 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
   const [iconId, setIconId] = useState(DEFAULT_BOARD_ICON.id);
   const [color, setColor] = useState(DEFAULT_BOARD_ACCENT.color);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
 
   const selectedIcon =
     BOARD_ICON_OPTIONS.find((option) => option.id === iconId) ?? DEFAULT_BOARD_ICON;
@@ -37,6 +38,7 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
       setName("");
       setIconId(DEFAULT_BOARD_ICON.id);
       setColor(DEFAULT_BOARD_ACCENT.color);
+      setShowCustomize(false);
     }
   }, [open]);
 
@@ -72,11 +74,11 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div
-        className="task-panel-backdrop absolute inset-0 bg-black/50"
+        className="task-panel-backdrop absolute inset-0 bg-brand-text/45"
         onClick={onClose}
       />
 
-      <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:max-w-[560px]">
+      <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:max-w-[520px]">
         <div className="flex items-center justify-between border-b border-brand-text/10 px-5 py-3">
           <div className="flex items-center gap-2">
             <Plus className="h-4 w-4 text-brand-text/40" />
@@ -95,31 +97,8 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7">
-            <div className="rounded-[16px] border border-brand-text/10 bg-brand-primary/12 px-5 py-5">
-              <div className="flex items-center gap-4">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-[16px]"
-                  style={{
-                    backgroundColor: `${selectedAccent.color}22`,
-                    boxShadow: `inset 0 0 0 1px ${selectedAccent.color}22`,
-                    color: selectedAccent.color,
-                  }}
-                >
-                  <selectedIcon.Icon className="h-7 w-7" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-serif text-[28px] font-bold leading-none text-brand-text">
-                    {name || "Board Name"}
-                  </p>
-                  <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-text/34">
-                    Preview
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-7">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+            <div>
               <label className="mb-2 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
                 Board Name
               </label>
@@ -135,56 +114,107 @@ export function CreateBoardModal({ open, onClose }: CreateBoardModalProps) {
               />
             </div>
 
-            <div className="mt-7">
-              <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
-                Board Icon
-              </label>
-              <div className="grid grid-cols-7 gap-2 sm:grid-cols-8">
-                {BOARD_ICON_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setIconId(option.id)}
-                    className={cn(
-                      "flex h-11 items-center justify-center rounded-[10px] border transition-colors",
-                      iconId === option.id
-                        ? "border-brand-text/26 bg-brand-primary"
-                        : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
-                    )}
-                    title={option.label}
-                    aria-label={option.label}
-                  >
-                    <option.Icon className="h-5 w-5 text-brand-text/72" />
-                  </button>
-                ))}
+            <div className="mt-5 flex items-center gap-3 rounded-[12px] border border-brand-text/8 bg-brand-primary/20 px-4 py-3">
+              <div
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px]"
+                style={{
+                  backgroundColor: `${selectedAccent.color}22`,
+                  color: selectedAccent.color,
+                }}
+                aria-hidden="true"
+              >
+                <selectedIcon.Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-brand-text">
+                  {name.trim() || "Untitled board"}
+                </p>
+                <p className="mt-0.5 font-mono text-[11px] text-brand-text/40">
+                  Uses {selectedAccent.label.toLowerCase()} with {selectedIcon.label.toLowerCase()}.
+                </p>
               </div>
             </div>
 
-            <div className="mt-7">
-              <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
-                Accent Color
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {BOARD_ACCENT_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setColor(option.color)}
-                    className={cn(
-                      "flex h-11 items-center justify-center rounded-[12px] border transition-colors",
-                      color === option.color
-                        ? "border-brand-text/26 bg-brand-primary"
-                        : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
-                    )}
-                    title={option.label}
-                  >
-                    <span
-                      className="h-5 w-5 rounded-full"
-                      style={{ backgroundColor: option.color }}
-                    />
-                  </button>
-                ))}
-              </div>
+            <div className="mt-5 border-t border-brand-text/10 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowCustomize((current) => !current)}
+                className="flex w-full items-center justify-between rounded-[10px] px-1 py-2 text-left transition-colors hover:bg-brand-text/5"
+                aria-expanded={showCustomize}
+                aria-controls="create-board-customize"
+              >
+                <span>
+                  <span className="block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                    Customize
+                  </span>
+                  <span className="mt-1 block text-sm text-brand-text/48">
+                    Optional. You can change this later.
+                  </span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-brand-text/36 transition-transform",
+                    showCustomize && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {showCustomize && (
+                <div id="create-board-customize" className="mt-4 space-y-5">
+                  <div>
+                    <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                      Board Icon
+                    </label>
+                    <div className="grid grid-cols-7 gap-2 sm:grid-cols-8">
+                      {BOARD_ICON_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setIconId(option.id)}
+                          className={cn(
+                            "flex h-11 items-center justify-center rounded-[10px] border transition-colors",
+                            iconId === option.id
+                              ? "border-brand-text/26 bg-brand-primary"
+                              : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
+                          )}
+                          title={option.label}
+                          aria-label={option.label}
+                        >
+                          <option.Icon className="h-5 w-5 text-brand-text/72" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-3 block font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
+                      Accent Color
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {BOARD_ACCENT_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setColor(option.color)}
+                          className={cn(
+                            "flex h-11 items-center justify-center rounded-[12px] border transition-colors",
+                            color === option.color
+                              ? "border-brand-text/26 bg-brand-primary"
+                              : "border-brand-text/8 bg-brand-primary/20 hover:border-brand-text/18 hover:bg-brand-primary/42",
+                          )}
+                          title={option.label}
+                          aria-label={option.label}
+                        >
+                          <span
+                            className="h-5 w-5 rounded-full"
+                            style={{ backgroundColor: option.color }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
