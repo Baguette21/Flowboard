@@ -201,7 +201,7 @@ export function ProfilePage() {
                     privacyMode && "blur-md",
                   )}
                 />
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-brand-dark/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   {isUploadingAvatar || isDeletingAvatar ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (

@@ -51,15 +51,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         onClick={onClick}
-        style={{
-          ...style,
-          ...(statusColor
-            ? {
-                borderLeft: `3px solid ${statusColor}`,
-                paddingLeft: "11px",
-              }
-            : null),
-        }}
+        style={style}
         className={cn(
           "relative w-full cursor-pointer select-none rounded-[8px] card-whisper bg-brand-primary px-3 py-2.5 transition-all duration-150",
           card.isComplete && "opacity-50",
@@ -70,7 +62,15 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         {...props}
       >
         <div className="flex items-start gap-2.5">
-          <FileText className="mt-[2px] h-3.5 w-3.5 flex-shrink-0 text-[color:var(--color-text-subtle)]" />
+          {statusColor ? (
+            <span
+              aria-hidden
+              className="mt-[6px] h-2 w-2 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: statusColor }}
+            />
+          ) : (
+            <FileText className="mt-[2px] h-3.5 w-3.5 flex-shrink-0 text-[color:var(--color-text-subtle)]" />
+          )}
           <h3
             className={cn(
               "text-[14px] font-medium leading-snug text-brand-text",

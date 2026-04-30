@@ -223,7 +223,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
     <>
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div
-          className="task-panel-backdrop absolute inset-0 bg-black/50"
+          className="task-panel-backdrop absolute inset-0 bg-brand-dark/45 backdrop-blur-sm"
           onClick={onClose}
         />
 
