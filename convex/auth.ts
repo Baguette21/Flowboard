@@ -9,6 +9,7 @@ import { Email } from "@convex-dev/auth/providers/Email";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
+import type { DatabaseWriter } from "./_generated/server";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -127,9 +128,11 @@ const authConfig: ConvexAuthConfig = {
       }
 
       if (typeof args.profile.email === "string") {
-        const existingUserByEmail = await (ctx.db as any)
+        const email = args.profile.email;
+        const db = ctx.db as DatabaseWriter;
+        const existingUserByEmail = await db
           .query("users")
-          .withIndex("email", (q: any) => q.eq("email", args.profile.email!))
+          .withIndex("email", (q) => q.eq("email", email))
           .unique();
 
         if (existingUserByEmail) {
