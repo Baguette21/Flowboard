@@ -14,7 +14,6 @@ import {
   FileText,
   Search,
   Layers,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
@@ -92,20 +91,6 @@ export function HomePage() {
   const boardCount = boards?.length ?? 0;
   const noteCount = notes?.length ?? 0;
   const hasSearch = normalizedSearch.length > 0;
-  const continueItems = !hasSearch && filter === "all" ? feed.slice(0, 3) : [];
-  const libraryFeed =
-    continueItems.length > 0
-      ? feed.filter(
-          (item) =>
-            !continueItems.some((continued) =>
-              continued.kind === "board" && item.kind === "board"
-                ? continued.board._id === item.board._id
-                : continued.kind === "note" && item.kind === "note"
-                  ? continued.note._id === item.note._id
-                  : false,
-            ),
-        )
-      : feed;
   const showFavorites =
     !hasSearch && filter !== "notes" && favorites.length > 0;
 
@@ -210,36 +195,6 @@ export function HomePage() {
             </div>
           ) : (
             <div className="space-y-10 sm:space-y-12">
-              {continueItems.length > 0 && (
-                <section>
-                  <div className="mb-4">
-                    <div className="mb-1 flex items-center gap-2">
-                      <ArrowRight className="h-4 w-4 text-brand-accent" />
-                      <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-brand-text/64">
-                        Continue
-                      </h2>
-                    </div>
-                    <p className="text-sm text-brand-text/45">
-                      The last things you touched, ready to pick back up.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    {continueItems.map((item) =>
-                      item.kind === "board" ? (
-                        <BoardCard
-                          key={`continue-${item.board._id}`}
-                          board={item.board}
-                        />
-                      ) : (
-                        <NoteCard
-                          key={`continue-${item.note._id}`}
-                          note={item.note}
-                        />
-                      ),
-                    )}
-                  </div>
-                </section>
-              )}
               {/* ── Favorites ── */}
               {showFavorites && (
                 <section>
@@ -260,8 +215,8 @@ export function HomePage() {
                 </section>
               )}
 
-              {/* ── Recent ── */}
-              {libraryFeed.length > 0 && (
+              {/* ── Library ── */}
+              {feed.length > 0 && (
                 <section>
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -274,7 +229,7 @@ export function HomePage() {
                       <p className="text-sm text-brand-text/45">
                         {hasSearch
                           ? "Filtered boards and notes from this workspace."
-                          : "Everything else, sorted by recent activity."}
+                          : "Sorted by recent activity."}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -300,7 +255,7 @@ export function HomePage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {libraryFeed.map((item) =>
+                    {feed.map((item) =>
                       item.kind === "board" ? (
                         <BoardCard
                           key={item.board._id}

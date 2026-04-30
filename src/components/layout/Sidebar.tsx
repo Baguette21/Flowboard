@@ -1150,26 +1150,30 @@ export function Sidebar({
               setContextMenu(null);
             }}
           />
-          <SidebarMenuButton
-            icon={<Archive className="h-4 w-4" />}
-            label={contextMenu.canArchive ? "Archive" : "Archive unavailable"}
-            disabled={!contextMenu.canArchive}
-            onClick={() => {
-              void handleArchive(contextMenu);
-              setContextMenu(null);
-            }}
-          />
-          <div className="my-1 border-t border-brand-sidebar-text/10" />
-          <SidebarMenuButton
-            icon={<Trash2 className="h-4 w-4" />}
-            label={contextMenu.canDelete ? "Delete" : "Delete unavailable"}
-            destructive={contextMenu.canDelete}
-            disabled={!contextMenu.canDelete}
-            onClick={() => {
-              setDeleteItem(contextMenu);
-              setContextMenu(null);
-            }}
-          />
+          {contextMenu.canArchive ? (
+            <SidebarMenuButton
+              icon={<Archive className="h-4 w-4" />}
+              label="Archive"
+              onClick={() => {
+                void handleArchive(contextMenu);
+                setContextMenu(null);
+              }}
+            />
+          ) : null}
+          {contextMenu.canDelete ? (
+            <>
+              <div className="my-1 border-t border-brand-sidebar-text/10" />
+              <SidebarMenuButton
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Delete"
+                destructive
+                onClick={() => {
+                  setDeleteItem(contextMenu);
+                  setContextMenu(null);
+                }}
+              />
+            </>
+          ) : null}
         </div>
       ) : null}
 
@@ -1242,7 +1246,7 @@ function SidebarMenuButton({
       className={cn(
         "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         destructive
-          ? "text-red-300 hover:bg-red-500/12"
+          ? "text-brand-accent hover:bg-brand-accent/12"
           : "text-brand-sidebar-text/86 hover:bg-brand-sidebar-text/10 hover:text-brand-sidebar-text",
       )}
     >

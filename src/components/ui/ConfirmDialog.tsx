@@ -47,7 +47,7 @@ export function ConfirmDialog({
             disabled={isLoading}
             className={`px-5 py-2.5 rounded-2xl font-mono font-bold text-sm transition-colors disabled:opacity-60 ${
               isDestructive
-                ? "bg-brand-accent text-white hover:bg-red-700"
+                ? "bg-brand-accent text-white hover:bg-brand-accent-strong"
                 : "bg-brand-text text-brand-bg hover:bg-brand-dark"
             }`}
           >

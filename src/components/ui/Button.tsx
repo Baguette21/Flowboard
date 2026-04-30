@@ -18,7 +18,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       secondary: 'bg-brand-primary border-2 border-brand-text/20 text-brand-text hover:border-brand-text',
       ghost: 'bg-transparent text-brand-text hover:bg-brand-text/10',
       outline: 'bg-transparent border-2 border-brand-text text-brand-text hover:bg-brand-text hover:text-brand-bg',
-      danger: 'bg-brand-accent text-white hover:bg-red-700',
+      danger: 'bg-brand-accent text-white hover:bg-brand-accent-strong',
     };
 
     const sizes = {

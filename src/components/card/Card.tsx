@@ -106,7 +106,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
               <span
                 className={cn(
                   "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  isOverdue ? "bg-red-500/15 text-red-500" : "text-[color:var(--color-text-muted)]",
+                  isOverdue ? "bg-brand-accent/15 text-brand-accent" : "text-[color:var(--color-text-muted)]",
                 )}
               >
                 <Clock className="h-2.5 w-2.5" />
