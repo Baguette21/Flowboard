@@ -10,6 +10,7 @@ import { ExcalidrawCanvas } from "../components/drawing/ExcalidrawCanvas";
 import { Layout } from "../components/layout/Layout";
 import { WorkspaceItemMenu } from "../components/layout/WorkspaceItemMenu";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { PlanthingLoading } from "../components/branding/PlanthingLoading";
 import { cn } from "../lib/utils";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 
@@ -264,12 +265,7 @@ export function DrawPage() {
     if (drawings === undefined) {
       content = (
         <div className="flex flex-1 items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="h-6 w-6 rounded bg-brand-accent animate-pulse" />
-            <span className="font-mono text-xs text-brand-text/40">
-              Loading drawings...
-            </span>
-          </div>
+          <PlanthingLoading />
         </div>
       );
     } else if (drawings.length === 0) {
@@ -287,24 +283,14 @@ export function DrawPage() {
     } else {
       content = (
         <div className="flex flex-1 items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="h-6 w-6 rounded bg-brand-accent animate-pulse" />
-            <span className="font-mono text-xs text-brand-text/40">
-              Opening latest drawing...
-            </span>
-          </div>
+          <PlanthingLoading />
         </div>
       );
     }
   } else if (activeDrawing === undefined) {
     content = (
       <div className="flex flex-1 items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="h-6 w-6 rounded bg-brand-accent animate-pulse" />
-          <span className="font-mono text-xs text-brand-text/40">
-            Loading drawing...
-          </span>
-        </div>
+        <PlanthingLoading />
       </div>
     );
   } else if (activeDrawing) {
