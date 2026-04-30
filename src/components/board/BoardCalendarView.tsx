@@ -174,10 +174,12 @@ export function BoardCalendarView({
           {/* ── Header ─────────────────────────────────── */}
           <div className="mb-4 flex items-center justify-between">
             {/* Left: month name + due count */}
-            <div
-              className="flex items-center gap-3 pl-3"
-              style={{ borderLeft: `3px solid ${calendarColor}` }}
-            >
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                style={{ backgroundColor: calendarColor }}
+              />
               <div>
                 <h2 className="text-xl font-bold leading-none tracking-display text-brand-text sm:text-2xl">
                   {format(selectedMonth, "MMMM yyyy")}

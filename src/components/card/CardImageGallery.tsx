@@ -435,14 +435,14 @@ export function CardImageGallery({
                           <button
                             type="button"
                             onClick={() => setActivePreviewId(attachment._id)}
-                            className="inline-flex items-center gap-1.5 rounded-[9px] bg-black/55 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-black/70"
+                            className="inline-flex items-center gap-1.5 rounded-[9px] bg-brand-dark/60 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-brand-dark/75"
                             title="Open larger preview"
                           >
                             <Maximize2 className="h-3 w-3" />
                             Preview
                           </button>
                         ) : (
-                          <span className="rounded-[9px] bg-black/45 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/72">
+                          <span className="rounded-[9px] bg-brand-dark/50 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/72">
                             Preparing
                           </span>
                         )}

@@ -200,10 +200,10 @@ export function LoginPage() {
 
         <div>
           <blockquote className="font-serif italic text-4xl font-bold leading-tight mb-6 text-brand-sidebar-text/80">
-            Track progress without losing focus.
+            Start with a plan. Grow from there.
           </blockquote>
           <p className="font-mono text-sm text-brand-sidebar-text/50 uppercase tracking-widest">
-            Kanban built for focused work
+            Modern Planner For Everyone
           </p>
         </div>
 

@@ -258,7 +258,7 @@ export function CardDetail({
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="task-panel-backdrop absolute inset-0 bg-black/50"
+        className="task-panel-backdrop absolute inset-0 bg-brand-dark/45 backdrop-blur-sm"
         onClick={onClose}
       />
       {/* Panel */}
