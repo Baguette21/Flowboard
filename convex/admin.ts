@@ -1,16 +1,17 @@
 import { v } from "convex/values";
 import { internalMutation, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
-async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
+async function deleteBoardCascade(ctx: MutationCtx, boardId: Id<"boards">) {
   const cards = await ctx.db
     .query("cards")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const card of cards) {
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_cardId", (q: any) => q.eq("cardId", card._id))
+      .withIndex("by_cardId", (q) => q.eq("cardId", card._id))
       .collect();
     for (const notification of notifications) {
       await ctx.db.delete(notification._id);
@@ -18,7 +19,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
     const attachments = await ctx.db
       .query("cardAttachments")
-      .withIndex("by_cardId", (q: any) => q.eq("cardId", card._id))
+      .withIndex("by_cardId", (q) => q.eq("cardId", card._id))
       .collect();
     for (const attachment of attachments) {
       await ctx.db.delete(attachment._id);
@@ -26,7 +27,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
     const logs = await ctx.db
       .query("activityLogs")
-      .withIndex("by_cardId", (q: any) => q.eq("cardId", card._id))
+      .withIndex("by_cardId", (q) => q.eq("cardId", card._id))
       .collect();
     for (const log of logs) {
       await ctx.db.delete(log._id);
@@ -37,7 +38,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const columns = await ctx.db
     .query("columns")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const column of columns) {
     await ctx.db.delete(column._id);
@@ -45,7 +46,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const labels = await ctx.db
     .query("labels")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const label of labels) {
     await ctx.db.delete(label._id);
@@ -53,7 +54,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const boardLogs = await ctx.db
     .query("activityLogs")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const log of boardLogs) {
     await ctx.db.delete(log._id);
@@ -61,7 +62,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const members = await ctx.db
     .query("boardMembers")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const member of members) {
     await ctx.db.delete(member._id);
@@ -69,7 +70,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const invites = await ctx.db
     .query("boardInvites")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const invite of invites) {
     await ctx.db.delete(invite._id);
@@ -77,7 +78,7 @@ async function deleteBoardCascade(ctx: any, boardId: Id<"boards">) {
 
   const boardNotifications = await ctx.db
     .query("notifications")
-    .withIndex("by_boardId", (q: any) => q.eq("boardId", boardId))
+    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
     .collect();
   for (const notification of boardNotifications) {
     await ctx.db.delete(notification._id);
