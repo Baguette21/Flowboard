@@ -152,7 +152,10 @@ PlanThing uses a hybrid depth model: most surfaces are separated by warm tonal c
 ## 5. Components
 
 ### Buttons
-- **Shape:** Rounded pill controls for shared button components (2rem radius), with tighter 12px rounded buttons in dense page headers.
+- **Shape:** Two grammars, chosen by surface density, never mixed within one journey.
+  - **Pill (2rem radius)** is the default. Use it for standalone CTAs in spacious surfaces: auth screens, empty-state CTAs, modal confirms, workspace and detail page-header primary actions. Almost every deliberate click target should be a pill.
+  - **12px radius** is the dense exception. Use it only when three or more buttons sit in a tight strip: board view chrome, formatting toolbars, inline filter rows. Pill geometry in a packed strip reads as balloons.
+  - The radius shifts on density, not category. A solitary "New Board" in a workspace header is pill; the same action embedded in a 6-button board toolbar is 12px.
 - **Primary:** Ink black background, paper text, 40px height, bold readable label. It is the default for create, save, and confirm actions.
 - **Hover / Focus:** Hover deepens to ink-deep. Focus uses a visible 2px ink ring. Loading uses a spinner plus disabled state.
 - **Secondary / Ghost / Danger:** Secondary uses Paper Panel with a strong border on hover. Ghost uses transparent backgrounds and text hover. Danger uses Sprout Red, reserved for destructive actions.

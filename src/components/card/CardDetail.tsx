@@ -28,6 +28,8 @@ import { useProfileImageUrls } from "../../hooks/useProfileImageUrls";
 import { UserAvatar } from "../ui/UserAvatar";
 import { getAssignedUserIds } from "../../lib/assignees";
 
+const TASK_PANEL_EXIT_MS = 180;
+
 const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", color: "#E63B2E" },
   { value: "high",   label: "High",   color: "#F97316" },
@@ -71,7 +73,9 @@ export function CardDetail({
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
   const [isAssigneeCommitPending, setIsAssigneeCommitPending] = useState(false);
   const [isLabelCommitPending, setIsLabelCommitPending] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
   const localAssignedUserIdsRef = useRef<Id<"users">[]>([]);
   const localLabelIdsRef = useRef<Id<"labels">[]>([]);
   const memberImageUrls = useProfileImageUrls(
@@ -107,6 +111,14 @@ export function CardDetail({
       onClose();
     }
   }, [card, onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!card) {
@@ -253,16 +265,35 @@ export function CardDetail({
     }
   };
 
+  const handleRequestClose = () => {
+    if (isClosing) {
+      return;
+    }
+
+    setIsClosing(true);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      onClose();
+    }, TASK_PANEL_EXIT_MS);
+  };
+
   /* ── Shell (always rendered so animation plays) ── */
   const shell = (content: React.ReactNode) => (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="task-panel-backdrop absolute inset-0 bg-brand-dark/45 backdrop-blur-sm"
-        onClick={onClose}
+        className={cn(
+          "absolute inset-0 bg-brand-dark/45 backdrop-blur-sm",
+          isClosing ? "task-panel-backdrop-out" : "task-panel-backdrop",
+        )}
+        onClick={handleRequestClose}
       />
       {/* Panel */}
-      <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col overflow-hidden border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:w-[50vw] sm:max-w-none">
+      <div
+        className={cn(
+          "absolute right-0 top-0 flex h-full w-full flex-col overflow-hidden border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:w-[50vw] sm:max-w-none",
+          isClosing ? "task-panel-slide-out" : "task-panel-slide",
+        )}
+      >
         {content}
       </div>
     </div>
@@ -320,7 +351,7 @@ export function CardDetail({
             <Trash2 className="h-4 w-4" />
           </button>
           <button
-            onClick={onClose}
+            onClick={handleRequestClose}
             className="rounded-lg p-2 text-brand-text/30 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
             title="Close"
           >

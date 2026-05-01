@@ -86,12 +86,56 @@ type SidebarContextMenuState = SidebarContextItem & {
 };
 
 const SIDEBAR_WIDTH_STORAGE_KEY = "planthing.sidebarWidth";
+const SIDEBAR_SECTIONS_STORAGE_KEY = "planthing.sidebarSections";
 const DEFAULT_SIDEBAR_WIDTH = 240;
 const MIN_SIDEBAR_WIDTH = 220;
 const MAX_SIDEBAR_WIDTH = 420;
 
+type SidebarSectionState = {
+  boardsExpanded: boolean;
+  notesExpanded: boolean;
+  drawExpanded: boolean;
+};
+
+const DEFAULT_SIDEBAR_SECTIONS: SidebarSectionState = {
+  boardsExpanded: true,
+  notesExpanded: true,
+  drawExpanded: true,
+};
+
 function clampSidebarWidth(width: number) {
   return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
+}
+
+function loadSidebarSections(): SidebarSectionState {
+  if (typeof window === "undefined") {
+    return DEFAULT_SIDEBAR_SECTIONS;
+  }
+
+  const raw = window.localStorage.getItem(SIDEBAR_SECTIONS_STORAGE_KEY);
+  if (!raw) {
+    return DEFAULT_SIDEBAR_SECTIONS;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<SidebarSectionState>;
+    return {
+      boardsExpanded:
+        typeof parsed.boardsExpanded === "boolean"
+          ? parsed.boardsExpanded
+          : DEFAULT_SIDEBAR_SECTIONS.boardsExpanded,
+      notesExpanded:
+        typeof parsed.notesExpanded === "boolean"
+          ? parsed.notesExpanded
+          : DEFAULT_SIDEBAR_SECTIONS.notesExpanded,
+      drawExpanded:
+        typeof parsed.drawExpanded === "boolean"
+          ? parsed.drawExpanded
+          : DEFAULT_SIDEBAR_SECTIONS.drawExpanded,
+    };
+  } catch {
+    return DEFAULT_SIDEBAR_SECTIONS;
+  }
 }
 
 function SortableSidebarItem({
@@ -172,9 +216,15 @@ export function Sidebar({
   const [deleteItem, setDeleteItem] = useState<SidebarContextItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [boardsExpanded, setBoardsExpanded] = useState(true);
-  const [notesExpanded, setNotesExpanded] = useState(true);
-  const [drawExpanded, setDrawExpanded] = useState(true);
+  const [boardsExpanded, setBoardsExpanded] = useState(
+    () => loadSidebarSections().boardsExpanded,
+  );
+  const [notesExpanded, setNotesExpanded] = useState(
+    () => loadSidebarSections().notesExpanded,
+  );
+  const [drawExpanded, setDrawExpanded] = useState(
+    () => loadSidebarSections().drawExpanded,
+  );
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
@@ -332,6 +382,14 @@ export function Sidebar({
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      SIDEBAR_SECTIONS_STORAGE_KEY,
+      JSON.stringify({ boardsExpanded, notesExpanded, drawExpanded }),
+    );
+  }, [boardsExpanded, notesExpanded, drawExpanded]);
 
   useEffect(() => {
     if (!isResizing) return;

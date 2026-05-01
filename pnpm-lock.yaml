@@ -184,9 +184,15 @@ importers:
       '@react-native/babel-preset':
         specifier: 0.81.5
         version: 0.81.5(@babel/core@7.29.0)
+      '@react-native/codegen':
+        specifier: 0.81.5
+        version: 0.81.5(@babel/core@7.29.0)
       '@react-native/eslint-config':
         specifier: 0.81.5
         version: 0.81.5(eslint@9.39.4(jiti@2.6.1))(prettier@3.8.1)(typescript@5.8.3)
+      '@react-native/gradle-plugin':
+        specifier: 0.81.5
+        version: 0.81.5
       '@react-native/metro-config':
         specifier: 0.81.5
         version: 0.81.5(@babel/core@7.29.0)

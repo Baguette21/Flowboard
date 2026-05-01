@@ -127,7 +127,7 @@ export function HomePage() {
             <div className="flex flex-wrap gap-2 lg:pt-6">
               <button
                 onClick={() => setShowCreateBoard(true)}
-                className="flex items-center justify-center gap-2 h-10 px-4 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+                className="flex items-center justify-center gap-2 h-10 px-5 bg-brand-text text-brand-bg rounded-[2rem] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New Board</span>
@@ -135,7 +135,7 @@ export function HomePage() {
               </button>
               <button
                 onClick={() => void handleCreateNote()}
-                className="flex items-center justify-center gap-2 h-10 px-4 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[12px] font-mono font-bold text-sm hover:border-brand-text transition-colors"
+                className="flex items-center justify-center gap-2 h-10 px-5 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[2rem] font-mono font-bold text-sm hover:border-brand-text transition-colors"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New Note</span>
@@ -165,14 +165,14 @@ export function HomePage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowCreateBoard(true)}
-                  className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+                  className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-[2rem] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Create Board
                 </button>
                 <button
                   onClick={() => void handleCreateNote()}
-                  className="flex items-center gap-2 h-11 px-6 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[12px] font-mono font-bold text-sm hover:border-brand-text transition-colors"
+                  className="flex items-center gap-2 h-11 px-6 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[2rem] font-mono font-bold text-sm hover:border-brand-text transition-colors"
                 >
                   <FileText className="w-4 h-4" />
                   New Note

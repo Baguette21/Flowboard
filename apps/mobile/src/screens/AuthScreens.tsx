@@ -1,189 +1,88 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { AuthShell } from "@/features/auth/AuthShell";
-import { Button } from "@/components/Button";
-import { TextField } from "@/components/TextField";
-import { getErrorMessage } from "@/lib/errors";
-import { useAppNavigation } from "@/navigation/NavigationContext";
-import { colors, spacing } from "@/theme/tokens";
+import { Logo, LogoLockup, Mono, Screen } from "@/components/Primitives";
+import type { AppTheme } from "@/theme/tokens";
+import type { ScreenKey } from "@/types";
 
-export function SignInScreen() {
-  const navigation = useAppNavigation();
+const copy: Record<"welcome" | "signin" | "signup" | "otp" | "empty", string[]> = {
+  welcome: ["Plans that grow with you.", "Boards, notes, and drawings on one calm paper surface."],
+  signin: ["Welcome back.", "Sign in to sync your working garden."],
+  signup: ["Start a new workspace.", "Create your first board and invite collaborators."],
+  otp: ["Check your inbox.", "Enter the code sent to your email."],
+  empty: ["Nothing planted yet.", "Create a board to start growing your plan."],
+};
+
+export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy; theme: AppTheme; setScreen: (screen: ScreenKey) => void }) {
   const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const result = await signIn("password", { email, password, flow: "signIn" });
-      if (!result.signingIn) {
-        navigation.navigate({ name: "verifyEmail", email });
-      } else {
-        navigation.replace({ name: "main", tab: "workspace" });
-      }
-    } catch (err) {
-      setError(getErrorMessage(err, "Sign in failed. Try again."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AuthShell title="Welcome back" subtitle="Open your boards and keep the plan moving.">
-      <View style={styles.form}>
-        <TextField label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button onPress={submit} loading={loading}>Sign In</Button>
-        <Pressable style={styles.linkButton} onPress={() => navigation.navigate({ name: "forgotPassword" })}>
-          <Text style={styles.linkText}>Forgot password?</Text>
-        </Pressable>
-      </View>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>No account yet?</Text>
-        <Pressable onPress={() => navigation.navigate({ name: "signUp" })}>
-          <Text style={styles.footerLink}>Create one</Text>
-        </Pressable>
-      </View>
-    </AuthShell>
-  );
-}
-
-export function SignUpScreen() {
-  const navigation = useAppNavigation();
-  const { signIn } = useAuthActions();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const result = await signIn("password", { name: name.trim(), email, password, flow: "signUp" });
-      if (!result.signingIn) navigation.navigate({ name: "verifyEmail", email });
-      else navigation.replace({ name: "main", tab: "workspace" });
-    } catch (err) {
-      setError(getErrorMessage(err, "Sign up failed. Try again."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AuthShell title="Create account" subtitle="Start with a board, then shape it your way.">
-      <View style={styles.form}>
-        <TextField label="Name" value={name} onChangeText={setName} />
-        <TextField label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button onPress={submit} loading={loading}>Create Account</Button>
-      </View>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Already have an account?</Text>
-        <Pressable onPress={() => navigation.navigate({ name: "signIn" })}>
-          <Text style={styles.footerLink}>Sign in</Text>
-        </Pressable>
-      </View>
-    </AuthShell>
-  );
-}
-
-export function VerifyEmailScreen({ email }: { email: string }) {
-  const navigation = useAppNavigation();
-  const { signIn } = useAuthActions();
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  const submit = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const result = await signIn("password", { flow: "email-verification", email, code: code.trim() });
-      if (!result.signingIn) throw new Error("Invalid verification code");
-      navigation.replace({ name: "main", tab: "workspace" });
-    } catch (err) {
-      setError(getErrorMessage(err, "We could not verify that code."));
-    } finally {
-      setLoading(false);
+  async function submit() {
+    setError(null);
+    if (type === "welcome") {
+      setScreen("signup");
+      return;
     }
-  };
-
-  return (
-    <AuthShell title="Check your email" subtitle={`Enter the six-digit code sent to ${email}.`}>
-      <View style={styles.form}>
-        <TextField label="Verification Code" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" maxLength={6} />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button onPress={submit} loading={loading}>Verify Email</Button>
-      </View>
-    </AuthShell>
-  );
-}
-
-export function ForgotPasswordScreen() {
-  const navigation = useAppNavigation();
-  const { signIn } = useAuthActions();
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [awaitingCode, setAwaitingCode] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    setError("");
-    setLoading(true);
+    if (type === "empty") {
+      setScreen("homeMixed");
+      return;
+    }
+    setPending(true);
     try {
-      if (!awaitingCode) {
-        await signIn("password", { flow: "reset", email });
-        setAwaitingCode(true);
+      if (type === "signup") {
+        await signIn("password", { flow: "signUp", email, password, name });
+        setScreen("otp");
+      } else if (type === "signin") {
+        await signIn("password", { flow: "signIn", email, password });
+        setScreen("homeMixed");
       } else {
-        const result = await signIn("password", { flow: "reset-verification", email, code, newPassword });
-        if (!result.signingIn) throw new Error("Invalid code");
-        navigation.replace({ name: "main", tab: "workspace" });
+        await signIn("password", { flow: "signUp", email, password, name, code });
+        setScreen("homeMixed");
       }
     } catch (err) {
-      if (!awaitingCode) setAwaitingCode(true);
-      else setError(getErrorMessage(err, "Password reset failed."));
+      setError(err instanceof Error ? err.message : "Could not complete sign-in.");
     } finally {
-      setLoading(false);
+      setPending(false);
     }
-  };
+  }
 
   return (
-    <AuthShell title={awaitingCode ? "Reset password" : "Forgot password"} subtitle={awaitingCode ? `Enter the code sent to ${email}.` : "We will send a reset code if the account exists."}>
-      <View style={styles.form}>
-        <TextField label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!awaitingCode} />
-        {awaitingCode ? (
-          <>
-            <TextField label="Reset Code" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" maxLength={6} />
-            <TextField label="New Password" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-          </>
-        ) : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button onPress={submit} loading={loading}>{awaitingCode ? "Change Password" : "Send Reset Code"}</Button>
-        <Pressable style={styles.linkButton} onPress={() => navigation.navigate({ name: "signIn" })}>
-          <Text style={styles.linkText}>Back to sign in</Text>
-        </Pressable>
+    <Screen theme={theme}>
+      <View style={styles.authScreen}>
+        <Logo theme={theme} size={type === "welcome" ? 64 : 48} />
+        {type === "welcome" ? <LogoLockup theme={theme} size={28} /> : <Mono theme={theme}>PlanThing mobile</Mono>}
+        <Text style={[styles.authTitle, { color: theme.ink }]}>{copy[type][0]}</Text>
+        <Text style={[styles.authBody, { color: theme.muted }]}>{copy[type][1]}</Text>
+        <View style={styles.authFields}>
+          {type === "signup" ? <TextInput value={name} onChangeText={setName} placeholder="Name" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
+          {type !== "welcome" && type !== "empty" ? <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
+          {type === "signin" || type === "signup" || type === "otp" ? <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={theme.subtle} secureTextEntry style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
+          {type === "otp" ? <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" placeholder="Verification code" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
+        </View>
+        {error ? <Text style={[styles.errorText, { color: theme.accent }]}>{error}</Text> : null}
+        <TouchableOpacity disabled={pending} onPress={submit} style={[styles.authButton, { backgroundColor: theme.ink, opacity: pending ? 0.7 : 1 }]}>
+          {pending ? <ActivityIndicator color={theme.bg} /> : <Text style={[styles.authButtonText, { color: theme.bg }]}>{type === "welcome" ? "Get started" : type === "empty" ? "Create board" : "Continue"}</Text>}
+        </TouchableOpacity>
+        {type === "signin" ? <TouchableOpacity onPress={() => setScreen("signup")}><Text style={[styles.linkText, { color: theme.muted }]}>Need an account?</Text></TouchableOpacity> : null}
+        {type === "signup" ? <TouchableOpacity onPress={() => setScreen("signin")}><Text style={[styles.linkText, { color: theme.muted }]}>Already have an account?</Text></TouchableOpacity> : null}
       </View>
-    </AuthShell>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: spacing.lg },
-  error: { color: colors.sproutRed, fontSize: 13, lineHeight: 18 },
-  linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  linkText: { color: colors.mutedText, fontSize: 14, fontWeight: "700" },
-  footer: { alignItems: "center", gap: 8 },
-  footerText: { color: colors.mutedText, fontSize: 14 },
-  footerLink: { color: colors.ink, fontSize: 15, fontWeight: "800" }
+  authScreen: { minHeight: 620, paddingHorizontal: 28, paddingTop: 72, alignItems: "flex-start", gap: 16 },
+  authTitle: { fontSize: 38, lineHeight: 41, fontWeight: "800", marginTop: 6 },
+  authBody: { fontSize: 16, lineHeight: 24 },
+  authFields: { width: "100%", gap: 10, marginTop: 10 },
+  authInput: { height: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, fontSize: 15, fontWeight: "600" },
+  authButton: { height: 50, minWidth: 138, borderRadius: 15, paddingHorizontal: 22, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  authButtonText: { fontSize: 15, fontWeight: "800" },
+  errorText: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  linkText: { fontSize: 13, fontWeight: "700" },
 });

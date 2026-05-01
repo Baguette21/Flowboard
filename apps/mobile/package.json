@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "powershell -ExecutionPolicy Bypass -File ./scripts/android-dev.ps1",
     "start": "react-native start",
     "typecheck": "tsc --noEmit",
     "clean:android": "cd android && gradlew clean"
@@ -28,7 +28,9 @@
     "@react-native-community/cli": "20.0.0",
     "@react-native-community/cli-platform-android": "20.0.0",
     "@react-native/babel-preset": "0.81.5",
+    "@react-native/codegen": "0.81.5",
     "@react-native/eslint-config": "0.81.5",
+    "@react-native/gradle-plugin": "0.81.5",
     "@react-native/metro-config": "0.81.5",
     "@react-native/typescript-config": "0.81.5",
     "@types/react": "~19.1.10",
