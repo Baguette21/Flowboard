@@ -83,7 +83,7 @@ export function Column({
     try {
       const newCardId = await createCard({
         columnId: column._id,
-        boardId: column.boardId,
+        planId: column.planId!,
         title: "New task",
       });
       onCardClick(newCardId);

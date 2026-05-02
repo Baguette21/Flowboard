@@ -23,7 +23,7 @@ PlanThing must not feel like corporate Jira, a generic Notion clone, a neon AI d
 ## Design Principles
 
 1. Shape around the user's plan, not the other way around. Customization and flexible views are part of the product promise.
-2. Keep the surface calm under load. As boards, notes, labels, and assignments grow, hierarchy should reduce noise instead of adding more decoration.
+2. Keep the surface calm under load. As plans, notes, labels, and assignments grow, hierarchy should reduce noise instead of adding more decoration.
 3. Make work feel tangible. Cards, notes, tabs, and controls should have clear affordances, responsive feedback, and stable spatial behavior.
 4. Be fast in the user's hands. Common actions should be obvious, keyboard-friendly where practical, and free of unnecessary ceremony.
 5. Borrow clarity, not identity. Notion can inform the baseline, but PlanThing should not become a Notion imitation.

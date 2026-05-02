@@ -4,13 +4,13 @@
 
 /* ---- Root editor container ---- */
 .bn-editor {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
   color: var(--color-brand-text);
   background: transparent;
 }
 
 .bn-editor [class*="blockContent"] {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
 }
 
 .planthing-note-editor--compact {
@@ -38,7 +38,7 @@
 .bn-editor h1,
 .bn-editor h2,
 .bn-editor h3 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-brand-text);
@@ -84,7 +84,7 @@
   border-radius: 12px !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
   overflow: hidden;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
   padding: 4px !important;
 }
 
@@ -92,7 +92,7 @@
 .bn-slash-menu [class*="item"] {
   border-radius: 8px !important;
   padding: 8px 12px !important;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
   color: var(--color-brand-text) !important;
   transition: background-color 120ms ease;
 }
@@ -117,7 +117,7 @@
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
   padding: 2px 4px !important;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-sans);
 }
 
 .bn-formatting-toolbar button,
@@ -170,6 +170,14 @@
 .bn-editor [data-content-type="image"] img {
   border-radius: 12px;
   transition: box-shadow 180ms ease;
+}
+
+.bn-editor [data-content-type="image"] img[style] {
+  max-width: 100%;
+}
+
+.bn-editor [data-content-type="image"] img[data-flowboard-crop="cover"] {
+  object-fit: cover;
 }
 
 .bn-editor [data-content-type="image"] img:hover {
@@ -256,7 +264,7 @@
 }
 
 .mantine-Menu-item {
-  font-family: "Space Grotesk", sans-serif !important;
+  font-family: var(--font-sans) !important;
   color: var(--color-brand-text) !important;
   border-radius: 8px !important;
 }

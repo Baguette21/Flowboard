@@ -1,19 +1,19 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getBoardAccess, requireBoardAccess } from "./helpers/boardAccess";
+import { getPlanAccess, requirePlanAccess } from "./helpers/planAccess";
 import { generateOrderKeyAfter } from "./helpers/ordering";
 
-export const listByBoard = query({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const access = await getBoardAccess(ctx, boardId);
+export const listByPlan = query({
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access) {
       return [];
     }
 
     const columns = await ctx.db
       .query("columns")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
 
     return columns.sort((a, b) => a.order.localeCompare(b.order));
@@ -22,23 +22,23 @@ export const listByBoard = query({
 
 export const create = mutation({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     title: v.string(),
     color: v.optional(v.string()),
   },
-  handler: async (ctx, { boardId, title, color }) => {
-    const { userId } = await requireBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, title, color }) => {
+    const { userId } = await requirePlanAccess(ctx, planId);
 
     const existing = await ctx.db
       .query("columns")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
     const sorted = existing.sort((a, b) => a.order.localeCompare(b.order));
     const lastKey = sorted.length > 0 ? sorted[sorted.length - 1].order : null;
     const order = generateOrderKeyAfter(lastKey);
 
     const columnId = await ctx.db.insert("columns", {
-      boardId,
+      planId,
       title,
       order,
       color,
@@ -46,7 +46,7 @@ export const create = mutation({
     });
 
     await ctx.db.insert("activityLogs", {
-      boardId,
+      planId,
       userId,
       action: "created",
       details: `Added column "${title}"`,
@@ -69,7 +69,7 @@ export const update = mutation({
       throw new Error("Column not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, column.boardId);
+    const { userId } = await requirePlanAccess(ctx, column.planId!);
     const patch: Record<string, unknown> = {};
     if (title !== undefined) patch.title = title;
     if (color !== undefined) patch.color = color;
@@ -78,7 +78,7 @@ export const update = mutation({
 
     if (title) {
       await ctx.db.insert("activityLogs", {
-        boardId: column.boardId,
+        planId: column.planId!,
         userId,
         action: "updated",
         details: `Renamed column to "${title}"`,
@@ -99,7 +99,7 @@ export const reorder = mutation({
       throw new Error("Column not found");
     }
 
-    await requireBoardAccess(ctx, column.boardId);
+    await requirePlanAccess(ctx, column.planId!);
     await ctx.db.patch(columnId, { order: newOrder });
   },
 });
@@ -115,7 +115,7 @@ export const remove = mutation({
       throw new Error("Column not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, column.boardId);
+    const { userId } = await requirePlanAccess(ctx, column.planId!);
 
     if (deleteCards) {
       const cards = await ctx.db
@@ -135,7 +135,7 @@ export const remove = mutation({
     } else {
       const otherColumns = await ctx.db
         .query("columns")
-        .withIndex("by_boardId", (q) => q.eq("boardId", column.boardId))
+        .withIndex("by_planId", (q) => q.eq("planId", column.planId!))
         .collect();
       const firstColumn = otherColumns
         .filter((candidate) => candidate._id !== columnId)
@@ -153,7 +153,7 @@ export const remove = mutation({
     }
 
     await ctx.db.insert("activityLogs", {
-      boardId: column.boardId,
+      planId: column.planId!,
       userId,
       action: "deleted",
       details: `Deleted column "${column.title}"`,

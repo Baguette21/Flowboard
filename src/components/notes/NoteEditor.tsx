@@ -43,6 +43,29 @@ export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
     },
   });
 
+  const htmlHydratedRef = useRef(false);
+  useEffect(() => {
+    if (htmlHydratedRef.current) return;
+    if (!note.contentHTML) return;
+    htmlHydratedRef.current = true;
+    void (async () => {
+      try {
+        const blocks = await editor.tryParseHTMLToBlocks(note.contentHTML ?? "");
+        if (blocks.length) editor.replaceBlocks(editor.document, blocks);
+      } catch {
+        // keep JSON-derived content
+      }
+    })();
+  }, [editor, note.contentHTML]);
+
+  useEffect(() => {
+    if (!note.contentHTML) return;
+    const timer = window.setTimeout(() => {
+      applySavedImageLayout(note.contentHTML ?? "");
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [note.contentHTML]);
+
   // Auto-resize the title textarea
   useEffect(() => {
     const el = titleRef.current;
@@ -82,12 +105,22 @@ export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
       clearTimeout(saveTimerRef.current);
     }
 
-    saveTimerRef.current = setTimeout(() => {
+    saveTimerRef.current = setTimeout(async () => {
       const blocks: Block[] = editor.document;
       const content = JSON.stringify(blocks);
+      let contentHTML = "";
+      try {
+        contentHTML = mergeSavedImageLayout(
+          await editor.blocksToFullHTML(blocks),
+          note.contentHTML,
+        );
+      } catch {
+        contentHTML = "";
+      }
       void updateNote({
         noteId: note._id,
         content,
+        contentHTML,
       });
     }, 800);
   }, [editor, note._id, updateNote]);
@@ -156,4 +189,69 @@ export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
       </div>
     </div>
   );
+}
+
+type ImageLayout = {
+  src: string;
+  style: string;
+  width: string | null;
+  height: string | null;
+  crop: string | null;
+};
+
+function imageLayoutsFromHTML(html?: string | null): ImageLayout[] {
+  if (!html || typeof DOMParser === "undefined") return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return Array.from(doc.querySelectorAll("img"))
+    .map((img) => ({
+      src: img.getAttribute("src") ?? "",
+      style: img.getAttribute("style") ?? "",
+      width: img.getAttribute("width"),
+      height: img.getAttribute("height"),
+      crop: img.getAttribute("data-flowboard-crop"),
+    }))
+    .filter((layout) => layout.src && (layout.style || layout.width || layout.height || layout.crop));
+}
+
+function applySavedImageLayout(html: string) {
+  const layouts = imageLayoutsFromHTML(html);
+  if (!layouts.length) return;
+  const editorEl = document.querySelector(".planthing-note-editor");
+  if (!editorEl) return;
+  const used = new Set<number>();
+  const images = Array.from(editorEl.querySelectorAll("img"));
+
+  for (const img of images) {
+    const src = img.getAttribute("src") ?? "";
+    const index = layouts.findIndex((layout, candidateIndex) => !used.has(candidateIndex) && layout.src === src);
+    if (index === -1) continue;
+    used.add(index);
+    const layout = layouts[index];
+    if (layout.style) img.setAttribute("style", layout.style);
+    if (layout.width) img.setAttribute("width", layout.width);
+    else img.removeAttribute("width");
+    if (layout.height) img.setAttribute("height", layout.height);
+    else img.removeAttribute("height");
+    if (layout.crop) img.setAttribute("data-flowboard-crop", layout.crop);
+    else img.removeAttribute("data-flowboard-crop");
+  }
+}
+
+function mergeSavedImageLayout(nextHTML: string, previousHTML?: string | null) {
+  const layouts = imageLayoutsFromHTML(previousHTML);
+  if (!layouts.length || typeof DOMParser === "undefined") return nextHTML;
+  const doc = new DOMParser().parseFromString(nextHTML, "text/html");
+  const used = new Set<number>();
+  for (const img of Array.from(doc.querySelectorAll("img"))) {
+    const src = img.getAttribute("src") ?? "";
+    const index = layouts.findIndex((layout, candidateIndex) => !used.has(candidateIndex) && layout.src === src);
+    if (index === -1) continue;
+    used.add(index);
+    const layout = layouts[index];
+    if (layout.style) img.setAttribute("style", layout.style);
+    if (layout.width) img.setAttribute("width", layout.width);
+    if (layout.height) img.setAttribute("height", layout.height);
+    if (layout.crop) img.setAttribute("data-flowboard-crop", layout.crop);
+  }
+  return doc.body.innerHTML;
 }

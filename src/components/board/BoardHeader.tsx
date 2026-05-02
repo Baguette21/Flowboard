@@ -5,18 +5,18 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import { Settings, Star, Check, X, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
-import { BoardSettings } from "./BoardSettings";
+import { PlanSettings } from "./PlanSettings";
 import { getBoardIconOption } from "../../lib/boardIcons";
 
 interface BoardHeaderProps {
-  board: Doc<"boards">;
+  board: Doc<"plans">;
   cardCount: number;
   columnCount: number;
 }
 
-export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps) {
-  const updateBoard = useMutation(api.boards.update);
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId: board._id });
+export function PlanHeader({ board, cardCount, columnCount }: BoardHeaderProps) {
+  const updatePlan = useMutation(api.plans.update);
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId: board._id });
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(board.name);
   const [showSettings, setShowSettings] = useState(false);
@@ -30,8 +30,8 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
       return;
     }
     try {
-      await updateBoard({ boardId: board._id, name: trimmed });
-      toast.success("Board renamed");
+      await updatePlan({ planId: board._id, name: trimmed });
+      toast.success("Plan renamed");
     } catch {
       toast.error("Failed to rename board");
       setEditName(board.name);
@@ -40,7 +40,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
   };
 
   const handleFavorite = async () => {
-    await updateBoard({ boardId: board._id, isFavorite: !board.isFavorite });
+    await updatePlan({ planId: board._id, isFavorite: !board.isFavorite });
     toast.success(board.isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
@@ -146,7 +146,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
             <button
               onClick={() => setShowSettings(true)}
               className="p-2 rounded-xl text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
-              title="Board settings"
+              title="Plan settings"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -154,7 +154,7 @@ export function BoardHeader({ board, cardCount, columnCount }: BoardHeaderProps)
         </div>
       </div>
 
-      <BoardSettings
+      <PlanSettings
         open={showSettings}
         onClose={() => setShowSettings(false)}
         board={board}

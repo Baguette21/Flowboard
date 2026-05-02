@@ -261,17 +261,47 @@
     to   { transform: translateX(0); }
   }
 
+  @keyframes slideOutToRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0.96;
+    }
+  }
+
   @keyframes fadeInBackdrop {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
 
+  @keyframes fadeOutBackdrop {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
   .task-panel-slide {
-    animation: slideInFromRight 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    transform-origin: center right;
+    animation: slideInFromRight 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  .task-panel-slide-out {
+    transform-origin: center right;
+    pointer-events: none;
+    animation: slideOutToRight 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
   }
 
   .task-panel-backdrop {
     animation: fadeInBackdrop 0.18s ease forwards;
+  }
+
+  .task-panel-backdrop-out {
+    pointer-events: none;
+    animation: fadeOutBackdrop 0.18s ease forwards;
   }
 
   @keyframes chat-drawer-slide {

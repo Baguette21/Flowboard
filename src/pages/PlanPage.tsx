@@ -9,7 +9,7 @@ import { BoardCalendarView } from "../components/board/BoardCalendarView";
 import { BoardDrawView } from "../components/board/BoardDrawView";
 import { AssistantChat } from "../components/ai/AssistantChat";
 import { Table } from "../components/table/Table";
-import { BoardSettings } from "../components/board/BoardSettings";
+import { PlanSettings } from "../components/board/PlanSettings";
 import { ArrowLeft, CalendarDays, LayoutGrid, List, PencilLine, Settings, Sparkles, Star, Table2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
@@ -20,16 +20,16 @@ type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
 const DEFAULT_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list", "draw"];
 
-function getViewOrderStorageKey(boardId: Id<"boards">) {
-  return `planthing-view-order-${boardId}`;
+function getViewOrderStorageKey(planId: Id<"plans">) {
+  return `planthing-view-order-${planId}`;
 }
 
-function loadStoredViewOrder(boardId: Id<"boards">): BoardMode[] {
+function loadStoredViewOrder(planId: Id<"plans">): BoardMode[] {
   if (typeof window === "undefined") {
     return DEFAULT_VIEW_ORDER;
   }
 
-  const raw = window.localStorage.getItem(getViewOrderStorageKey(boardId));
+  const raw = window.localStorage.getItem(getViewOrderStorageKey(planId));
   if (!raw) {
     return DEFAULT_VIEW_ORDER;
   }
@@ -49,56 +49,61 @@ function loadStoredViewOrder(boardId: Id<"boards">): BoardMode[] {
   }
 }
 
-function getInitialViewOrder(boardId?: Id<"boards">) {
-  return boardId ? loadStoredViewOrder(boardId) : DEFAULT_VIEW_ORDER;
+function getInitialViewOrder(planId?: Id<"plans">) {
+  return planId ? loadStoredViewOrder(planId) : DEFAULT_VIEW_ORDER;
 }
 
-export function BoardPage() {
-  const { boardId } = useParams<{ boardId: string }>();
+export function PlanPage() {
+  const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
-  const typedBoardId = boardId as Id<"boards"> | undefined;
-  const [viewOrder, setViewOrder] = useState<BoardMode[]>(() => getInitialViewOrder(typedBoardId));
-  const [mode, setMode] = useState<BoardMode>(() => getInitialViewOrder(typedBoardId)[0]);
+  const typedPlanId = planId as Id<"plans"> | undefined;
+  const [viewOrder, setViewOrder] = useState<BoardMode[]>(() => getInitialViewOrder(typedPlanId));
+  const [mode, setMode] = useState<BoardMode>(() => getInitialViewOrder(typedPlanId)[0]);
   const [showSettings, setShowSettings] = useState(false);
   const [showAssistant, setShowAssistant] = useState(false);
   const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
-  const updateBoard = useMutation(api.boards.update);
+  const updatePlan = useMutation(api.plans.update);
+  const savePlanViewPreference = useMutation(api.planViewPreferences.set);
+  const boardViewPreference = useQuery(
+    api.planViewPreferences.get,
+    typedPlanId ? { planId: typedPlanId } : "skip",
+  );
   const { ensureInActiveTab } = useBoardTabs();
   const me = useQuery(api.users.me);
   const isPro = me?.role === "PRO";
   const activeMode = !isPro && mode === "draw" ? "board" : mode;
 
-  const board = useQuery(
-    api.boards.get,
-    typedBoardId ? { boardId: typedBoardId } : "skip",
+  const plan = useQuery(
+    api.plans.get,
+    typedPlanId ? { planId: typedPlanId } : "skip",
   );
   const columns = useQuery(
-    api.columns.listByBoard,
-    typedBoardId ? { boardId: typedBoardId } : "skip",
+    api.columns.listByPlan,
+    typedPlanId ? { planId: typedPlanId } : "skip",
   );
   const cards = useQuery(
-    api.cards.listByBoard,
-    typedBoardId ? { boardId: typedBoardId } : "skip",
+    api.cards.listByPlan,
+    typedPlanId ? { planId: typedPlanId } : "skip",
   );
   const labels = useQuery(
-    api.labels.listByBoard,
-    typedBoardId ? { boardId: typedBoardId } : "skip",
+    api.labels.listByPlan,
+    typedPlanId ? { planId: typedPlanId } : "skip",
   );
 
   useEffect(() => {
-    if (!typedBoardId) {
+    if (!typedPlanId) {
       navigate("/");
       return;
     }
-  }, [navigate, typedBoardId]);
+  }, [navigate, typedPlanId]);
 
   useEffect(() => {
-    if (!typedBoardId) {
+    if (!typedPlanId) {
       return;
     }
 
     let cancelled = false;
-    const nextViewOrder = loadStoredViewOrder(typedBoardId);
+    const nextViewOrder = loadStoredViewOrder(typedPlanId);
     queueMicrotask(() => {
       if (cancelled) {
         return;
@@ -110,55 +115,87 @@ export function BoardPage() {
     return () => {
       cancelled = true;
     };
-  }, [typedBoardId]);
+  }, [typedPlanId]);
 
   useEffect(() => {
-    if (!typedBoardId) {
+    if (!boardViewPreference) {
+      return;
+    }
+    if (!boardViewPreference.hasPreference) {
+      if (typedPlanId) {
+        void savePlanViewPreference({
+          planId: typedPlanId,
+          viewOrder,
+        }).catch(() => {});
+      }
+      return;
+    }
+    const nextViewOrder = boardViewPreference.viewOrder;
+    queueMicrotask(() => {
+      setViewOrder(nextViewOrder);
+      setMode((currentMode) =>
+        nextViewOrder.includes(currentMode)
+          ? currentMode
+          : nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0],
+      );
+    });
+  }, [boardViewPreference, savePlanViewPreference, typedPlanId, viewOrder]);
+
+  useEffect(() => {
+    if (!typedPlanId) {
       return;
     }
 
-    ensureInActiveTab({ kind: "board", id: typedBoardId });
-  }, [ensureInActiveTab, typedBoardId]);
+    ensureInActiveTab({ kind: "plan", id: typedPlanId });
+  }, [ensureInActiveTab, typedPlanId]);
 
   useEffect(() => {
-    if (!typedBoardId || typeof window === "undefined") {
+    if (!typedPlanId || typeof window === "undefined") {
       return;
     }
 
     window.localStorage.setItem(
-      getViewOrderStorageKey(typedBoardId),
+      getViewOrderStorageKey(typedPlanId),
       JSON.stringify(viewOrder),
     );
-  }, [typedBoardId, viewOrder]);
+    if (boardViewPreference !== undefined) {
+      void savePlanViewPreference({
+        planId: typedPlanId,
+        viewOrder,
+      }).catch(() => {
+        // Local storage keeps the UI usable if syncing this preference fails.
+      });
+    }
+  }, [boardViewPreference, savePlanViewPreference, typedPlanId, viewOrder]);
 
-  if (!typedBoardId) {
+  if (!typedPlanId) {
     return null;
   }
 
-  if (board === undefined) {
+  if (plan === undefined) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-full">
-          <PlanthingLoading message="Loading board..." />
+          <PlanthingLoading message="Loading plan..." />
         </div>
       </Layout>
     );
   }
 
-  if (!board) {
+  if (!plan) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-full px-4 py-24 text-center">
-          <h2 className="font-serif italic font-bold text-2xl mb-2">Board not found</h2>
+          <h2 className="font-serif italic font-bold text-2xl mb-2">Plan not found</h2>
           <p className="text-brand-text/50 font-mono text-sm mb-6">
-            This board doesn&apos;t exist or you don&apos;t have access.
+            This plan doesn&apos;t exist or you don&apos;t have access.
           </p>
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-2 px-5 py-2.5 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to boards
+            Back to plans
           </button>
         </div>
       </Layout>
@@ -166,8 +203,8 @@ export function BoardPage() {
   }
 
   const handleFavorite = async () => {
-    await updateBoard({ boardId: board._id, isFavorite: !board.isFavorite });
-    toast.success(board.isFavorite ? "Removed from favorites" : "Added to favorites");
+    await updatePlan({ planId: plan._id, isFavorite: !plan.isFavorite });
+    toast.success(plan.isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const reorderViews = (targetView: BoardMode) => {
@@ -190,7 +227,7 @@ export function BoardPage() {
   };
 
   return (
-    <Layout key={typedBoardId} boardId={typedBoardId}>
+    <Layout key={typedPlanId} planId={typedPlanId}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-text/10 bg-brand-bg/60 px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
           {viewOrder.filter((viewKey) => viewKey !== "draw" || isPro).map((viewKey) => {
@@ -236,22 +273,22 @@ export function BoardPage() {
             onClick={() => void handleFavorite()}
             className={cn(
               "rounded-xl p-2 transition-colors",
-              board.isFavorite
+              plan.isFavorite
                 ? "text-yellow-500 hover:text-yellow-600"
                 : "text-brand-text/30 hover:text-yellow-400",
             )}
-            title={board.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={plan.isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star
               className="h-4 w-4"
-              fill={board.isFavorite ? "currentColor" : "none"}
+              fill={plan.isFavorite ? "currentColor" : "none"}
             />
           </button>
 
           <button
             onClick={() => setShowSettings(true)}
             className="rounded-xl p-2 text-brand-text/40 transition-colors hover:bg-brand-text/10 hover:text-brand-text"
-            title="Board settings"
+            title="Plan settings"
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -261,26 +298,26 @@ export function BoardPage() {
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {activeMode === "board" ? (
-          <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
+          <BoardView key={`board-${typedPlanId}`} planId={typedPlanId} />
         ) : activeMode === "calendar" ? (
           <BoardCalendarView
-            key={`calendar-${typedBoardId}`}
-            boardId={typedBoardId}
+            key={`calendar-${typedPlanId}`}
+            planId={typedPlanId}
             cards={cards}
-            boardColor={board.color}
+            boardColor={plan.color}
             columns={columns ?? []}
             labels={labels ?? []}
           />
         ) : activeMode === "draw" && isPro ? (
           <BoardDrawView
-            key={`draw-${typedBoardId}`}
-            boardId={typedBoardId}
-            drawingDocument={board.drawingDocument}
+            key={`draw-${typedPlanId}`}
+            planId={typedPlanId}
+            drawingDocument={plan.drawingDocument}
           />
         ) : activeMode !== "draw" ? (
           <Table
-            key={`${activeMode}-${typedBoardId}`}
-            boardId={typedBoardId}
+            key={`${activeMode}-${typedPlanId}`}
+            planId={typedPlanId}
             cards={cards}
             columns={columns ?? []}
             labels={labels ?? []}
@@ -288,15 +325,15 @@ export function BoardPage() {
             showViewModeTabs={false}
           />
         ) : (
-          <BoardView key={`board-${typedBoardId}`} boardId={typedBoardId} />
+          <BoardView key={`board-${typedPlanId}`} planId={typedPlanId} />
         )}
       </div>
 
-      <BoardSettings
-        key={`settings-${typedBoardId}`}
+      <PlanSettings
+        key={`settings-${typedPlanId}`}
         open={showSettings}
         onClose={() => setShowSettings(false)}
-        board={board}
+        board={plan}
       />
 
       {!showAssistant && (
@@ -313,7 +350,7 @@ export function BoardPage() {
       <AssistantChat
         open={showAssistant}
         onClose={() => setShowAssistant(false)}
-        boardId={typedBoardId}
+        planId={typedPlanId}
         columns={columns ?? []}
       />
     </Layout>

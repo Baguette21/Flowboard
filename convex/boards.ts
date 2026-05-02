@@ -254,7 +254,7 @@ export const update = mutation({
   handler: async (ctx, { boardId, name, color, icon, drawingDocument, isFavorite, archivedAt }) => {
     const { board, user, userId, role } = await requireBoardAccess(ctx, boardId);
     if (archivedAt !== undefined && role !== "owner") {
-      throw new Error("Only the board owner can archive this board");
+      throw new Error("Only the plan owner can archive this plan");
     }
 
     if (drawingDocument !== undefined) {

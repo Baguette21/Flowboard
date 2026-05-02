@@ -38,7 +38,7 @@ type ChatMessage = {
 interface AssistantChatProps {
   open: boolean;
   onClose: () => void;
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   columns: Doc<"columns">[];
 }
 
@@ -156,7 +156,7 @@ function makeId() {
 export function AssistantChat({
   open,
   onClose,
-  boardId,
+  planId,
   columns,
 }: AssistantChatProps) {
   const chat = useAction(api.aiAssistant.chat);
@@ -221,7 +221,7 @@ export function AssistantChat({
 
     try {
       const result = await chat({
-        boardId,
+        planId,
         timezone,
         messages: nextHistory.map(({ role, content, proposedTasks }) => ({
           role,
@@ -255,13 +255,13 @@ export function AssistantChat({
 
     try {
       const result = await applyTaskDraft({
-        boardId,
+        planId,
         tasks: target.proposedTasks,
       });
       toast.success(
         result.createdCardIds.length === 1
-          ? "Task added to board"
-          : `${result.createdCardIds.length} tasks added to board`,
+          ? "Task added to plan"
+          : `${result.createdCardIds.length} tasks added to plan`,
       );
       setMessages((current) =>
         current.map((message) =>
@@ -330,7 +330,7 @@ export function AssistantChat({
         >
           {columns.length === 0 ? (
             <div className="mx-auto mt-10 max-w-xs rounded-2xl bg-brand-accent/10 px-4 py-3 text-center text-sm text-brand-accent">
-              Add a group to your board before chatting with the assistant.
+              Add a group to your plan before chatting with the assistant.
             </div>
           ) : showEmptyState ? (
             <div className="flex h-full flex-col items-center justify-center gap-6 px-2 text-center">

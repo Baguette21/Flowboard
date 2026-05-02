@@ -230,7 +230,7 @@ export function LoginPage() {
             {awaitingVerification
               ? `Enter the code sent to ${email}`
               : flow === "signIn"
-                ? "Sign in to access your boards"
+                ? "Sign in to access your plans"
                 : "Create your account with a verified email"}
           </p>
 
@@ -321,12 +321,21 @@ export function LoginPage() {
                             "flex h-11 items-center justify-center rounded-[1.35rem] border border-brand-text/10 bg-brand-bg/70 font-mono text-lg font-bold tabular-nums transition-colors",
                             digit
                               ? "border-brand-text/25 text-brand-text"
-                              : "text-brand-text/22",
+                              : "text-brand-text/30",
                             isActive &&
                               "border-brand-text/40 bg-brand-bg shadow-[0_0_0_2px_rgba(17,17,17,0.06)]",
                           )}
                         >
-                          {digit || "0"}
+                          {digit ? (
+                            digit
+                          ) : isActive ? (
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-5 w-px bg-brand-text/70 motion-safe:animate-pulse"
+                            />
+                          ) : (
+                            <span aria-hidden="true" className="text-brand-text/25">‧</span>
+                          )}
                         </div>
                       );
                     })}

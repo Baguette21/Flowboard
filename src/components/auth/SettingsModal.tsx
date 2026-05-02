@@ -42,7 +42,7 @@ interface SettingsPanelProps {
 
 type PasswordStep = "idle" | "awaitingCode";
 type ArchivedItem =
-  | { kind: "board"; id: Id<"boards">; title: string; archivedAt: number | null }
+  | { kind: "plan"; id: Id<"plans">; title: string; archivedAt: number | null }
   | { kind: "note"; id: Id<"notes">; title: string; archivedAt: number | null }
   | { kind: "draw"; id: Id<"drawings">; title: string; archivedAt: number | null };
 
@@ -74,13 +74,13 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
     reset: resetAppearance,
   } = useAppearance();
   const updateProfile = useMutation(api.users.updateProfile);
-  const archivedBoards = useQuery(api.boards.listArchived);
+  const archivedPlans = useQuery(api.plans.listArchived);
   const archivedNotes = useQuery(api.notes.listArchived);
   const archivedDrawings = useQuery(api.drawings.listArchived);
-  const updateBoard = useMutation(api.boards.update);
+  const updatePlan = useMutation(api.plans.update);
   const updateNote = useMutation(api.notes.update);
   const updateDrawing = useMutation(api.drawings.update);
-  const deleteBoard = useMutation(api.boards.remove);
+  const deletePlan = useMutation(api.plans.remove);
   const deleteNote = useMutation(api.notes.remove);
   const deleteDrawing = useMutation(api.drawings.remove);
 
@@ -204,7 +204,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
   );
   const archivedItems = useMemo<ArchivedItem[] | undefined>(() => {
     if (
-      archivedBoards === undefined ||
+      archivedPlans === undefined ||
       archivedNotes === undefined ||
       archivedDrawings === undefined
     ) {
@@ -212,8 +212,8 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
     }
 
     return [
-      ...archivedBoards.map((board) => ({
-        kind: "board" as const,
+      ...archivedPlans.map((board) => ({
+        kind: "plan" as const,
         id: board._id,
         title: board.name,
         archivedAt: board.archivedAt,
@@ -231,7 +231,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
         archivedAt: drawing.archivedAt ?? null,
       })),
     ].sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
-  }, [archivedBoards, archivedDrawings, archivedNotes]);
+  }, [archivedPlans, archivedDrawings, archivedNotes]);
 
   const getArchivedItemKey = (item: ArchivedItem) => `${item.kind}-${item.id}`;
 
@@ -239,8 +239,8 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
     const itemKey = getArchivedItemKey(item);
     setRestoringItemKey(itemKey);
     try {
-      if (item.kind === "board") {
-        await updateBoard({ boardId: item.id, archivedAt: null });
+      if (item.kind === "plan") {
+        await updatePlan({ planId: item.id, archivedAt: null });
       } else if (item.kind === "note") {
         await updateNote({ noteId: item.id, archivedAt: null });
       } else {
@@ -258,8 +258,8 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
     if (!deletingArchivedItem) return;
     setIsDeletingArchivedItem(true);
     try {
-      if (deletingArchivedItem.kind === "board") {
-        await deleteBoard({ boardId: deletingArchivedItem.id });
+      if (deletingArchivedItem.kind === "plan") {
+        await deletePlan({ planId: deletingArchivedItem.id });
       } else if (deletingArchivedItem.kind === "note") {
         await deleteNote({ noteId: deletingArchivedItem.id });
       } else {
@@ -548,7 +548,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
               </div>
             ) : archivedItems.length === 0 ? (
               <p className="font-mono text-xs text-brand-text/45">
-                Archived boards, notes, and drawings will appear here.
+                Archived plans, notes, and drawings will appear here.
               </p>
             ) : (
               <div className="space-y-2">
@@ -774,7 +774,7 @@ export function SettingsPanel({ onClose, activeSection }: SettingsPanelProps) {
           <div className="grid gap-2 rounded-[12px] bg-brand-primary p-4 card-whisper card-elevation">
             <ShortcutRow label="Search" keys="/" />
             <ShortcutRow label="Toggle sidebar" keys="Ctrl + B" />
-            <ShortcutRow label="New board" keys="Use + in Boards" />
+            <ShortcutRow label="New plan" keys="Use + in Plans" />
             <ShortcutRow label="New note" keys="Use + in Notes" />
             <ShortcutRow label="New drawing" keys="Use + in Draw" />
           </div>
@@ -878,9 +878,9 @@ function ArchivedItemRow({
   onDelete: () => void;
 }) {
   const Icon =
-    item.kind === "board" ? LayoutGrid : item.kind === "note" ? FileText : PencilLine;
+    item.kind === "plan" ? LayoutGrid : item.kind === "note" ? FileText : PencilLine;
   const typeLabel =
-    item.kind === "board" ? "Board" : item.kind === "note" ? "Note" : "Drawing";
+    item.kind === "plan" ? "Board" : item.kind === "note" ? "Note" : "Drawing";
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-[10px] card-whisper bg-brand-bg/70 px-3 py-2.5">
@@ -929,4 +929,3 @@ function ArchivedItemRow({
     </div>
   );
 }
-

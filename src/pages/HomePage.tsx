@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "../components/layout/Layout";
-import { BoardCard } from "../components/board/BoardCard";
+import { PlanCard } from "../components/board/PlanCard";
 import { NoteCard } from "../components/notes/NoteCard";
-import { CreateBoardModal } from "../components/board/CreateBoardModal";
+import { CreatePlanModal } from "../components/board/CreatePlanModal";
 import { PlanthingLoading } from "../components/branding/PlanthingLoading";
 import {
   Plus,
@@ -19,19 +19,19 @@ import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useBoardTabs } from "../hooks/useBoardTabs";
 
-type FilterTab = "all" | "boards" | "notes";
+type FilterTab = "all" | "plans" | "notes";
 
 export function HomePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
-  const [showCreateBoard, setShowCreateBoard] = useState(false);
+  const [showCreatePlan, setShowCreatePlan] = useState(false);
   const { openInActiveTab } = useBoardTabs();
 
-  const boards = useQuery(api.boards.list);
+  const plans = useQuery(api.plans.list);
   const notes = useQuery(api.notes.list);
   const createNote = useMutation(api.notes.create);
 
-  const isLoading = boards === undefined || notes === undefined;
+  const isLoading = plans === undefined || notes === undefined;
 
   const handleCreateNote = async () => {
     try {
@@ -45,7 +45,7 @@ export function HomePage() {
   // ── Filter + search ──
   const normalizedSearch = search.trim().toLowerCase();
 
-  const filteredBoards = (boards ?? []).filter((b) =>
+  const filteredPlans = (plans ?? []).filter((b) =>
     normalizedSearch ? b.name.toLowerCase().includes(normalizedSearch) : true,
   );
   const filteredNotes = (notes ?? []).filter((n) =>
@@ -54,11 +54,11 @@ export function HomePage() {
       : true,
   );
 
-  const favorites = filteredBoards.filter((b) => b.isFavorite);
+  const favorites = filteredPlans.filter((b) => b.isFavorite);
 
   // Build a unified feed sorted by updatedAt
   type FeedItem =
-    | { kind: "board"; updatedAt: number; board: (typeof filteredBoards)[0] }
+    | { kind: "plan"; updatedAt: number; board: (typeof filteredPlans)[0] }
     | { kind: "note"; updatedAt: number; note: (typeof filteredNotes)[0] };
 
   const buildFeed = (): FeedItem[] => {
@@ -66,15 +66,15 @@ export function HomePage() {
 
     if (filter !== "notes") {
       // Exclude favorites from the "recent" section — they have their own row
-      const nonFavBoards = filteredBoards.filter((b) => !b.isFavorite);
+      const nonFavBoards = filteredPlans.filter((b) => !b.isFavorite);
       items.push(
         ...nonFavBoards.map(
-          (b) => ({ kind: "board" as const, updatedAt: b.updatedAt, board: b }),
+          (b) => ({ kind: "plan" as const, updatedAt: b.updatedAt, board: b }),
         ),
       );
     }
 
-    if (filter !== "boards") {
+    if (filter !== "plans") {
       items.push(
         ...filteredNotes.map(
           (n) => ({ kind: "note" as const, updatedAt: n.updatedAt, note: n }),
@@ -87,8 +87,8 @@ export function HomePage() {
 
   const feed = isLoading ? [] : buildFeed();
 
-  const totalCount = (boards?.length ?? 0) + (notes?.length ?? 0);
-  const boardCount = boards?.length ?? 0;
+  const totalCount = (plans?.length ?? 0) + (notes?.length ?? 0);
+  const planCount = plans?.length ?? 0;
   const noteCount = notes?.length ?? 0;
   const hasSearch = normalizedSearch.length > 0;
   const showFavorites =
@@ -96,7 +96,7 @@ export function HomePage() {
 
   const filterTabs: { key: FilterTab; label: string; icon: typeof Layers }[] = [
     { key: "all", label: "All", icon: Layers },
-    { key: "boards", label: "Boards", icon: LayoutGrid },
+    { key: "plans", label: "Plans", icon: LayoutGrid },
     { key: "notes", label: "Notes", icon: FileText },
   ];
 
@@ -119,23 +119,23 @@ export function HomePage() {
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-brand-text/54">
                 {hasSearch
-                  ? `${filteredBoards.length + filteredNotes.length} result${filteredBoards.length + filteredNotes.length !== 1 ? "s" : ""} for "${search.trim()}".`
-                  : `${boardCount} board${boardCount !== 1 ? "s" : ""} · ${noteCount} note${noteCount !== 1 ? "s" : ""}`}
+                  ? `${filteredPlans.length + filteredNotes.length} result${filteredPlans.length + filteredNotes.length !== 1 ? "s" : ""} for "${search.trim()}".`
+                  : `${planCount} plan${planCount !== 1 ? "s" : ""} · ${noteCount} note${noteCount !== 1 ? "s" : ""}`}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2 lg:pt-6">
               <button
-                onClick={() => setShowCreateBoard(true)}
-                className="flex items-center justify-center gap-2 h-10 px-4 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+                onClick={() => setShowCreatePlan(true)}
+                className="flex items-center justify-center gap-2 h-10 px-5 bg-brand-text text-brand-bg rounded-[2rem] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New Board</span>
-                <span className="sm:hidden">Board</span>
+                <span className="hidden sm:inline">New Plan</span>
+                <span className="sm:hidden">Plan</span>
               </button>
               <button
                 onClick={() => void handleCreateNote()}
-                className="flex items-center justify-center gap-2 h-10 px-4 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[12px] font-mono font-bold text-sm hover:border-brand-text transition-colors"
+                className="flex items-center justify-center gap-2 h-10 px-5 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[2rem] font-mono font-bold text-sm hover:border-brand-text transition-colors"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New Note</span>
@@ -164,15 +164,15 @@ export function HomePage() {
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setShowCreateBoard(true)}
-                  className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-[12px] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
+                  onClick={() => setShowCreatePlan(true)}
+                  className="flex items-center gap-2 h-11 px-6 bg-brand-text text-brand-bg rounded-[2rem] font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Create Board
+                  Create Plan
                 </button>
                 <button
                   onClick={() => void handleCreateNote()}
-                  className="flex items-center gap-2 h-11 px-6 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[12px] font-mono font-bold text-sm hover:border-brand-text transition-colors"
+                  className="flex items-center gap-2 h-11 px-6 bg-brand-primary border-2 border-brand-text/20 text-brand-text rounded-[2rem] font-mono font-bold text-sm hover:border-brand-text transition-colors"
                 >
                   <FileText className="w-4 h-4" />
                   New Note
@@ -209,7 +209,7 @@ export function HomePage() {
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {favorites.map((board) => (
-                      <BoardCard key={board._id} board={board} />
+                      <PlanCard key={board._id} board={board} />
                     ))}
                   </div>
                 </section>
@@ -228,7 +228,7 @@ export function HomePage() {
                       </div>
                       <p className="text-sm text-brand-text/45">
                         {hasSearch
-                          ? "Filtered boards and notes from this workspace."
+                          ? "Filtered plans and notes from this workspace."
                           : "Sorted by recent activity."}
                       </p>
                     </div>
@@ -256,8 +256,8 @@ export function HomePage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {feed.map((item) =>
-                      item.kind === "board" ? (
-                        <BoardCard
+                      item.kind === "plan" ? (
+                        <PlanCard
                           key={item.board._id}
                           board={item.board}
                         />
@@ -273,9 +273,9 @@ export function HomePage() {
         </div>
       </div>
 
-      <CreateBoardModal
-        open={showCreateBoard}
-        onClose={() => setShowCreateBoard(false)}
+      <CreatePlanModal
+        open={showCreatePlan}
+        onClose={() => setShowCreatePlan(false)}
       />
     </Layout>
   );

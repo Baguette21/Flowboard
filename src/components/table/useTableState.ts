@@ -17,8 +17,8 @@ import { DEFAULT_STATUS_OPTIONS, DEFAULT_SELECT_COLORS } from "./types";
 import { getAssignedUserIds } from "../../lib/assignees";
 
 // ── Storage Keys ───────────────────────────────────────────────────────────
-const storageKey = (boardId: string, suffix: string) =>
-  `notion-table-${boardId}-${suffix}`;
+const storageKey = (planId: string, suffix: string) =>
+  `notion-table-${planId}-${suffix}`;
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -308,14 +308,14 @@ function historyReducer(
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 export function useTableState(
-  boardId: Id<"boards">,
+  planId: Id<"plans">,
   cards: Doc<"cards">[] | undefined,
   boardColumns: Doc<"columns">[],
 ) {
-  const colsKey = storageKey(boardId, "columns");
-  const cellsKey = storageKey(boardId, "cells");
-  const orderKey = storageKey(boardId, "row-order");
-  const viewKey = storageKey(boardId, "view");
+  const colsKey = storageKey(planId, "columns");
+  const cellsKey = storageKey(planId, "cells");
+  const orderKey = storageKey(planId, "row-order");
+  const viewKey = storageKey(planId, "view");
 
   const initialState: TableState = {
     columns: withDefaultBuiltIns(loadJSON<TableColumnDef[]>(colsKey, DEFAULT_COLUMNS)),
@@ -377,17 +377,17 @@ export function useTableState(
   }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reload on board change ─────────────────────────────────────────────
-  const prevBoardRef = useRef(boardId);
+  const prevBoardRef = useRef(planId);
   useEffect(() => {
-    if (prevBoardRef.current !== boardId) {
-      prevBoardRef.current = boardId;
+    if (prevBoardRef.current !== planId) {
+      prevBoardRef.current = planId;
       const freshState: TableState = {
         columns: withDefaultBuiltIns(
-          loadJSON<TableColumnDef[]>(storageKey(boardId, "columns"), DEFAULT_COLUMNS),
+          loadJSON<TableColumnDef[]>(storageKey(planId, "columns"), DEFAULT_COLUMNS),
         ),
-        customCells: loadJSON<AllCellData>(storageKey(boardId, "cells"), {}),
-        rowOrder: loadJSON<string[]>(storageKey(boardId, "row-order"), []),
-        viewConfig: loadJSON<ViewConfig>(storageKey(boardId, "view"), DEFAULT_VIEW_CONFIG),
+        customCells: loadJSON<AllCellData>(storageKey(planId, "cells"), {}),
+        rowOrder: loadJSON<string[]>(storageKey(planId, "row-order"), []),
+        viewConfig: loadJSON<ViewConfig>(storageKey(planId, "view"), DEFAULT_VIEW_CONFIG),
         selectedRows: new Set<string>(),
         activeCell: null,
         editingCell: null,
@@ -395,7 +395,7 @@ export function useTableState(
       };
       dispatch({ type: "SET_COLUMNS", columns: freshState.columns });
     }
-  }, [boardId, dispatch]);
+  }, [planId, dispatch]);
 
   // ── Sorted board columns ───────────────────────────────────────────────
   const sortedBoardColumns = useMemo(

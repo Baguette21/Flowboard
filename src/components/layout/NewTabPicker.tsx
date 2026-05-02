@@ -20,7 +20,7 @@ interface NewTabPickerProps {
 
 type PickerItem =
   | {
-      kind: "board";
+      kind: "plan";
       id: string;
       title: string;
       updatedAt: number;
@@ -55,7 +55,7 @@ function formatRelative(ms: number) {
 }
 
 export function NewTabPicker({ open, onClose, onSelect }: NewTabPickerProps) {
-  const boards = useQuery(api.boards.list, open ? {} : "skip");
+  const plans = useQuery(api.plans.list, open ? {} : "skip");
   const notes = useQuery(api.notes.list, open ? {} : "skip");
   const drawings = useQuery(api.drawings.list, open ? {} : "skip");
   const [query, setQuery] = useState("");
@@ -97,10 +97,10 @@ export function NewTabPicker({ open, onClose, onSelect }: NewTabPickerProps) {
   }, [open, onClose]);
 
   const items = useMemo<PickerItem[]>(() => {
-    const boardItems: PickerItem[] = (boards ?? []).map((board) => ({
-      kind: "board",
+    const boardItems: PickerItem[] = (plans ?? []).map((board) => ({
+      kind: "plan",
       id: board._id,
-      title: board.name || "Untitled board",
+      title: board.name || "Untitled plan",
       updatedAt: board.updatedAt ?? board._creationTime,
       icon: board.icon ?? null,
       color: board.color ?? null,
@@ -120,7 +120,7 @@ export function NewTabPicker({ open, onClose, onSelect }: NewTabPickerProps) {
       updatedAt: drawing.updatedAt ?? drawing._creationTime,
     }));
     return [...boardItems, ...noteItems, ...drawItems];
-  }, [boards, notes, drawings]);
+  }, [plans, notes, drawings]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -203,7 +203,7 @@ export function NewTabPicker({ open, onClose, onSelect }: NewTabPickerProps) {
           <div ref={listRef} className="min-w-0 flex-1 overflow-y-auto py-2">
             {filtered.length === 0 ? (
               <div className="px-4 py-12 text-center text-sm text-brand-text/45">
-                No boards, notes, or drawings match.
+                No plans, notes, or drawings match.
               </div>
             ) : (
               <PickerGroups
@@ -265,12 +265,12 @@ function PickerGroups({
   rowRefs,
 }: PickerGroupsProps) {
   const groups: { label: string; entries: { item: PickerItem; index: number }[] }[] = [
-    { label: "Boards", entries: [] },
+    { label: "Plans", entries: [] },
     { label: "Notes", entries: [] },
     { label: "Drawings", entries: [] },
   ];
   items.forEach((item, index) => {
-    if (item.kind === "board") groups[0].entries.push({ item, index });
+    if (item.kind === "plan") groups[0].entries.push({ item, index });
     else if (item.kind === "note") groups[1].entries.push({ item, index });
     else groups[2].entries.push({ item, index });
   });
@@ -306,7 +306,7 @@ function PickerGroups({
                 <span className="flex-1 truncate text-sm font-medium">
                   {item.title}
                 </span>
-                {item.kind === "board" && item.role === "member" ? (
+                {item.kind === "plan" && item.role === "member" ? (
                   <Users className="h-3.5 w-3.5 flex-shrink-0 text-brand-text/40" />
                 ) : null}
               </button>
@@ -318,7 +318,7 @@ function PickerGroups({
 }
 
 function ItemIcon({ item }: { item: PickerItem }) {
-  if (item.kind === "board") {
+  if (item.kind === "plan") {
     const option = getBoardIconOption(item.icon, item.color);
     const color = item.color ?? "#E63B2E";
     return (
@@ -346,7 +346,7 @@ function ItemIcon({ item }: { item: PickerItem }) {
 
 function PreviewCard({ item }: { item: PickerItem }) {
   const typeLabel =
-    item.kind === "board" ? "Board" : item.kind === "note" ? "Note" : "Drawing";
+    item.kind === "plan" ? "Plan" : item.kind === "note" ? "Note" : "Drawing";
 
   return (
     <div className="flex h-full flex-col rounded-[12px] border border-brand-text/10 bg-brand-bg p-3">
@@ -366,8 +366,8 @@ function PreviewCard({ item }: { item: PickerItem }) {
       <div className="mt-3 min-h-0 flex-1 overflow-hidden">
         {item.kind === "note" ? (
           <NotePreview content={item.content} />
-        ) : item.kind === "board" ? (
-          <BoardPreview boardId={item.id as Id<"boards">} />
+        ) : item.kind === "plan" ? (
+          <BoardPreview planId={item.id as Id<"plans">} />
         ) : (
           <DrawPreview />
         )}
@@ -485,9 +485,9 @@ function extractInlineText(value: unknown): string {
 type BoardMode = "board" | "calendar" | "table" | "list";
 const DEFAULT_BOARD_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list"];
 
-function getStoredFirstView(boardId: string): BoardMode {
+function getStoredFirstView(planId: string): BoardMode {
   if (typeof window === "undefined") return DEFAULT_BOARD_VIEW_ORDER[0];
-  const raw = window.localStorage.getItem(`planthing-view-order-${boardId}`);
+  const raw = window.localStorage.getItem(`planthing-view-order-${planId}`);
   if (!raw) return DEFAULT_BOARD_VIEW_ORDER[0];
   try {
     const parsed = JSON.parse(raw) as string[];
@@ -502,12 +502,12 @@ function getStoredFirstView(boardId: string): BoardMode {
 
 const PREVIEW_SCALE = 0.5;
 
-function BoardPreview({ boardId }: { boardId: Id<"boards"> }) {
-  const board = useQuery(api.boards.get, { boardId });
-  const columns = useQuery(api.columns.listByBoard, { boardId });
-  const cards = useQuery(api.cards.listByBoard, { boardId });
-  const labels = useQuery(api.labels.listByBoard, { boardId });
-  const mode = getStoredFirstView(boardId);
+function BoardPreview({ planId }: { planId: Id<"plans"> }) {
+  const board = useQuery(api.plans.get, { planId });
+  const columns = useQuery(api.columns.listByPlan, { planId });
+  const cards = useQuery(api.cards.listByPlan, { planId });
+  const labels = useQuery(api.labels.listByPlan, { planId });
+  const mode = getStoredFirstView(planId);
 
   if (
     board === undefined ||
@@ -525,7 +525,7 @@ function BoardPreview({ boardId }: { boardId: Id<"boards"> }) {
   if (!board || columns.length === 0) {
     return (
       <div className="flex h-full items-center justify-center rounded-[8px] border border-dashed border-brand-text/12 text-[11px] text-brand-text/35">
-        Empty board
+        Empty plan
       </div>
     );
   }
@@ -533,7 +533,7 @@ function BoardPreview({ boardId }: { boardId: Id<"boards"> }) {
   const inner =
     mode === "calendar" ? (
       <BoardCalendarView
-        boardId={boardId}
+        planId={planId}
         cards={cards}
         boardColor={board.color}
         columns={columns}
@@ -541,7 +541,7 @@ function BoardPreview({ boardId }: { boardId: Id<"boards"> }) {
       />
     ) : mode === "table" || mode === "list" ? (
       <Table
-        boardId={boardId}
+        planId={planId}
         cards={cards}
         columns={columns}
         labels={labels}
@@ -549,7 +549,7 @@ function BoardPreview({ boardId }: { boardId: Id<"boards"> }) {
         showViewModeTabs={false}
       />
     ) : (
-      <BoardView boardId={boardId} />
+      <BoardView planId={planId} />
     );
 
   return <ScaledEmbed>{inner}</ScaledEmbed>;

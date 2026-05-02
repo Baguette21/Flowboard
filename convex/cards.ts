@@ -3,12 +3,13 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { generateOrderKeyAfter } from "./helpers/ordering";
 import { priorityValidator } from "./helpers/validators";
+import { sanitizeHtml, htmlToPlainText } from "./helpers/sanitizeHtml";
 import {
-  getBoardAccess,
-  getBoardMembership,
-  requireBoardAccess,
+  getPlanAccess,
+  getPlanMembership,
+  requirePlanAccess,
   requireProUser,
-} from "./helpers/boardAccess";
+} from "./helpers/planAccess";
 
 function compareCardOrder(
   a: { order: string; createdAt: number; _id: Id<"cards"> },
@@ -78,32 +79,32 @@ function deriveDescriptionPreview(content?: string) {
 
 async function assertValidAssignee(
   ctx: MutationCtx,
-  boardId: Id<"boards">,
-  boardOwnerId: string,
+  planId: Id<"plans">,
+  planOwnerId: string,
   assignedUserId: Id<"users"> | null,
 ) {
   if (assignedUserId === null) {
     return;
   }
 
-  if (boardOwnerId === assignedUserId) {
+  if (planOwnerId === assignedUserId) {
     return;
   }
 
-  const membership = await getBoardMembership(ctx, boardId, assignedUserId);
+  const membership = await getPlanMembership(ctx, planId, assignedUserId);
   if (!membership) {
-    throw new Error("Assignee must be a member of this board");
+    throw new Error("Assignee must be a member of this plan");
   }
 }
 
 async function assertValidAssignees(
   ctx: MutationCtx,
-  boardId: Id<"boards">,
-  boardOwnerId: string,
+  planId: Id<"plans">,
+  planOwnerId: string,
   assignedUserIds: Id<"users">[],
 ) {
   for (const assignedUserId of assignedUserIds) {
-    await assertValidAssignee(ctx, boardId, boardOwnerId, assignedUserId);
+    await assertValidAssignee(ctx, planId, planOwnerId, assignedUserId);
   }
 }
 
@@ -133,13 +134,13 @@ async function createAssignmentNotification(
   {
     recipientUserId,
     actorUserId,
-    boardId,
+    planId,
     cardId,
     taskTitle,
   }: {
     recipientUserId: Id<"users">;
     actorUserId: Id<"users">;
-    boardId: Id<"boards">;
+    planId: Id<"plans">;
     cardId: Id<"cards">;
     taskTitle: string;
   },
@@ -151,7 +152,7 @@ async function createAssignmentNotification(
   await ctx.db.insert("notifications", {
     recipientUserId,
     actorUserId,
-    boardId,
+    planId,
     cardId,
     type: "taskAssigned",
     taskTitle,
@@ -160,17 +161,17 @@ async function createAssignmentNotification(
   });
 }
 
-export const listByBoard = query({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const access = await getBoardAccess(ctx, boardId);
+export const listByPlan = query({
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access) {
       return [];
     }
 
     const cards = await ctx.db
       .query("cards")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
 
     return cards.sort(compareCardOrder);
@@ -185,7 +186,7 @@ export const listByColumn = query({
       return [];
     }
 
-    const access = await getBoardAccess(ctx, column.boardId);
+    const access = await getPlanAccess(ctx, column.planId!);
     if (!access) {
       return [];
     }
@@ -207,18 +208,18 @@ export const get = query({
       return null;
     }
 
-    const access = await getBoardAccess(ctx, card.boardId);
+    const access = await getPlanAccess(ctx, card.planId!);
     return access ? card : null;
   },
 });
 
 export const search = query({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     query: v.string(),
   },
-  handler: async (ctx, { boardId, query: searchQuery }) => {
-    const access = await getBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, query: searchQuery }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access || !searchQuery.trim()) {
       return [];
     }
@@ -226,7 +227,7 @@ export const search = query({
     return await ctx.db
       .query("cards")
       .withSearchIndex("search_title", (q) =>
-        q.search("title", searchQuery).eq("boardId", boardId),
+        q.search("title", searchQuery).eq("planId", planId),
       )
       .take(20);
   },
@@ -235,7 +236,7 @@ export const search = query({
 export const create = mutation({
   args: {
     columnId: v.id("columns"),
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     title: v.string(),
     description: v.optional(v.string()),
     priority: priorityValidator,
@@ -245,9 +246,9 @@ export const create = mutation({
   },
   handler: async (
     ctx,
-    { columnId, boardId, title, description, priority, dueDate, assignedUserId, assignedUserIds },
+    { columnId, planId, title, description, priority, dueDate, assignedUserId, assignedUserIds },
   ) => {
-    const access = await requireBoardAccess(ctx, boardId);
+    const access = await requirePlanAccess(ctx, planId);
     const { userId } = access;
     const nextAssigneeIds = normalizeAssigneeIds(assignedUserIds, assignedUserId);
 
@@ -257,8 +258,8 @@ export const create = mutation({
 
     await assertValidAssignees(
       ctx,
-      boardId,
-      access.board.userId,
+      planId,
+      access.plan.userId,
       nextAssigneeIds,
     );
 
@@ -272,7 +273,7 @@ export const create = mutation({
 
     const cardId = await ctx.db.insert("cards", {
       columnId,
-      boardId,
+      planId,
       title,
       description,
       assignedUserId: nextAssigneeIds[0] ?? null,
@@ -288,7 +289,7 @@ export const create = mutation({
 
     const column = await ctx.db.get(columnId);
     await ctx.db.insert("activityLogs", {
-      boardId,
+      planId,
       cardId,
       userId,
       action: "created",
@@ -300,7 +301,7 @@ export const create = mutation({
       await createAssignmentNotification(ctx, {
         recipientUserId: assigneeId,
         actorUserId: userId,
-        boardId,
+        planId,
         cardId,
         taskTitle: title,
       });
@@ -310,14 +311,14 @@ export const create = mutation({
   },
 });
 
-export const normalizeBoardOrders = mutation({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    await requireBoardAccess(ctx, boardId);
+export const normalizePlanOrders = mutation({
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    await requirePlanAccess(ctx, planId);
 
     const cards = await ctx.db
       .query("cards")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
 
     const cardsByColumn = new Map<Id<"columns">, typeof cards>();
@@ -358,6 +359,8 @@ export const update = mutation({
     cardId: v.id("cards"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    descriptionHTML: v.optional(v.string()),
+    expectedDescriptionVersion: v.optional(v.number()),
     noteContent: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
     priority: v.optional(
@@ -380,7 +383,7 @@ export const update = mutation({
       throw new Error("Task not found");
     }
 
-    const access = await requireBoardAccess(ctx, card.boardId);
+    const access = await requirePlanAccess(ctx, card.planId!);
     const { userId } = access;
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
 
@@ -390,6 +393,16 @@ export const update = mutation({
 
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;
+    if (fields.descriptionHTML !== undefined) {
+      const currentVersion = card.descriptionVersion ?? 0;
+      if (fields.expectedDescriptionVersion !== undefined && fields.expectedDescriptionVersion !== currentVersion) {
+        throw new Error("Description was edited elsewhere — please reload");
+      }
+      const cleaned = sanitizeHtml(fields.descriptionHTML);
+      patch.descriptionHTML = cleaned;
+      patch.descriptionVersion = currentVersion + 1;
+      patch.description = htmlToPlainText(cleaned);
+    }
     if (fields.noteContent !== undefined) {
       patch.noteContent = fields.noteContent;
       patch.description = deriveDescriptionPreview(fields.noteContent);
@@ -411,8 +424,8 @@ export const update = mutation({
       requireAssignmentAccess(access.role, access.membership?.canBeAssigned ?? false);
       await assertValidAssignees(
         ctx,
-        card.boardId,
-        access.board.userId,
+        card.planId!,
+        access.plan.userId,
         nextAssigneeIds,
       );
       patch.assignedUserId = nextAssigneeIds[0] ?? null;
@@ -434,7 +447,7 @@ export const update = mutation({
       await createAssignmentNotification(ctx, {
         recipientUserId: assigneeId,
         actorUserId: userId,
-        boardId: card.boardId,
+        planId: card.planId!,
         cardId,
         taskTitle: fields.title ?? card.title,
       });
@@ -460,7 +473,7 @@ export const update = mutation({
         : "details";
 
     await ctx.db.insert("activityLogs", {
-      boardId: card.boardId,
+      planId: card.planId!,
       cardId,
       userId,
       action: "updated",
@@ -482,7 +495,7 @@ export const move = mutation({
       throw new Error("Task not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, card.boardId);
+    const { userId } = await requirePlanAccess(ctx, card.planId!);
     const sourceColumn = await ctx.db.get(card.columnId);
     const targetColumn = await ctx.db.get(targetColumnId);
     const previousColumnId = card.columnId;
@@ -495,7 +508,7 @@ export const move = mutation({
 
     if (previousColumnId !== targetColumnId) {
       await ctx.db.insert("activityLogs", {
-        boardId: card.boardId,
+        planId: card.planId!,
         cardId,
         userId,
         action: "moved",
@@ -517,7 +530,7 @@ export const moveToColumnEnd = mutation({
       throw new Error("Task not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, card.boardId);
+    const { userId } = await requirePlanAccess(ctx, card.planId!);
     const sourceColumn = await ctx.db.get(card.columnId);
     const targetColumn = await ctx.db.get(targetColumnId);
     const previousColumnId = card.columnId;
@@ -542,7 +555,7 @@ export const moveToColumnEnd = mutation({
 
     if (previousColumnId !== targetColumnId) {
       await ctx.db.insert("activityLogs", {
-        boardId: card.boardId,
+        planId: card.planId!,
         cardId,
         userId,
         action: "moved",
@@ -561,7 +574,7 @@ export const toggleComplete = mutation({
       throw new Error("Task not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, card.boardId);
+    const { userId } = await requirePlanAccess(ctx, card.planId!);
     const newStatus = !card.isComplete;
 
     await ctx.db.patch(cardId, {
@@ -570,7 +583,7 @@ export const toggleComplete = mutation({
     });
 
     await ctx.db.insert("activityLogs", {
-      boardId: card.boardId,
+      planId: card.planId!,
       cardId,
       userId,
       action: newStatus ? "completed" : "reopened",
@@ -588,7 +601,7 @@ export const remove = mutation({
       throw new Error("Task not found");
     }
 
-    const { userId } = await requireBoardAccess(ctx, card.boardId);
+    const { userId } = await requirePlanAccess(ctx, card.planId!);
     const logs = await ctx.db
       .query("activityLogs")
       .withIndex("by_cardId", (q) => q.eq("cardId", cardId))
@@ -608,7 +621,7 @@ export const remove = mutation({
     }
 
     await ctx.db.insert("activityLogs", {
-      boardId: card.boardId,
+      planId: card.planId!,
       userId,
       action: "deleted",
       details: `Deleted task "${card.title}"`,

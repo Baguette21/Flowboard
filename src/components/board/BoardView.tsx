@@ -60,18 +60,18 @@ function compareCardsByOrder(
   return a._id.localeCompare(b._id);
 }
 
-function getCountModeStorageKey(boardId: Id<"boards">) {
-  return `planthing-count-mode-${boardId}`;
+function getCountModeStorageKey(planId: Id<"plans">) {
+  return `planthing-count-mode-${planId}`;
 }
 
-function loadStoredCountMode(boardId: Id<"boards">): ColumnCountMode {
+function loadStoredCountMode(planId: Id<"plans">): ColumnCountMode {
   if (typeof window === "undefined") return "all";
-  const raw = window.localStorage.getItem(getCountModeStorageKey(boardId));
+  const raw = window.localStorage.getItem(getCountModeStorageKey(planId));
   return raw === "remaining" ? "remaining" : "all";
 }
 
 interface BoardViewProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
 }
 
 function TrashDropZone({ visible }: { visible: boolean }) {
@@ -107,12 +107,12 @@ function TrashDropZone({ visible }: { visible: boolean }) {
   );
 }
 
-export function BoardView({ boardId }: BoardViewProps) {
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
-  const columns = useQuery(api.columns.listByBoard, { boardId });
-  const cards = useQuery(api.cards.listByBoard, { boardId });
-  const labels = useQuery(api.labels.listByBoard, { boardId });
-  const members = useQuery(api.boardMembers.listForBoard, { boardId });
+export function BoardView({ planId }: BoardViewProps) {
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId });
+  const columns = useQuery(api.columns.listByPlan, { planId });
+  const cards = useQuery(api.cards.listByPlan, { planId });
+  const labels = useQuery(api.labels.listByPlan, { planId });
+  const members = useQuery(api.planMembers.listForPlan, { planId });
 
   const moveCardMutation = useMutation(api.cards.move);
   const removeCardMutation = useMutation(api.cards.remove);
@@ -129,17 +129,17 @@ export function BoardView({ boardId }: BoardViewProps) {
   const [activeColumn, setActiveColumn] = useState<Doc<"columns"> | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(null);
   const [countMode, setCountMode] = useState<ColumnCountMode>(() =>
-    loadStoredCountMode(boardId),
+    loadStoredCountMode(planId),
   );
 
   useEffect(() => {
-    setCountMode(loadStoredCountMode(boardId));
-  }, [boardId]);
+    setCountMode(loadStoredCountMode(planId));
+  }, [planId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(getCountModeStorageKey(boardId), countMode);
-  }, [boardId, countMode]);
+    window.localStorage.setItem(getCountModeStorageKey(planId), countMode);
+  }, [planId, countMode]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -385,7 +385,7 @@ export function BoardView({ boardId }: BoardViewProps) {
           <h3 className="font-serif italic font-bold text-xl mb-2">No groups yet</h3>
           <p className="font-mono text-sm text-brand-text/50 mb-6">Add a group to start organizing work</p>
         </div>
-        <CreateColumn boardId={boardId} />
+        <CreateColumn planId={planId} />
       </div>
     );
   }
@@ -451,7 +451,7 @@ export function BoardView({ boardId }: BoardViewProps) {
               ))}
             </SortableContext>
 
-            <CreateColumn boardId={boardId} />
+            <CreateColumn planId={planId} />
           </div>
         </div>
 
@@ -488,7 +488,7 @@ export function BoardView({ boardId }: BoardViewProps) {
       {selectedCardId && (
         <CardDetail
           cardId={selectedCardId}
-          boardId={boardId}
+          planId={planId}
           columns={orderedColumns}
           labels={labels ?? []}
           members={members ?? []}

@@ -151,7 +151,7 @@ export type TableAction =
 
 // ── Props ──────────────────────────────────────────────────────────────────
 export interface TableProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   cards: Doc<"cards">[] | undefined;
   columns: Doc<"columns">[];
   labels: Doc<"labels">[];

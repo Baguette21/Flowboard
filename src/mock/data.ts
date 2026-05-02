@@ -3,7 +3,7 @@ export type Id<T> = string & { __type?: T };
 
 export interface Label {
   id: Id<'labels'>;
-  boardId: Id<'boards'>;
+  planId: Id<'plans'>;
   name: string;
   color: string;
 }
@@ -11,7 +11,7 @@ export interface Label {
 export interface Card {
   id: Id<'cards'>;
   columnId: Id<'columns'>;
-  boardId: Id<'boards'>;
+  planId: Id<'plans'>;
   title: string;
   description?: string;
   order: string; // Fractional index
@@ -25,7 +25,7 @@ export interface Card {
 
 export interface Column {
   id: Id<'columns'>;
-  boardId: Id<'boards'>;
+  planId: Id<'plans'>;
   title: string;
   order: string;
   color?: string;
@@ -33,7 +33,7 @@ export interface Column {
 }
 
 export interface Board {
-  id: Id<'boards'>;
+  id: Id<'plans'>;
   userId: string;
   name: string;
   slug: string;
@@ -45,21 +45,21 @@ export interface Board {
 
 // Initial Mock Data
 export const mockLabels: Label[] = [
-  { id: 'l1', boardId: 'board_1', name: 'Bug', color: '#E63B2E' },
-  { id: 'l2', boardId: 'board_1', name: 'Feature', color: '#111111' },
+  { id: 'l1', planId: 'board_1', name: 'Bug', color: '#E63B2E' },
+  { id: 'l2', planId: 'board_1', name: 'Feature', color: '#111111' },
 ];
 
 export const mockColumns: Column[] = [
-  { id: 'col_1', boardId: 'board_1', title: 'To Do', order: 'a0', createdAt: Date.now() },
-  { id: 'col_2', boardId: 'board_1', title: 'In Progress', order: 'a1', createdAt: Date.now() },
-  { id: 'col_3', boardId: 'board_1', title: 'Done', order: 'a2', createdAt: Date.now() },
+  { id: 'col_1', planId: 'board_1', title: 'To Do', order: 'a0', createdAt: Date.now() },
+  { id: 'col_2', planId: 'board_1', title: 'In Progress', order: 'a1', createdAt: Date.now() },
+  { id: 'col_3', planId: 'board_1', title: 'Done', order: 'a2', createdAt: Date.now() },
 ];
 
 export const mockCards: Card[] = [
   {
     id: 'card_1',
     columnId: 'col_1',
-    boardId: 'board_1',
+    planId: 'board_1',
     title: 'Implement real-time sync',
     description: 'Use Convex to broadcast fractional index changes.',
     order: 'a0',
@@ -72,7 +72,7 @@ export const mockCards: Card[] = [
   {
     id: 'card_2',
     columnId: 'col_1',
-    boardId: 'board_1',
+    planId: 'board_1',
     title: 'Drag & Drop precision',
     order: 'a1',
     labelIds: [],
@@ -84,7 +84,7 @@ export const mockCards: Card[] = [
   {
     id: 'card_3',
     columnId: 'col_2',
-    boardId: 'board_1',
+    planId: 'board_1',
     title: 'Design high-density data view',
     description: 'Use Brutalist Signal aesthetics from GEMINI.md.',
     order: 'a0',

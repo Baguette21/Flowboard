@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Card, Column } from '../mock/data';
 import { mockBoard, mockCards, mockColumns, mockLabels } from '../mock/data';
 
-export function useBoard(boardId: string) {
+export function useBoard(planId: string) {
   const [board] = useState(mockBoard);
   const [columns, setColumns] = useState<Column[]>(mockColumns);
   const [cards, setCards] = useState<Card[]>(mockCards);
@@ -35,7 +35,7 @@ export function useBoard(boardId: string) {
     const newCard: Card = {
       id: `card_${Date.now()}`,
       columnId,
-      boardId,
+      planId,
       title,
       order: newOrder,
       labelIds: [],
@@ -45,7 +45,7 @@ export function useBoard(boardId: string) {
     };
     
     setCards((prev) => [...prev, newCard].sort((a, b) => a.order.localeCompare(b.order)));
-  }, [cards, boardId]);
+  }, [cards, planId]);
 
   return {
     board,

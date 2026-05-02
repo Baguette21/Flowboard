@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireCurrentUser } from "./helpers/boardAccess";
+import { requireCurrentUser } from "./helpers/planAccess";
 
 export const listMine = query({
   args: {},
@@ -16,7 +16,7 @@ export const listMine = query({
     return await Promise.all(
       notifications.map(async (notification) => {
         const actor = await ctx.db.get(notification.actorUserId);
-        const board = await ctx.db.get(notification.boardId);
+        const Plan = await ctx.db.get(notification.planId!);
 
         return {
           _id: notification._id,
@@ -24,9 +24,9 @@ export const listMine = query({
           taskTitle: notification.taskTitle,
           isRead: notification.isRead,
           createdAt: notification.createdAt,
-          boardId: notification.boardId,
-          boardName: board?.name ?? "Board",
-          boardColor: board?.color ?? "#111111",
+          planId: notification.planId!,
+          boardName: Plan?.name ?? "Plan",
+          boardColor: Plan?.color ?? "#111111",
           actorName: actor?.name ?? null,
           actorEmail: actor?.email ?? null,
         };

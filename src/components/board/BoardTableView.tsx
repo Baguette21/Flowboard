@@ -14,7 +14,7 @@ import {
 import { getAssignedUserIds } from "../../lib/assignees";
 
 interface BoardTableViewProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   cards: Doc<"cards">[] | undefined;
   columns: Doc<"columns">[];
   labels: Doc<"labels">[];
@@ -69,20 +69,20 @@ const priorityOptions = [
   { value: "urgent", label: "Urgent" },
 ] as const;
 
-function getColumnsStorageKey(boardId: Id<"boards">) {
-  return `planthing-table-columns-${boardId}`;
+function getColumnsStorageKey(planId: Id<"plans">) {
+  return `planthing-table-columns-${planId}`;
 }
 
-function getCellsStorageKey(boardId: Id<"boards">) {
-  return `planthing-table-custom-cells-${boardId}`;
+function getCellsStorageKey(planId: Id<"plans">) {
+  return `planthing-table-custom-cells-${planId}`;
 }
 
-function getRowOrderStorageKey(boardId: Id<"boards">) {
-  return `planthing-table-row-order-${boardId}`;
+function getRowOrderStorageKey(planId: Id<"plans">) {
+  return `planthing-table-row-order-${planId}`;
 }
 
-function loadStoredRowOrder(boardId: Id<"boards">): string[] {
-  const raw = localStorage.getItem(getRowOrderStorageKey(boardId));
+function loadStoredRowOrder(planId: Id<"plans">): string[] {
+  const raw = localStorage.getItem(getRowOrderStorageKey(planId));
   if (!raw) {
     return [];
   }
@@ -95,8 +95,8 @@ function loadStoredRowOrder(boardId: Id<"boards">): string[] {
   }
 }
 
-function loadStoredColumns(boardId: Id<"boards">): TableColumnConfig[] {
-  const raw = localStorage.getItem(getColumnsStorageKey(boardId));
+function loadStoredColumns(planId: Id<"plans">): TableColumnConfig[] {
+  const raw = localStorage.getItem(getColumnsStorageKey(planId));
   if (!raw) {
     return DEFAULT_TABLE_COLUMNS;
   }
@@ -124,8 +124,8 @@ function loadStoredColumns(boardId: Id<"boards">): TableColumnConfig[] {
   }
 }
 
-function loadStoredCells(boardId: Id<"boards">): CustomCellState {
-  const raw = localStorage.getItem(getCellsStorageKey(boardId));
+function loadStoredCells(planId: Id<"plans">): CustomCellState {
+  const raw = localStorage.getItem(getCellsStorageKey(planId));
   if (!raw) {
     return {};
   }
@@ -138,48 +138,48 @@ function loadStoredCells(boardId: Id<"boards">): CustomCellState {
 }
 
 export function BoardTableView({
-  boardId,
+  planId,
   cards,
   columns,
   labels,
 }: BoardTableViewProps) {
-  const members = useQuery(api.boardMembers.listForBoard, { boardId });
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
+  const members = useQuery(api.planMembers.listForPlan, { planId });
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId });
   const createCard = useMutation(api.cards.create);
   const updateCard = useMutation(api.cards.update);
   const moveCard = useMutation(api.cards.move);
   const toggleComplete = useMutation(api.cards.toggleComplete);
 
   const [tableColumns, setTableColumns] = useState<TableColumnConfig[]>(() =>
-    loadStoredColumns(boardId),
+    loadStoredColumns(planId),
   );
   const [customCells, setCustomCells] = useState<CustomCellState>(() =>
-    loadStoredCells(boardId),
+    loadStoredCells(planId),
   );
   const [rowOrderIds, setRowOrderIds] = useState<string[]>(() =>
-    loadStoredRowOrder(boardId),
+    loadStoredRowOrder(planId),
   );
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnLabel, setNewColumnLabel] = useState("");
   const [newColumnKind, setNewColumnKind] = useState<TableColumnKind>("labels");
 
   useEffect(() => {
-    setTableColumns(loadStoredColumns(boardId));
-    setCustomCells(loadStoredCells(boardId));
-    setRowOrderIds(loadStoredRowOrder(boardId));
-  }, [boardId]);
+    setTableColumns(loadStoredColumns(planId));
+    setCustomCells(loadStoredCells(planId));
+    setRowOrderIds(loadStoredRowOrder(planId));
+  }, [planId]);
 
   useEffect(() => {
-    localStorage.setItem(getColumnsStorageKey(boardId), JSON.stringify(tableColumns));
-  }, [boardId, tableColumns]);
+    localStorage.setItem(getColumnsStorageKey(planId), JSON.stringify(tableColumns));
+  }, [planId, tableColumns]);
 
   useEffect(() => {
-    localStorage.setItem(getCellsStorageKey(boardId), JSON.stringify(customCells));
-  }, [boardId, customCells]);
+    localStorage.setItem(getCellsStorageKey(planId), JSON.stringify(customCells));
+  }, [planId, customCells]);
 
   useEffect(() => {
-    localStorage.setItem(getRowOrderStorageKey(boardId), JSON.stringify(rowOrderIds));
-  }, [boardId, rowOrderIds]);
+    localStorage.setItem(getRowOrderStorageKey(planId), JSON.stringify(rowOrderIds));
+  }, [planId, rowOrderIds]);
 
   const labelsById = useMemo(
     () => new Map(labels.map((label) => [label._id, label])),
@@ -248,7 +248,7 @@ export function BoardTableView({
     }
 
     await createCard({
-      boardId,
+      planId,
       columnId: firstColumn._id,
       title: "Untitled",
     });

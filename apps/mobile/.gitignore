@@ -1,0 +1,19 @@
+
+node_modules/
+
+# Android
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/local.properties
+
+# Metro / logs
+.metro-health-check*
+*.log
+
+# Expo leftovers
+.expo/
+.expo-logs/
+expo-env.d.ts

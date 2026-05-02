@@ -11,7 +11,7 @@ import { NewTabPicker } from "./NewTabPicker";
 
 export function BoardTabStrip() {
   const location = useLocation();
-  const boards = useQuery(api.boards.list);
+  const plans = useQuery(api.plans.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
   const {
@@ -27,33 +27,33 @@ export function BoardTabStrip() {
 
   const isBoardWorkspaceRoute =
     location.pathname === "/" ||
-    location.pathname.startsWith("/board/") ||
+    location.pathname.startsWith("/plan/") ||
     location.pathname.startsWith("/notes") ||
     location.pathname.startsWith("/draw");
 
   const visibleTabs = useMemo(() => {
-    if (!boards || !notes || !drawings) {
+    if (!plans || !notes || !drawings) {
       return [];
     }
 
-    const boardMap = new Map(boards.map((board) => [board._id, board]));
+    const boardMap = new Map(plans.map((board) => [board._id, board]));
     const noteMap = new Map(notes.map((note) => [note._id, note]));
     const drawMap = new Map(drawings.map((drawing) => [drawing._id, drawing]));
     return tabs.map((tab) => {
       if (tab.target.id === null) {
         return {
           ...tab,
-          title: "New board tab",
+          title: "New plan tab",
           role: null,
           iconType: "empty" as const,
         };
       }
 
-      if (tab.target.kind === "board") {
-        const board = boardMap.get(tab.target.id as Id<"boards">) ?? null;
+      if (tab.target.kind === "plan") {
+        const board = boardMap.get(tab.target.id as Id<"plans">) ?? null;
         return {
           ...tab,
-          title: board?.name ?? "Board",
+          title: board?.name ?? "Plan",
           role: board?.role ?? null,
           iconType: "board" as const,
           board,
@@ -78,19 +78,19 @@ export function BoardTabStrip() {
         iconType: "draw" as const,
       };
     });
-  }, [boards, drawings, notes, tabs]);
+  }, [plans, drawings, notes, tabs]);
 
   useEffect(() => {
-    if (!boards || !notes || !drawings) {
+    if (!plans || !notes || !drawings) {
       return;
     }
 
     pruneTabs({
-      board: boards.map((board) => board._id),
+      plan: plans.map((board) => board._id),
       note: notes.map((note) => note._id),
       draw: drawings.map((drawing) => drawing._id),
     });
-  }, [boards, drawings, notes, pruneTabs]);
+  }, [plans, drawings, notes, pruneTabs]);
 
   if (!isEnabled || !isBoardWorkspaceRoute || visibleTabs.length === 0) {
     return null;

@@ -4,23 +4,23 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { ExcalidrawCanvas } from "../drawing/ExcalidrawCanvas";
 
 interface BoardDrawViewProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   drawingDocument?: string;
 }
 
-export function BoardDrawView({ boardId, drawingDocument }: BoardDrawViewProps) {
-  const updateBoard = useMutation(api.boards.update);
+export function BoardDrawView({ planId, drawingDocument }: BoardDrawViewProps) {
+  const updatePlan = useMutation(api.plans.update);
   const me = useQuery(api.users.me);
   const isPro = me?.role === "PRO";
 
   return (
     <div className="h-full overflow-y-auto bg-brand-bg px-4 py-5 sm:px-6">
       <ExcalidrawCanvas
-        documentKey={`board-draw-${boardId}`}
+        documentKey={`board-draw-${planId}`}
         drawingDocument={drawingDocument}
         onSave={(nextDrawingDocument) => {
-          void updateBoard({
-            boardId,
+          void updatePlan({
+            planId,
             drawingDocument: nextDrawingDocument,
           });
         }}

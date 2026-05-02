@@ -6,15 +6,15 @@ import { Activity } from "lucide-react";
 import { Skeleton } from "../ui/Skeleton";
 
 interface ActivityFeedProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   cardId?: Id<"cards">;
   mode?: "board" | "card";
 }
 
-export function ActivityFeed({ boardId, cardId, mode = "board" }: ActivityFeedProps) {
+export function ActivityFeed({ planId, cardId, mode = "board" }: ActivityFeedProps) {
   const boardLogs = useQuery(
-    mode === "board" ? api.activityLogs.listByBoard : api.activityLogs.listByBoard,
-    mode === "board" ? { boardId } : { boardId },
+    mode === "board" ? api.activityLogs.listByPlan : api.activityLogs.listByPlan,
+    mode === "board" ? { planId } : { planId },
   );
   const cardLogs = useQuery(
     api.activityLogs.listByCard,

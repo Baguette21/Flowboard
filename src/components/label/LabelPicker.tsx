@@ -13,13 +13,13 @@ const LABEL_COLORS = [
 ];
 
 interface LabelPickerProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   selectedIds: Id<"labels">[];
   onChange: (ids: Id<"labels">[]) => void;
 }
 
-export function LabelPicker({ boardId, selectedIds, onChange }: LabelPickerProps) {
-  const labels = useQuery(api.labels.listByBoard, { boardId });
+export function LabelPicker({ planId, selectedIds, onChange }: LabelPickerProps) {
+  const labels = useQuery(api.labels.listByPlan, { planId });
   const createLabel = useMutation(api.labels.create);
   const updateLabel = useMutation(api.labels.update);
   const deleteLabel = useMutation(api.labels.remove);
@@ -44,7 +44,7 @@ export function LabelPicker({ boardId, selectedIds, onChange }: LabelPickerProps
     const trimmed = newName.trim();
     if (!trimmed) return;
     try {
-      const labelId = await createLabel({ boardId, name: trimmed, color: newColor });
+      const labelId = await createLabel({ planId, name: trimmed, color: newColor });
       if (!selectedIds.includes(labelId)) {
         onChange([...selectedIds, labelId]);
       }

@@ -1,22 +1,22 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
-import { getBoardAccess } from "./helpers/boardAccess";
+import { getPlanAccess } from "./helpers/planAccess";
 
-export const listByBoard = query({
+export const listByPlan = query({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { boardId, limit = 50 }) => {
-    const access = await getBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, limit = 50 }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access) {
       return [];
     }
 
     return await ctx.db
       .query("activityLogs")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .order("desc")
       .take(limit);
   },
@@ -30,7 +30,7 @@ export const listByCard = query({
       return [];
     }
 
-    const access = await getBoardAccess(ctx, card.boardId);
+    const access = await getPlanAccess(ctx, card.planId!);
     if (!access) {
       return [];
     }
@@ -45,11 +45,11 @@ export const listByCard = query({
 
 export const creatorsByCardIds = query({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     cardIds: v.array(v.id("cards")),
   },
-  handler: async (ctx, { boardId, cardIds }) => {
-    const access = await getBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, cardIds }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access || cardIds.length === 0) {
       return {};
     }

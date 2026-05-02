@@ -39,6 +39,32 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_inviteToken", ["inviteToken"]),
 
+  plans: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    drawingDocument: v.optional(v.string()),
+    isFavorite: v.boolean(),
+    order: v.optional(v.string()),
+    archivedAt: v.optional(v.number()),
+    inviteToken: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_slug", ["slug"])
+    .index("by_inviteToken", ["inviteToken"]),
+
+  planMigrationMap: defineTable({
+    oldBoardId: v.id("boards"),
+    newPlanId: v.id("plans"),
+    migratedAt: v.number(),
+  })
+    .index("by_oldBoardId", ["oldBoardId"])
+    .index("by_newPlanId", ["newPlanId"]),
+
   boardMembers: defineTable({
     boardId: v.id("boards"),
     userId: v.id("users"),
@@ -49,6 +75,49 @@ export default defineSchema({
     .index("by_boardId", ["boardId"])
     .index("by_userId", ["userId"])
     .index("by_boardId_and_userId", ["boardId", "userId"]),
+
+  planMembers: defineTable({
+    planId: v.id("plans"),
+    userId: v.id("users"),
+    invitedByUserId: v.id("users"),
+    joinedAt: v.number(),
+    canBeAssigned: v.optional(v.boolean()),
+  })
+    .index("by_planId", ["planId"])
+    .index("by_userId", ["userId"])
+    .index("by_planId_and_userId", ["planId", "userId"]),
+
+  boardViewPreferences: defineTable({
+    userId: v.id("users"),
+    boardId: v.id("boards"),
+    viewOrder: v.array(
+      v.union(
+        v.literal("board"),
+        v.literal("calendar"),
+        v.literal("table"),
+        v.literal("list"),
+        v.literal("draw"),
+      ),
+    ),
+    updatedAt: v.number(),
+  })
+    .index("by_userId_and_boardId", ["userId", "boardId"])
+    .index("by_boardId", ["boardId"]),
+
+  planViewPreferences: defineTable({
+    userId: v.id("users"),
+    planId: v.id("plans"),
+    viewOrder: v.array(
+      v.union(
+        v.literal("board"),
+        v.literal("calendar"),
+        v.literal("table"),
+        v.literal("list"),
+        v.literal("draw"),
+      ),
+    ),
+    updatedAt: v.number(),
+  }).index("by_userId_and_planId", ["userId", "planId"]),
 
   boardInvites: defineTable({
     boardId: v.id("boards"),
@@ -69,19 +138,44 @@ export default defineSchema({
     .index("by_invitedEmail_and_status", ["invitedEmail", "status"])
     .index("by_boardId_and_status", ["boardId", "status"]),
 
+  planInvites: defineTable({
+    planId: v.id("plans"),
+    invitedEmail: v.string(),
+    invitedUserId: v.optional(v.id("users")),
+    invitedByUserId: v.id("users"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_planId", ["planId"])
+    .index("by_planId_and_invitedEmail", ["planId", "invitedEmail"])
+    .index("by_invitedEmail_and_status", ["invitedEmail", "status"])
+    .index("by_planId_and_status", ["planId", "status"]),
+
   columns: defineTable({
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     title: v.string(),
     order: v.string(),
     color: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_boardId", ["boardId"]),
+  })
+    .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"]),
 
   cards: defineTable({
     columnId: v.id("columns"),
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionHTML: v.optional(v.string()),
+    descriptionVersion: v.optional(v.number()),
     noteContent: v.optional(v.string()),
     drawingDocument: v.optional(v.string()),
     assignedUserId: v.optional(v.union(v.id("users"), v.null())),
@@ -103,19 +197,24 @@ export default defineSchema({
   })
     .index("by_columnId", ["columnId"])
     .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["boardId"],
+      filterFields: ["boardId", "planId"],
     }),
 
   labels: defineTable({
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     name: v.string(),
     color: v.string(),
-  }).index("by_boardId", ["boardId"]),
+  })
+    .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"]),
 
   cardAttachments: defineTable({
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     cardId: v.id("cards"),
     key: v.string(),
     fileName: v.string(),
@@ -126,10 +225,12 @@ export default defineSchema({
   })
     .index("by_cardId", ["cardId"])
     .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"])
     .index("by_uploadedByUserId_and_createdAt", ["uploadedByUserId", "createdAt"]),
 
   activityLogs: defineTable({
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     cardId: v.optional(v.id("cards")),
     userId: v.string(),
     action: v.string(),
@@ -137,12 +238,15 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"])
     .index("by_cardId", ["cardId"]),
 
   notes: defineTable({
     userId: v.id("users"),
     title: v.string(),
     content: v.optional(v.string()),
+    contentHTML: v.optional(v.string()),
+    contentVersion: v.optional(v.number()),
     drawingDocument: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
     order: v.optional(v.string()),
@@ -169,7 +273,8 @@ export default defineSchema({
   notifications: defineTable({
     recipientUserId: v.id("users"),
     actorUserId: v.id("users"),
-    boardId: v.id("boards"),
+    boardId: v.optional(v.id("boards")),
+    planId: v.optional(v.id("plans")),
     cardId: v.optional(v.id("cards")),
     type: v.literal("taskAssigned"),
     taskTitle: v.string(),
@@ -179,6 +284,7 @@ export default defineSchema({
     .index("by_recipientUserId", ["recipientUserId"])
     .index("by_recipientUserId_and_isRead", ["recipientUserId", "isRead"])
     .index("by_boardId", ["boardId"])
+    .index("by_planId", ["planId"])
     .index("by_cardId", ["cardId"]),
 
   feedback: defineTable({

@@ -83,7 +83,7 @@ export const setAssignable = mutation({
     }
 
     if (board.userId === memberUserId) {
-      throw new Error("The board owner is always assignable");
+      throw new Error("The plan owner is always assignable");
     }
 
     const membership = await ctx.db
@@ -119,7 +119,7 @@ export const leaveBoard = mutation({
     const { userId, user, board, membership } = access;
 
     if (access.role === "owner") {
-      throw new Error("The board owner cannot leave their own board");
+      throw new Error("The plan owner cannot leave their own plan");
     }
 
     if (!membership) {
