@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { BackHandler, StatusBar, StyleSheet, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation } from "convex/react";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { BottomNav } from "@/components/AppChrome";
+import { BoardBottomNav, BottomNav } from "@/components/AppChrome";
 import { PlanthingLoadingScreen } from "@/components/PlanthingLoading";
 import { useMobileData } from "@/data/useMobileData";
 import { makeTheme, mobileAppearancePresets, type MobilePalette } from "@/theme/tokens";
@@ -13,7 +13,6 @@ import { HomeMixedScreen, HomeTabsScreen, HomeTodayScreen } from "@/screens/Home
 import {
   BoardCalendarScreen,
   BoardListScreen,
-  BoardLongPressScreen,
   BoardSingleScreen,
   BoardStackedScreen,
   BoardSwipeScreen,
@@ -29,6 +28,7 @@ import type { Id } from "@convex/_generated/dataModel";
 const APPEARANCE_STORAGE_KEY = "planthing.mobile.appearance";
 const BOARD_VIEW_ORDER_STORAGE_KEY = "planthing.mobile.boardViewOrder";
 const DEFAULT_BOARD_VIEW_ORDER: BoardPrimaryView[] = ["boardSwipe", "boardCalendar", "boardTable", "boardList"];
+const BOARD_SCREENS: ScreenKey[] = ["boardSwipe", "boardCalendar", "boardTable", "boardList", "boardSingle", "boardStacked", "boardDrag", "boardLongPress", "boardSettings"];
 const LEGACY_BOARD_VIEW_ORDER: BoardPrimaryView[] = ["boardSwipe", "boardList", "boardCalendar", "boardTable"];
 const MOBILE_TO_SHARED_VIEW: Record<BoardPrimaryView, "board" | "calendar" | "table" | "list"> = {
   boardSwipe: "board",
@@ -94,6 +94,7 @@ export function RootApp() {
   const [customPalette, setCustomPalette] = useState<MobilePalette>(mobileAppearancePresets[0].light);
   const [boardViewOrder, setBoardViewOrder] = useState<BoardPrimaryView[]>(DEFAULT_BOARD_VIEW_ORDER);
   const [boardViewOrderDirty, setBoardViewOrderDirty] = useState(false);
+  const [taskBackScreen, setTaskBackScreen] = useState<ScreenKey>("boardSwipe");
   const activePalette = useMemo(() => {
     const preset = mobileAppearancePresets.find((item) => item.id === appearancePresetId) ?? mobileAppearancePresets[0];
     return preset.id === "custom" ? sanitizePalette(customPalette, dark ? preset.dark : preset.light) : dark ? preset.dark : preset.light;
@@ -157,13 +158,8 @@ export function RootApp() {
     if (!selectedPlanId || boardViewOrderDirty) return;
     const syncedOrder = data.planViewOrders?.[selectedPlanId];
     if (!syncedOrder) return;
-    const targetOrder = sharedToMobileViewOrder(syncedOrder);
-    setBoardViewOrder(targetOrder);
-    if (["boardSwipe", "boardCalendar", "boardTable", "boardList"].includes(screen)) {
-      const targetScreen = targetOrder[0] ?? "boardSwipe";
-      if (screen !== targetScreen) setScreen(targetScreen);
-    }
-  }, [boardViewOrderDirty, data.planViewOrders, screen, selectedPlanId]);
+    setBoardViewOrder(sharedToMobileViewOrder(syncedOrder));
+  }, [boardViewOrderDirty, data.planViewOrders, selectedPlanId]);
 
   function setUserBoardViewOrder(order: BoardPrimaryView[]) {
     setBoardViewOrder(order);
@@ -176,6 +172,21 @@ export function RootApp() {
     }
   }, [data.viewer, screen, status]);
 
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (screen === "taskFull") {
+        setScreen(taskBackScreen);
+        return true;
+      }
+      if (BOARD_SCREENS.includes(screen)) {
+        setScreen("homeMixed");
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [screen, taskBackScreen]);
+
   function openPlan(planId?: Id<"plans">) {
     const syncedOrder = planId ? data.planViewOrders?.[planId] : undefined;
     const targetOrder = syncedOrder ? sharedToMobileViewOrder(syncedOrder) : boardViewOrder;
@@ -186,6 +197,9 @@ export function RootApp() {
   }
 
   function openTask(cardId?: Id<"cards">) {
+    if (BOARD_SCREENS.includes(screen)) {
+      setTaskBackScreen(screen);
+    }
     setSelectedCardId(cardId);
     setScreen("taskFull");
   }
@@ -200,16 +214,16 @@ export function RootApp() {
   else if (screen === "homeTabs") body = <HomeTabsScreen data={data} theme={theme} setScreen={setScreen} openPlan={openPlan} openTask={openTask} openNote={openNote} />;
   else if (screen === "homeToday") body = <HomeTodayScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} />;
   else if (screen === "create") body = <CreateScreen data={data} theme={theme} setScreen={setScreen} openPlan={openPlan} openTask={openTask} />;
-  else if (screen === "boardList") body = <BoardListScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
+  else if (screen === "boardList") body = <BoardListScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} selectTask={setSelectedCardId} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardCalendar") body = <BoardCalendarScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardTable") body = <BoardTableScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardSwipe") body = <BoardSwipeScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardSingle") body = <BoardSingleScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardStacked") body = <BoardStackedScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "boardDrag") body = <BoardSwipeScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} dragMode viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
-  else if (screen === "boardLongPress") body = <BoardLongPressScreen data={data} theme={theme} setScreen={setScreen} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
+  else if (screen === "boardLongPress") body = <BoardListScreen data={data} theme={theme} setScreen={setScreen} openTask={openTask} selectTask={setSelectedCardId} viewOrder={boardViewOrder} setViewOrder={setUserBoardViewOrder} />;
   else if (screen === "taskSheet") body = <TaskSheetScreen data={data} theme={theme} selectedCardId={selectedCardId} />;
-  else if (screen === "taskFull") body = <TaskFullScreen data={data} theme={theme} selectedCardId={selectedCardId} />;
+  else if (screen === "taskFull") body = <TaskFullScreen data={data} theme={theme} selectedCardId={selectedCardId} setScreen={setScreen} backScreen={taskBackScreen} />;
   else if (screen === "taskAssign") body = <TaskAssignScreen data={data} theme={theme} selectedCardId={selectedCardId} />;
   else if (screen === "notesList") body = <NotesListScreen data={data} theme={theme} setScreen={setScreen} openNote={openNote} />;
   else if (screen === "noteEditor") body = <NoteEditorScreen data={data} theme={theme} selectedNoteId={selectedNoteId} setScreen={setScreen} />;
@@ -238,7 +252,11 @@ export function RootApp() {
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
       <SafeAreaView edges={["top"]} style={[styles.safe, { backgroundColor: theme.bg }]}>
         <View style={styles.body}>{body}</View>
-        {!["noteFocused", "welcome", "signin", "signup", "otp"].includes(screen) ? <BottomNav active={activeNav} setScreen={setScreen} theme={theme} /> : null}
+        {(["boardSwipe", "boardCalendar", "boardTable", "boardList"] as ScreenKey[]).includes(screen)
+          ? <BoardBottomNav active={screen as BoardPrimaryView} viewOrder={boardViewOrder} setScreen={setScreen} setViewOrder={setUserBoardViewOrder} theme={theme} />
+          : !["taskFull", "noteFocused", "welcome", "signin", "signup", "otp"].includes(screen)
+            ? <BottomNav active={activeNav} setScreen={setScreen} theme={theme} />
+            : null}
       </SafeAreaView>
     </SafeAreaProvider>
   );

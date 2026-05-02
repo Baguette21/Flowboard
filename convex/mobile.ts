@@ -74,7 +74,11 @@ async function accessiblePlans(ctx: QueryCtx) {
   return { current, plans };
 }
 
-async function planPayload(ctx: QueryCtx, Plan: Doc<"plans"> | null) {
+async function planPayload(
+  ctx: QueryCtx,
+  Plan: Doc<"plans"> | null,
+  current: Awaited<ReturnType<typeof getCurrentUser>>,
+) {
   const [columns, cards, labels, memberships] = Plan
     ? await Promise.all([
         ctx.db
@@ -102,31 +106,57 @@ async function planPayload(ctx: QueryCtx, Plan: Doc<"plans"> | null) {
       user: await ctx.db.get(membership.userId),
     })),
   );
+  const owner = Plan ? await ctx.db.get(Plan.userId as Id<"users">) : null;
+  const assigneeUsers = [
+    ...(owner
+      ? [{
+          membership: null,
+          user: owner,
+          canBeAssigned: true,
+        }]
+      : []),
+    ...memberUsers
+      .filter(({ user }) => user !== null && user!._id !== Plan?.userId)
+      .map(({ membership, user }) => ({
+        membership,
+        user: user!,
+        canBeAssigned: membership.canBeAssigned ?? true,
+      })),
+  ];
+  const viewerMembership = current && Plan
+    ? memberships.find((membership) => membership.userId === current.userId) ?? null
+    : null;
+  const canAssignTasks = Boolean(
+    current &&
+    Plan &&
+    (Plan.userId === current.userId || (viewerMembership?.canBeAssigned ?? false)),
+  );
 
   return {
+    canAssignTasks,
     columns: columns.sort((a, b) => a.order.localeCompare(b.order)),
     cards: cards.sort(compareCardOrder).map((card) => ({
       ...card,
       commentsCount: 0,
-      assignees: memberUsers
+      assignees: assigneeUsers
         .filter(({ user }) => user && card.assignedUserIds?.includes(user._id))
-        .map(({ user, membership }) => ({
+        .map(({ user, canBeAssigned }) => ({
           _id: user!._id,
           name: user!.name ?? null,
           email: user!.email ?? null,
           initials: initialsFor(user),
-          canBeAssigned: membership.canBeAssigned ?? true,
+          canBeAssigned,
         })),
     })),
     labels,
-    members: memberUsers
+    members: assigneeUsers
       .filter(({ user }) => user !== null)
-      .map(({ user, membership }) => ({
+      .map(({ user, canBeAssigned }) => ({
         _id: user!._id,
         name: user!.name ?? null,
         email: user!.email ?? null,
         initials: initialsFor(user),
-        canBeAssigned: membership.canBeAssigned ?? true,
+        canBeAssigned,
       })),
   };
 }
@@ -155,7 +185,7 @@ export const snapshot = query({
       plans[0] ??
       null;
 
-    const payload = await planPayload(ctx, selectedPlan);
+    const payload = await planPayload(ctx, selectedPlan, current);
 
     const notes = current
       ? await ctx.db
@@ -238,7 +268,7 @@ export const planSnapshot = query({
   handler: async (ctx, { planId }) => {
     const { plans } = await accessiblePlans(ctx);
     const selectedPlan = plans.find((Plan) => Plan._id === planId) ?? null;
-    const payload = await planPayload(ctx, selectedPlan);
+    const payload = await planPayload(ctx, selectedPlan, null);
     return { selectedPlan, ...payload };
   },
 });

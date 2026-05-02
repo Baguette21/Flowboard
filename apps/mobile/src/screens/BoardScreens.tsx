@@ -1,89 +1,87 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Animated, PanResponder, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Animated, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { generateKeyBetween } from "fractional-indexing";
 import { Check, ChevronLeft, ChevronRight, LayoutGrid, List, MoreHorizontal, Plus, Table2, CalendarDays } from "lucide-react-native";
 import { api } from "@convex/_generated/api";
 import { convex } from "@/lib/convexClient";
 import { AppBar } from "@/components/AppBar";
 import { Section, TaskCard } from "@/components/Cards";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { TaskActionMenu } from "@/components/TaskActionMenu";
 import { Mono, Screen, formatDate } from "@/components/Primitives";
 import type { AppTheme } from "@/theme/tokens";
 import { palette, tintFrom } from "@/theme/tokens";
 import type { MobileCard, MobileData, ScreenKey } from "@/types";
 
 export type BoardPrimaryView = "boardSwipe" | "boardList" | "boardCalendar" | "boardTable";
+const BOARD_CARD_DRAG_DELAY_MS = 280;
+
+function withAlphaHex(hex: string, alpha: number) {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return hex;
+  const value = match[1];
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function ActionableTaskCard({ card, data, theme, dragging, onPress }: { card: MobileCard; data: MobileData; theme: AppTheme; dragging?: boolean; onPress?: () => void }) {
+  return <TaskCard card={card} labels={data.labels} theme={theme} dragging={dragging} onPress={onPress} />;
+}
 
 export function BoardSwipeScreen({ data, theme, setScreen, openTask, dragMode = false, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme; setScreen: (screen: ScreenKey) => void; openTask?: (cardId?: MobileCard["_id"]) => void; dragMode?: boolean; viewOrder: BoardPrimaryView[]; setViewOrder: (order: BoardPrimaryView[]) => void }) {
   const [localCards, setLocalCards] = useState(data.cards);
   const { width } = useWindowDimensions();
-  const columnWidth = Math.max(286, width - 52);
+  const columnWidth = Math.max(220, Math.min(286, Math.round(width * 0.72)));
 
   useEffect(() => setLocalCards(data.cards), [data.cards]);
 
-  function cardPan(card: MobileCard, columnIndex: number) {
-    const x = new Animated.Value(0);
-    const y = new Animated.Value(0);
-    const pan = PanResponder.create({
-      onStartShouldSetPanResponder: () => dragMode,
-      onMoveShouldSetPanResponder: () => dragMode,
-      onPanResponderMove: Animated.event([null, { dx: x, dy: y }], { useNativeDriver: false }),
-      onPanResponderRelease: async (_, gesture) => {
-        const offset = Math.round(gesture.dx / Math.max(160, columnWidth * 0.55));
-        const targetIndex = Math.max(0, Math.min(data.columns.length - 1, columnIndex + offset));
-        const targetColumn = data.columns[targetIndex];
-        const targetCards = localCards
-          .filter((item) => item.columnId === targetColumn?._id && item._id !== card._id)
-          .sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
-        const sourceCards = localCards
-          .filter((item) => item.columnId === card.columnId)
-          .sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
-        const sourceIndex = Math.max(0, sourceCards.findIndex((item) => item._id === card._id));
-        const baseIndex = targetColumn?._id === card.columnId ? sourceIndex : targetCards.length;
-        const approxIndex = Math.max(0, Math.min(targetCards.length, Math.round(gesture.dy / 92) + baseIndex));
-        const insertionIndex = Number.isFinite(approxIndex) && approxIndex >= 0 ? approxIndex : targetCards.length;
-        const before = insertionIndex > 0 ? targetCards[insertionIndex - 1]?.order ?? null : null;
-        const after = insertionIndex < targetCards.length ? targetCards[insertionIndex]?.order ?? null : null;
-        const newOrder = generateKeyBetween(before, after);
-        x.setValue(0);
-        y.setValue(0);
-        if (!targetColumn || String(card._id).startsWith("c")) return;
-        setLocalCards((cards) => cards.map((item) => item._id === card._id ? { ...item, columnId: targetColumn._id, order: newOrder } : item));
-        try {
-          await convex.mutation(api.cards.move, { cardId: card._id, targetColumnId: targetColumn._id, newOrder });
-        } catch {
-          setLocalCards(data.cards);
-        }
-      },
-    });
-    return { transform: [{ translateX: x }, { translateY: y }], panHandlers: pan.panHandlers };
-  }
+  const moveCard = (cardId: string, targetColumnId: string, targetIndex: number) => {
+    if (String(cardId).startsWith("c")) return;
+    const card = localCards.find((item) => item._id === cardId);
+    if (!card) return;
+    const targetCards = localCards
+      .filter((item) => item.columnId === targetColumnId && item._id !== cardId)
+      .sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
+    const clamped = Math.max(0, Math.min(targetIndex, targetCards.length));
+    const before = clamped > 0 ? targetCards[clamped - 1]?.order ?? null : null;
+    const after = clamped < targetCards.length ? targetCards[clamped]?.order ?? null : null;
+    let newOrder: string;
+    try {
+      newOrder = generateKeyBetween(before, after);
+    } catch {
+      return;
+    }
+    setLocalCards((cards) => cards.map((item) => item._id === cardId ? { ...item, columnId: targetColumnId as MobileCard["columnId"], order: newOrder } : item));
+    convex.mutation(api.cards.move, { cardId: card._id, targetColumnId: targetColumnId as MobileCard["columnId"], newOrder }).catch(() => setLocalCards(data.cards));
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
-      <AppBar title={data.selectedPlan?.name ?? "Board"} subtitle={`${localCards.length} tasks - ${data.columns.length} columns`} theme={theme} back={() => setScreen("homeMixed")} right={<TouchableOpacity onPress={() => setScreen("boardSettings")}><MoreHorizontal size={22} color={theme.ink} /></TouchableOpacity>} />
-      <View style={styles.switchOuter}>
-        <BoardViewSwitch active="boardSwipe" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
-      </View>
-      <ScrollView horizontal snapToInterval={columnWidth + 12} decelerationRate="fast" showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boardColumns}>
-        {data.columns.map((column, columnIndex) => {
-          const columnCards = localCards.filter((card) => card.columnId === column._id).sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
-          return (
-            <View key={column._id} style={{ width: columnWidth, gap: 10 }}>
-              <ColumnHeader column={column} count={columnCards.length} theme={theme} />
-              {columnCards.map((card, index) => {
-                const pan = cardPan(card, columnIndex);
-                return (
-                  <Animated.View key={card._id} style={dragMode ? pan.transform : undefined} {...(dragMode ? pan.panHandlers : {})}>
-                    <TaskCard card={card} theme={theme} labels={data.labels} dragging={dragMode} onPress={() => openTask?.(card._id)} />
-                  </Animated.View>
-                );
-              })}
-              <AddCardInline data={data} columnId={column._id} theme={theme} onCreated={openTask} />
-            </View>
-          );
-        })}
-      </ScrollView>
-      {dragMode ? <Text style={[styles.dragHint, { color: theme.muted }]}>Drag the lifted card left or right, then release over a target column.</Text> : null}
+      <AppBar title={data.selectedPlan?.name ?? "Board"} theme={theme} back={() => setScreen("homeMixed")} right={<TouchableOpacity onPress={() => setScreen("boardSettings")}><MoreHorizontal size={22} color={theme.ink} /></TouchableOpacity>} />
+      <KanbanBoard
+        columns={data.columns}
+        cards={localCards}
+        getColumnId={(c) => c._id as string}
+        getCardId={(c) => c._id as string}
+        getCardColumnId={(c) => c.columnId as string}
+        getCardOrder={(c) => c.order ?? ""}
+        columnWidth={columnWidth}
+        isCardDraggable={(c) => !String(c._id).startsWith("c")}
+        renderColumnHeader={(col) => (
+          <ColumnHeader column={col} count={localCards.filter((c) => c.columnId === col._id).length} theme={theme} />
+        )}
+        renderColumnFooter={(col) => (
+          <AddCardInline data={data} columnId={col._id} theme={theme} onCreated={openTask} />
+        )}
+        renderCard={(card) => (
+          <TaskCard card={card} labels={data.labels} theme={theme} />
+        )}
+        onMove={moveCard}
+        onCardPress={(cardId) => openTask?.(cardId as MobileCard["_id"])}
+        contentContainerStyle={styles.boardColumns}
+      />
     </View>
   );
 }
@@ -95,7 +93,7 @@ type BoardNavProps = {
   setViewOrder: (order: BoardPrimaryView[]) => void;
 };
 
-export function BoardSingleScreen({ data, theme, openTask }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
+export function BoardSingleScreen({ data, theme, setScreen, openTask }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
   const [index, setIndex] = useState(1);
   const column = data.columns[index] ?? data.columns[0];
   const cards = data.cards.filter((card) => card.columnId === column?._id).sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
@@ -109,7 +107,7 @@ export function BoardSingleScreen({ data, theme, openTask }: { data: MobileData;
           <TouchableOpacity onPress={() => setIndex(Math.min(data.columns.length - 1, index + 1))} style={[styles.switchButton, { backgroundColor: theme.ink }]}><ChevronRight size={18} color={theme.bg} /></TouchableOpacity>
         </View>
       </View>
-      <View style={styles.content}>{cards.map((card) => <TaskCard key={card._id} card={card} labels={data.labels} theme={theme} onPress={() => openTask?.(card._id)} />)}</View>
+      <View style={styles.content}>{cards.map((card) => <ActionableTaskCard key={card._id} card={card} data={data} theme={theme} onPress={() => openTask?.(card._id)} />)}</View>
     </Screen>
   );
 }
@@ -117,11 +115,11 @@ export function BoardSingleScreen({ data, theme, openTask }: { data: MobileData;
 export function BoardStackedScreen({ data, theme, setScreen, openTask }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
   return (
     <Screen theme={theme}>
-      <AppBar title={data.selectedPlan?.name ?? "Board"} subtitle="All columns stacked" theme={theme} back={() => setScreen("boardSwipe")} right={<MoreHorizontal color={theme.ink} />} />
+      <AppBar title={data.selectedPlan?.name ?? "Board"} subtitle="All columns stacked" theme={theme} back={() => setScreen("homeMixed")} right={<MoreHorizontal color={theme.ink} />} />
       <View style={styles.content}>
         {data.columns.map((column) => {
           const cards = data.cards.filter((card) => card.columnId === column._id).sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
-          return <View key={column._id} style={styles.stack}><ColumnHeader column={column} count={cards.length} theme={theme} />{cards.map((card) => <TaskCard key={card._id} card={card} labels={data.labels} theme={theme} onPress={() => openTask?.(card._id)} />)}</View>;
+          return <View key={column._id} style={styles.stack}><ColumnHeader column={column} count={cards.length} theme={theme} />{cards.map((card) => <ActionableTaskCard key={card._id} card={card} data={data} theme={theme} onPress={() => openTask?.(card._id)} />)}</View>;
         })}
       </View>
     </Screen>
@@ -156,18 +154,21 @@ export function BoardLongPressScreen({ data, theme, setScreen, viewOrder, setVie
   );
 }
 
-export function BoardListScreen({ data, theme, setScreen, openTask, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
+export function BoardListScreen({ data, theme, setScreen, openTask, selectTask, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme; selectTask?: (cardId: MobileCard["_id"]) => void } & BoardNavProps) {
+  const [menuCard, setMenuCard] = useState<MobileCard | null>(null);
   return (
-    <Screen theme={theme}>
-      <AppBar title="List view" subtitle={data.selectedPlan?.name ?? ""} theme={theme} back={() => setScreen("boardSwipe")} right={<List color={theme.ink} />} />
-      <View style={styles.content}>
-        <BoardViewSwitch active="boardList" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
-        {data.columns.map((column) => {
-          const cards = data.cards.filter((card) => card.columnId === column._id);
-          return <View key={column._id}><Section theme={theme} label={column.title} count={cards.length} />{cards.map((card) => <TouchableOpacity key={card._id} onPress={() => openTask?.(card._id)} style={[styles.listRow, { borderBottomColor: theme.whisper }]}><Check size={16} color={card.isComplete ? palette.tints.green.fg : theme.subtle} /><Text style={[styles.listRowTitle, { color: theme.ink }]}>{card.title}</Text><Text style={[styles.listRowDate, { color: theme.subtle }]}>{formatDate(card.dueDate)}</Text></TouchableOpacity>)}</View>;
-        })}
-      </View>
-    </Screen>
+    <>
+      <Screen theme={theme}>
+        <AppBar title={data.selectedPlan?.name ?? "Board"} theme={theme} back={() => setScreen("homeMixed")} right={<List color={theme.ink} />} />
+        <View style={styles.content}>
+          {data.columns.map((column) => {
+            const cards = data.cards.filter((card) => card.columnId === column._id);
+            return <View key={column._id}><Section theme={theme} label={column.title} count={cards.length} />{cards.map((card) => <TouchableOpacity key={card._id} onPress={() => openTask?.(card._id)} onLongPress={() => { selectTask?.(card._id); setMenuCard(card); }} delayLongPress={280} style={[styles.listRow, { borderBottomColor: theme.whisper }]}><Check size={16} color={card.isComplete ? palette.tints.green.fg : theme.subtle} /><Text style={[styles.listRowTitle, { color: theme.ink }]}>{card.title}</Text><Text style={[styles.listRowDate, { color: theme.subtle }]}>{formatDate(card.dueDate)}</Text></TouchableOpacity>)}</View>;
+          })}
+        </View>
+      </Screen>
+      <TaskActionMenu visible={!!menuCard} card={menuCard} labels={data.labels} theme={theme} onClose={() => setMenuCard(null)} onOpenTask={openTask} onSelectTask={selectTask} setScreen={setScreen} />
+    </>
   );
 }
 
@@ -176,12 +177,21 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
   const [monthCursor, setMonthCursor] = useState(startOfMonth(Date.now()));
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [daySheetDate, setDaySheetDate] = useState<number | null>(null);
+  const lastTap = useRef<{ time: number; date: number } | null>(null);
+  const daySheetCards = daySheetDate != null ? data.cards.filter((card) => isSameDay(card.dueDate, daySheetDate)).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)) : [];
   const firstColumn = data.columns[0];
   const days = useMemo(() => calendarDays(monthCursor), [monthCursor]);
   const calendarRows = useMemo(() => chunkDays(days), [days]);
-  const selectedCards = data.cards.filter((card) => isSameDay(card.dueDate, selectedDate));
   const monthLabel = new Date(monthCursor).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  const selectedLabel = new Date(selectedDate).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const monthSwipe = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.4,
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx <= -50) setMonthCursor((current) => addMonths(current, 1));
+      else if (gesture.dx >= 50) setMonthCursor((current) => addMonths(current, -1));
+    },
+  }), []);
 
   async function createDatedTask() {
     const cleanTitle = title.trim();
@@ -208,30 +218,57 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
   }
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen theme={theme}>
-      <AppBar title="Calendar" subtitle={data.selectedPlan?.name ?? monthLabel} theme={theme} back={() => setScreen("boardSwipe")} right={<CalendarDays color={theme.ink} />} />
+      <AppBar title={data.selectedPlan?.name ?? "Board"} theme={theme} back={() => setScreen("homeMixed")} right={<CalendarDays color={theme.ink} />} />
       <View style={styles.content}>
-        <BoardViewSwitch active="boardCalendar" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
-        <View style={[styles.calendarHero, { backgroundColor: theme.sheet, borderColor: theme.whisper }]}>
+        <View style={styles.calendarFlat}>
           <View style={styles.calendarHeroTop}>
-            <TouchableOpacity onPress={() => setMonthCursor(addMonths(monthCursor, -1))} style={[styles.switchButton, { backgroundColor: theme.panel }]}><ChevronLeft size={18} color={theme.ink} /></TouchableOpacity>
             <View style={styles.calendarTitleWrap}>
               <Text style={[styles.calendarTitle, { color: theme.ink }]}>{monthLabel}</Text>
-              <Text style={[styles.calendarSubtitle, { color: theme.muted }]}>{selectedLabel}</Text>
             </View>
-            <TouchableOpacity onPress={() => setMonthCursor(addMonths(monthCursor, 1))} style={[styles.switchButton, { backgroundColor: theme.ink }]}><ChevronRight size={18} color={theme.bg} /></TouchableOpacity>
           </View>
           <View style={styles.weekHeader}>{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <Text key={day} style={[styles.weekLabel, { color: theme.subtle }]}>{day}</Text>)}</View>
-          <View style={styles.calendarGridLarge}>
+          <View style={styles.calendarGridLarge} {...monthSwipe.panHandlers}>
             {calendarRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.calendarWeekRow}>
+              <View key={rowIndex} style={[styles.calendarWeekRow, { borderTopColor: theme.whisper }]}>
                 {row.map((day) => {
-                  const count = data.cards.filter((card) => isSameDay(card.dueDate, day.time)).length;
+                  const dayCards = data.cards.filter((card) => isSameDay(card.dueDate, day.time));
                   const selected = isSameDay(day.time, selectedDate);
+                  const visible = dayCards.slice(0, 2);
+                  const overflow = dayCards.length - visible.length;
                   return (
-                    <TouchableOpacity key={day.time} onPress={() => setSelectedDate(day.time)} style={[styles.calendarDayLarge, { backgroundColor: selected ? theme.ink : day.inMonth ? theme.panel : theme.bg, borderColor: selected ? theme.ink : theme.whisper, opacity: day.inMonth ? 1 : 0.46 }]}>
-                      <Text style={[styles.calendarDayLargeText, { color: selected ? theme.bg : theme.ink }]}>{day.date}</Text>
-                      {count > 0 ? <Text style={[styles.calendarCount, { color: selected ? theme.bg : palette.accent }]}>{count}</Text> : null}
+                    <TouchableOpacity
+                      key={day.time}
+                      onPress={() => {
+                        const now = Date.now();
+                        const last = lastTap.current;
+                        if (last && last.date === day.time && now - last.time < 280) {
+                          lastTap.current = null;
+                          setSelectedDate(day.time);
+                          setDaySheetDate(day.time);
+                          return;
+                        }
+                        lastTap.current = { time: now, date: day.time };
+                        setSelectedDate(day.time);
+                      }}
+                      style={[styles.calendarDayLarge, { borderColor: theme.whisper, opacity: day.inMonth ? 1 : 0.4 }]}
+                    >
+                      <View style={[styles.calendarDayNumberWrap, selected ? { backgroundColor: theme.ink } : null]}>
+                        <Text style={[styles.calendarDayLargeText, { color: selected ? theme.bg : theme.ink }]}>{day.date}</Text>
+                      </View>
+                      <View style={styles.calendarChipStack}>
+                        {visible.map((card) => {
+                          const label = data.labels.find((item) => card.labelIds?.includes(item._id));
+                          const tint = label?.color || (card.priority === "high" || card.priority === "urgent" ? palette.accent : palette.tints.green.fg);
+                          return (
+                            <View key={card._id} style={[styles.calendarChip, { backgroundColor: withAlphaHex(tint, 0.24) }]}>
+                              <Text numberOfLines={1} style={[styles.calendarChipText, { color: tint }]}>{card.title}</Text>
+                            </View>
+                          );
+                        })}
+                        {overflow > 0 ? <Text style={[styles.calendarChipMore, { color: theme.muted }]}>+{overflow}</Text> : null}
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -240,31 +277,100 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
           </View>
         </View>
 
-        <View style={[styles.addForDate, { backgroundColor: theme.panel, borderColor: theme.whisper }]}>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder={data.selectedPlan && firstColumn ? `Add task for ${new Date(selectedDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Open a plan to add dated tasks"}
-            placeholderTextColor={theme.subtle}
-            editable={Boolean(data.selectedPlan && firstColumn)}
-            style={[styles.addForDateInput, { color: theme.ink }]}
-          />
-          <TouchableOpacity disabled={busy} onPress={createDatedTask} style={[styles.addForDateButton, { backgroundColor: theme.ink, opacity: busy ? 0.62 : 1 }]}><Plus size={18} color={theme.bg} /></TouchableOpacity>
-        </View>
-
-        <Section theme={theme} label={selectedLabel} count={selectedCards.length} />
-        {selectedCards.length ? selectedCards.map((card) => <TaskCard key={card._id} card={card} labels={data.labels} theme={theme} onPress={() => openTask?.(card._id)} />) : <Text style={[styles.emptyCalendarText, { color: theme.muted }]}>No tasks due on this date. Add one above to plan it.</Text>}
       </View>
     </Screen>
+    <CalendarDaySheet
+      date={daySheetDate}
+      cards={daySheetCards}
+      theme={theme}
+      onClose={() => setDaySheetDate(null)}
+      onOpenTask={(cardId) => { setDaySheetDate(null); openTask?.(cardId); }}
+      onAdd={() => {
+        if (daySheetDate == null) return;
+        if (!data.selectedPlan || !firstColumn) {
+          Alert.alert("Open a plan", "Open a plan before adding a task.");
+          return;
+        }
+        setSelectedDate(daySheetDate);
+        setComposerOpen(true);
+      }}
+    />
+    <Modal visible={composerOpen} transparent animationType="fade" onRequestClose={() => setComposerOpen(false)} statusBarTranslucent>
+      <Pressable onPress={() => setComposerOpen(false)} style={styles.composerBackdrop}>
+        <Pressable onPress={(event) => event.stopPropagation()} style={[styles.composerSheet, { backgroundColor: theme.sheet, borderColor: theme.whisper }]}>
+          <Mono theme={theme}>Add task for {new Date(selectedDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</Mono>
+          <TextInput
+            autoFocus
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Task title"
+            placeholderTextColor={theme.subtle}
+            style={[styles.composerInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]}
+            onSubmitEditing={() => { void createDatedTask(); setComposerOpen(false); }}
+          />
+          <View style={styles.composerActions}>
+            <TouchableOpacity onPress={() => setComposerOpen(false)} style={[styles.composerCancel, { borderColor: theme.whisper }]}>
+              <Text style={[styles.composerCancelText, { color: theme.muted }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity disabled={busy || !title.trim()} onPress={() => { void createDatedTask(); setComposerOpen(false); }} style={[styles.composerCreate, { backgroundColor: theme.ink, opacity: busy || !title.trim() ? 0.5 : 1 }]}>
+              <Text style={[styles.composerCreateText, { color: theme.bg }]}>Create</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+    </View>
+  );
+}
+
+function CalendarDaySheet({ date, cards, theme, onClose, onOpenTask, onAdd }: { date: number | null; cards: MobileCard[]; theme: AppTheme; onClose: () => void; onOpenTask: (cardId: MobileCard["_id"]) => void; onAdd: () => void }) {
+  const { height } = useWindowDimensions();
+  const slide = useRef(new Animated.Value(height)).current;
+  const visible = date != null;
+  useEffect(() => {
+    Animated.timing(slide, { toValue: visible ? 0 : height, duration: 280, useNativeDriver: true }).start();
+  }, [height, slide, visible]);
+  if (!visible) return null;
+  const heading = new Date(date!).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  return (
+    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Pressable onPress={onClose} style={styles.daySheetBackdrop} />
+      <Animated.View style={[styles.daySheet, { backgroundColor: theme.bg, borderColor: theme.whisper, transform: [{ translateY: slide }] }]}>
+        <View style={[styles.daySheetHandle, { backgroundColor: theme.whisperStrong }]} />
+        <View style={styles.daySheetHeader}>
+          <Text style={[styles.daySheetTitle, { color: theme.ink }]}>{heading}</Text>
+          <TouchableOpacity onPress={onAdd} style={[styles.daySheetAdd, { backgroundColor: theme.ink }]}>
+            <Plus size={20} color={theme.bg} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={styles.daySheetList}>
+          {cards.length === 0 ? (
+            <Text style={[styles.daySheetEmpty, { color: theme.muted }]}>No tasks for this day. Tap + to add one.</Text>
+          ) : cards.map((card) => {
+            const start = card.dueDate ? new Date(card.dueDate) : null;
+            const startLabel = start ? start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "All day";
+            const tint = card.priority === "high" || card.priority === "urgent" ? palette.accent : palette.tints.green.fg;
+            return (
+              <TouchableOpacity key={card._id} onPress={() => onOpenTask(card._id)} activeOpacity={0.7} style={styles.daySheetRow}>
+                <View style={styles.daySheetTimeCol}>
+                  <Text style={[styles.daySheetTimeStart, { color: theme.ink }]}>{startLabel}</Text>
+                </View>
+                <View style={[styles.daySheetBar, { backgroundColor: tint }]} />
+                <Text numberOfLines={2} style={[styles.daySheetCardTitle, { color: theme.ink }]}>{card.title}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
+    </Modal>
   );
 }
 
 export function BoardTableScreen({ data, theme, setScreen, openTask, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
   return (
     <Screen theme={theme}>
-      <AppBar title="Table view" subtitle="Sticky title column" theme={theme} back={() => setScreen("boardSwipe")} right={<Table2 color={theme.ink} />} />
+      <AppBar title={data.selectedPlan?.name ?? "Board"} theme={theme} back={() => setScreen("homeMixed")} right={<Table2 color={theme.ink} />} />
       <View style={styles.content}>
-        <BoardViewSwitch active="boardTable" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
         <View style={[styles.tableHeader, { backgroundColor: theme.panel }]}><Mono theme={theme} style={styles.tableTitleCell}>Task</Mono><Mono theme={theme}>Status</Mono><Mono theme={theme}>Due</Mono></View>
         {data.cards.map((card) => <TouchableOpacity key={card._id} onPress={() => openTask?.(card._id)} style={[styles.tableRow, { borderBottomColor: theme.whisper }]}><Text numberOfLines={2} style={[styles.tableTitleCell, styles.tableText, { color: theme.ink }]}>{card.title}</Text><Text style={[styles.tableText, { color: theme.muted }]}>{card.isComplete ? "Done" : "Open"}</Text><Text style={[styles.tableText, { color: theme.muted }]}>{formatDate(card.dueDate)}</Text></TouchableOpacity>)}
       </View>
@@ -423,6 +529,9 @@ const styles = StyleSheet.create({
   segmentedItem: { flex: 1, minHeight: 42, borderRadius: 11, paddingHorizontal: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: "transparent" },
   segmentedText: { fontSize: 12, lineHeight: 15, fontWeight: "800" },
   boardColumns: { paddingHorizontal: 18, paddingTop: 4, gap: 12, paddingBottom: 126 },
+  boardColumn: { gap: 10, borderRadius: 14, borderWidth: 1, padding: 4 },
+  activeColumn: { borderStyle: "dashed" },
+  draggableCard: { width: "100%" },
   columnHeader: { paddingHorizontal: 4, paddingVertical: 8, borderRadius: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   columnTitle: { flexDirection: "row", alignItems: "center", gap: 8 },
   columnDot: { width: 8, height: 8, borderRadius: 4 },
@@ -448,21 +557,49 @@ const styles = StyleSheet.create({
   listRowTitle: { flex: 1, fontSize: 14, fontWeight: "700" },
   listRowDate: { fontSize: 12, fontWeight: "600" },
   calendarHero: { borderRadius: 18, borderWidth: 1, padding: 14, gap: 14 },
+  calendarFlat: { gap: 6, marginHorizontal: -18 },
   calendarHeroTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   calendarTitleWrap: { flex: 1, alignItems: "center" },
   calendarTitle: { fontSize: 22, lineHeight: 26, fontWeight: "800" },
   calendarSubtitle: { fontSize: 12, lineHeight: 16, fontWeight: "600", marginTop: 3 },
-  weekHeader: { flexDirection: "row", gap: 5 },
-  weekLabel: { flex: 1, textAlign: "center", fontSize: 10, lineHeight: 12, fontWeight: "800", textTransform: "uppercase" },
-  calendarGridLarge: { gap: 5 },
-  calendarWeekRow: { flexDirection: "row", gap: 5 },
-  calendarDayLarge: { flex: 1, minHeight: 52, borderRadius: 12, borderWidth: 1, padding: 7, justifyContent: "space-between" },
+  weekHeader: { flexDirection: "row" },
+  weekLabel: { flex: 1, textAlign: "center", fontSize: 11, lineHeight: 14, fontWeight: "800", textTransform: "uppercase", paddingVertical: 8 },
+  calendarGridLarge: { gap: 0 },
+  calendarWeekRow: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth },
+  calendarDayLarge: { flex: 1, minHeight: 120, padding: 6, justifyContent: "flex-start", gap: 4 },
+  calendarDayNumberWrap: { alignSelf: "flex-start", minWidth: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
   calendarDayLargeText: { fontSize: 14, lineHeight: 17, fontWeight: "800" },
   calendarCount: { fontSize: 11, lineHeight: 13, fontWeight: "900" },
   addForDate: { minHeight: 58, borderRadius: 15, borderWidth: 1, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   addForDateInput: { flex: 1, minHeight: 46, fontSize: 15, fontWeight: "700" },
   addForDateButton: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   emptyCalendarText: { fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  calendarChipStack: { gap: 3 },
+  calendarChip: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  calendarChipText: { fontSize: 10, lineHeight: 13, fontWeight: "800" },
+  calendarChipMore: { fontSize: 10, lineHeight: 13, fontWeight: "700", paddingHorizontal: 5 },
+  fab: { position: "absolute", right: 18, bottom: 22, width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  daySheetBackdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)" },
+  daySheet: { position: "absolute", left: 0, right: 0, top: 60, bottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 24 },
+  daySheetHandle: { width: 44, height: 4, borderRadius: 4, alignSelf: "center", marginBottom: 12 },
+  daySheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  daySheetTitle: { fontSize: 22, lineHeight: 26, fontWeight: "800", flex: 1, paddingRight: 12 },
+  daySheetAdd: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  daySheetList: { paddingBottom: 32, gap: 14 },
+  daySheetEmpty: { fontSize: 14, lineHeight: 20, fontWeight: "600", paddingTop: 30, textAlign: "center" },
+  daySheetRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  daySheetTimeCol: { width: 70 },
+  daySheetTimeStart: { fontSize: 12, lineHeight: 15, fontWeight: "700" },
+  daySheetBar: { width: 3, alignSelf: "stretch", borderRadius: 2 },
+  daySheetCardTitle: { flex: 1, fontSize: 15, lineHeight: 19, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
+  composerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  composerSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1 },
+  composerInput: { height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 16, fontWeight: "600" },
+  composerActions: { flexDirection: "row", gap: 10 },
+  composerCancel: { flex: 1, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  composerCancelText: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
+  composerCreate: { flex: 2, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  composerCreateText: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
   tableHeader: { height: 36, borderRadius: 10, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 12 },
   tableRow: { minHeight: 54, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1 },
   tableTitleCell: { flex: 1.4 },

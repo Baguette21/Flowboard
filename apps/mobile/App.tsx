@@ -1,6 +1,7 @@
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RootApp } from "@/RootApp";
 import { convex } from "@/lib/convexClient";
@@ -31,21 +32,26 @@ class RuntimeErrorBoundary extends React.Component<React.PropsWithChildren, { er
 
 export default function App() {
   return (
-    <ConvexAuthProvider
-      client={convex}
-      storage={AsyncStorage}
-      storageNamespace="planthing-mobile"
-      replaceURL={() => undefined}
-      shouldHandleCode={false}
-    >
-      <RuntimeErrorBoundary>
-        <RootApp />
-      </RuntimeErrorBoundary>
-    </ConvexAuthProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ConvexAuthProvider
+        client={convex}
+        storage={AsyncStorage}
+        storageNamespace="planthing-mobile"
+        replaceURL={() => undefined}
+        shouldHandleCode={false}
+      >
+        <RuntimeErrorBoundary>
+          <RootApp />
+        </RuntimeErrorBoundary>
+      </ConvexAuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   errorScreen: {
     flex: 1,
     padding: 24,

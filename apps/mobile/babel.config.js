@@ -10,6 +10,7 @@ module.exports = {
           "@convex": "../../convex"
         }
       }
-    ]
+    ],
+    "react-native-worklets/plugin"
   ]
 };

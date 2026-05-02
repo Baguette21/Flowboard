@@ -54,7 +54,7 @@ export type MobileColumn = {
 
 export type MobileCard = {
   _id: Id<"cards">;
-  planId: Id<"plans">;
+  planId?: Id<"plans">;
   columnId: Id<"columns">;
   title: string;
   description?: string;
@@ -91,7 +91,7 @@ export type MobileDrawing = {
 
 export type MobileLabel = {
   _id: Id<"labels">;
-  planId: Id<"plans">;
+  planId?: Id<"plans">;
   name: string;
   color: string;
 };
@@ -122,6 +122,7 @@ export type MobileData = {
   plans: MobilePlan[];
   planViewOrders?: Record<string, Array<"board" | "calendar" | "table" | "list" | "draw">>;
   selectedPlan: MobilePlan | null;
+  canAssignTasks?: boolean;
   columns: MobileColumn[];
   cards: MobileCard[];
   labels: MobileLabel[];

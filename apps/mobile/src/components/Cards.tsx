@@ -47,13 +47,13 @@ export function PlanCard({ board, theme, tile, taskCount, onPress }: { board: Mo
   );
 }
 
-export function TaskCard({ card, theme, dragging, labels = [], onPress }: { card: MobileCard; theme: AppTheme; dragging?: boolean; labels?: MobileLabel[]; onPress?: () => void }) {
+export function TaskCard({ card, theme, dragging, labels = [], onPress, onLongPress }: { card: MobileCard; theme: AppTheme; dragging?: boolean; labels?: MobileLabel[]; onPress?: () => void; onLongPress?: () => void }) {
   const priority = card.priority ?? "low";
   const priorityColor = priority === "high" || priority === "urgent" ? palette.accent : priority === "medium" ? palette.tints.amber.fg : palette.tints.blue.fg;
   const cardLabels = labels.filter((label) => card.labelIds?.includes(label._id)).slice(0, 4);
   const assignees = card.assignees?.slice(0, 2) ?? [];
   return (
-    <TouchableOpacity disabled={!onPress} onPress={onPress} activeOpacity={0.86} style={[styles.taskCard, { backgroundColor: theme.dark ? "#322D25" : "#FFFCF6", borderColor: theme.whisper }, dragging ? styles.draggingCard : null]}>
+    <TouchableOpacity disabled={!onPress && !onLongPress} onPress={onPress} onLongPress={onLongPress} delayLongPress={280} activeOpacity={0.86} style={[styles.taskCard, { backgroundColor: theme.dark ? "#322D25" : "#FFFCF6", borderColor: theme.whisper }, dragging ? styles.draggingCard : null]}>
       {cardLabels.length > 0 ? (
         <View style={styles.labelRow}>
           {cardLabels.map((label) => <View key={label._id} style={[styles.labelBar, { backgroundColor: label.color || palette.tints.ink.fg }]} />)}
