@@ -186,7 +186,7 @@ function ScreenOnboardEmpty({ t }) {
           Boards are where your tasks live. Add columns and cards to shape it however your plan needs.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'stretch', maxWidth: 280, margin: '8px auto 0' }}>
-          <PtButton t={t} kind="primary" full icon={<PtIcons.plus size={16} />}>New board</PtButton>
+          <PtButton t={t} kind="primary" full icon={<PtIcons.plus size={16} />}>New plan</PtButton>
           <PtButton t={t} kind="secondary" full icon={<PtIcons.note size={16} />}>Start a note instead</PtButton>
         </div>
       </div>

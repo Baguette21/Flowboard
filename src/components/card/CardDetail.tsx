@@ -41,7 +41,7 @@ type CardPriority = Doc<"cards">["priority"] | null;
 
 interface CardDetailProps {
   cardId: Id<"cards">;
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   columns: Doc<"columns">[];
   labels: Doc<"labels">[];
   members: BoardMemberSummary[];
@@ -51,7 +51,7 @@ interface CardDetailProps {
 
 export function CardDetail({
   cardId,
-  boardId,
+  planId,
   columns,
   labels,
   members,
@@ -551,7 +551,7 @@ export function CardDetail({
                 <Tag className="h-3 w-3" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Labels</span>
               </div>
-              <LabelPicker boardId={boardId} selectedIds={localLabelIds} onChange={handleLabelsChange} />
+              <LabelPicker planId={planId} selectedIds={localLabelIds} onChange={handleLabelsChange} />
             </div>
           </div>
         </div>
@@ -571,6 +571,7 @@ export function CardDetail({
               key={card._id}
               cardId={cardId}
               content={card.noteContent ?? card.description}
+              contentHTML={card.descriptionHTML}
               drawingDocument={card.drawingDocument}
             />
           </CardSectionErrorBoundary>

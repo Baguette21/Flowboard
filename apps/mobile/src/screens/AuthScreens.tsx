@@ -6,7 +6,7 @@ import type { AppTheme } from "@/theme/tokens";
 import type { ScreenKey } from "@/types";
 
 const copy: Record<"welcome" | "signin" | "signup" | "otp" | "empty", string[]> = {
-  welcome: ["Plans that grow with you.", "Boards, notes, and drawings on one calm paper surface."],
+  welcome: ["Plans that grow with you.", "Plans, notes, and drawings on one calm paper surface."],
   signin: ["Welcome back.", "Sign in to sync your working garden."],
   signup: ["Start a new workspace.", "Create your first board and invite collaborators."],
   otp: ["Check your inbox.", "Enter the code sent to your email."],
@@ -66,7 +66,7 @@ export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy
         </View>
         {error ? <Text style={[styles.errorText, { color: theme.accent }]}>{error}</Text> : null}
         <TouchableOpacity disabled={pending} onPress={submit} style={[styles.authButton, { backgroundColor: theme.ink, opacity: pending ? 0.7 : 1 }]}>
-          {pending ? <ActivityIndicator color={theme.bg} /> : <Text style={[styles.authButtonText, { color: theme.bg }]}>{type === "welcome" ? "Get started" : type === "empty" ? "Create board" : "Continue"}</Text>}
+          {pending ? <ActivityIndicator color={theme.bg} /> : <Text style={[styles.authButtonText, { color: theme.bg }]}>{type === "welcome" ? "Get started" : type === "empty" ? "Create plan" : "Continue"}</Text>}
         </TouchableOpacity>
         {type === "signin" ? <TouchableOpacity onPress={() => setScreen("signup")}><Text style={[styles.linkText, { color: theme.muted }]}>Need an account?</Text></TouchableOpacity> : null}
         {type === "signup" ? <TouchableOpacity onPress={() => setScreen("signin")}><Text style={[styles.linkText, { color: theme.muted }]}>Already have an account?</Text></TouchableOpacity> : null}

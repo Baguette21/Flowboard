@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useExperimentalFeatures } from "./useExperimentalFeatures";
 
-export type WorkspaceTabKind = "board" | "note" | "draw";
+export type WorkspaceTabKind = "plan" | "note" | "draw";
 
 export interface WorkspaceTabTarget {
   kind: WorkspaceTabKind;
@@ -39,8 +39,8 @@ function buildPath(target: WorkspaceTabTarget) {
     return "/";
   }
 
-  if (target.kind === "board") {
-    return `/board/${target.id}`;
+  if (target.kind === "plan") {
+    return `/plan/${target.id}`;
   }
 
   if (target.kind === "note") {
@@ -63,7 +63,7 @@ function sanitizeState(rawState: Partial<BoardTabsState> | null | undefined): Bo
           ? (tab.target as Partial<WorkspaceTabTarget>)
           : null;
       const kind: WorkspaceTabKind =
-        rawTarget?.kind === "note" || rawTarget?.kind === "draw" ? rawTarget.kind : "board";
+        rawTarget?.kind === "note" || rawTarget?.kind === "draw" || rawTarget?.kind === "plan" ? rawTarget.kind : "plan";
       const id = typeof rawTarget?.id === "string" && rawTarget.id.length > 0 ? rawTarget.id : null;
 
       return {
@@ -177,7 +177,7 @@ export function useBoardTabs() {
       const nextTab = {
         id: createTabId(),
         target: {
-          kind: "board",
+          kind: "plan",
           id: null,
         },
       } satisfies BoardTabItem;

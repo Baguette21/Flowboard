@@ -1,4 +1,3 @@
-import "react-native-gesture-handler";
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StyleSheet, Text, View } from "react-native";

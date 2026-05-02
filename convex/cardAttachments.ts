@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import { getBoardAccess, requireBoardAccess, requireCurrentUser } from "./helpers/boardAccess";
+import { getPlanAccess, requirePlanAccess, requireCurrentUser } from "./helpers/planAccess";
 
 const FREE_UPLOAD_LIMIT = 5;
 const UPLOAD_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -81,7 +81,7 @@ export const listByCard = query({
         return [];
       }
 
-      const access = await getBoardAccess(ctx, card.boardId);
+      const access = await getPlanAccess(ctx, card.planId!);
       if (!access) {
         return [];
       }
@@ -108,7 +108,7 @@ export const getForAccess = query({
         return null;
       }
 
-      const access = await getBoardAccess(ctx, attachment.boardId);
+      const access = await getPlanAccess(ctx, attachment.planId!);
       return access ? attachment : null;
     } catch (error) {
       console.error("cardAttachments.getForAccess failed", error);
@@ -139,11 +139,11 @@ export const create = mutation({
       throw new Error("Task not found");
     }
 
-    const access = await requireBoardAccess(ctx, card.boardId);
+    const access = await requirePlanAccess(ctx, card.planId!);
     await enforceUploadLimit(ctx, access.userId);
 
     const attachmentId = await ctx.db.insert("cardAttachments", {
-      boardId: card.boardId,
+      planId: card.planId!,
       cardId: args.cardId,
       key: args.key,
       fileName: args.fileName,
@@ -154,7 +154,7 @@ export const create = mutation({
     });
 
     await ctx.db.insert("activityLogs", {
-      boardId: card.boardId,
+      planId: card.planId!,
       cardId: card._id,
       userId: access.userId,
       action: "updated",
@@ -174,13 +174,13 @@ export const remove = mutation({
       throw new Error("Attachment not found");
     }
 
-    const access = await requireBoardAccess(ctx, attachment.boardId);
+    const access = await requirePlanAccess(ctx, attachment.planId!);
     const card = await ctx.db.get(attachment.cardId);
 
     await ctx.db.delete(attachmentId);
 
     await ctx.db.insert("activityLogs", {
-      boardId: attachment.boardId,
+      planId: attachment.planId!,
       cardId: attachment.cardId,
       userId: access.userId,
       action: "updated",

@@ -230,7 +230,7 @@ export function LoginPage() {
             {awaitingVerification
               ? `Enter the code sent to ${email}`
               : flow === "signIn"
-                ? "Sign in to access your boards"
+                ? "Sign in to access your plans"
                 : "Create your account with a verified email"}
           </p>
 

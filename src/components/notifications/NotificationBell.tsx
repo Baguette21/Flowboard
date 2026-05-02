@@ -14,10 +14,10 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { useBoardTabs } from "../../hooks/useBoardTabs";
 
 export function NotificationBell() {
-  const invites = useQuery(api.boardInvites.listMine);
+  const invites = useQuery(api.planInvites.listMine);
   const notifications = useQuery(api.notifications.listMine);
-  const acceptInvite = useMutation(api.boardInvites.accept);
-  const declineInvite = useMutation(api.boardInvites.decline);
+  const acceptInvite = useMutation(api.planInvites.accept);
+  const declineInvite = useMutation(api.planInvites.decline);
   const markNotificationRead = useMutation(api.notifications.markRead);
   const { openInActiveTab } = useBoardTabs();
   const [open, setOpen] = useState(false);
@@ -36,13 +36,13 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleAccept = async (inviteId: Id<"boardInvites">) => {
+  const handleAccept = async (inviteId: Id<"planInvites">) => {
     setProcessingInviteId(inviteId);
     try {
       const result = await acceptInvite({ inviteId });
-      toast.success("Board invite accepted");
+      toast.success("Plan invite accepted");
       setOpen(false);
-      openInActiveTab({ kind: "board", id: result.boardId });
+      openInActiveTab({ kind: "plan", id: result.planId });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to accept invite";
       toast.error(message);
@@ -51,7 +51,7 @@ export function NotificationBell() {
     }
   };
 
-  const handleDecline = async (inviteId: Id<"boardInvites">) => {
+  const handleDecline = async (inviteId: Id<"planInvites">) => {
     setProcessingInviteId(inviteId);
     try {
       await declineInvite({ inviteId });
@@ -66,13 +66,13 @@ export function NotificationBell() {
 
   const handleOpenAssignment = async (
     notificationId: Id<"notifications">,
-    boardId: Id<"boards">,
+    planId: Id<"plans">,
   ) => {
     setOpeningNotificationId(notificationId);
     try {
       await markNotificationRead({ notificationId });
       setOpen(false);
-      openInActiveTab({ kind: "board", id: boardId });
+      openInActiveTab({ kind: "plan", id: planId });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to open notification";
@@ -140,7 +140,7 @@ export function NotificationBell() {
                     <div className="px-5 pt-4 pb-2 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-brand-accent" />
                       <p className="font-mono text-[11px] uppercase tracking-widest text-brand-text/40">
-                        Board Invites
+                        Plan Invites
                       </p>
                     </div>
 
@@ -253,7 +253,7 @@ export function NotificationBell() {
                               onClick={() =>
                                 void handleOpenAssignment(
                                   notification._id,
-                                  notification.boardId,
+                                  notification.planId,
                                 )
                               }
                               disabled={isOpening}

@@ -1,4 +1,4 @@
-// screens-misc.jsx — Search, Notifications, Board settings, Profile
+// screens-misc.jsx — Search, Notifications, Plan settings, Profile
 
 function ScreenSearch({ t, blank = false }) {
   return (
@@ -147,7 +147,7 @@ function ScreenBoardSettings({ t }) {
   ];
   return (
     <PtScreen t={t}>
-      <PtAppBar t={t} title="Board settings" subtitle="Launch Plan" large
+      <PtAppBar t={t} title="Plan settings" subtitle="Launch Plan" large
         trailing={<button style={btnIcon(t)}><PtIcons.close /></button>} />
       <div style={{ padding: '8px 18px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>

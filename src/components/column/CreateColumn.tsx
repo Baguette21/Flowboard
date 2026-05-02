@@ -6,11 +6,11 @@ import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface CreateColumnProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   fullWidth?: boolean;
 }
 
-export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) {
+export function CreateColumn({ planId, fullWidth = false }: CreateColumnProps) {
   const createColumn = useMutation(api.columns.create);
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
@@ -22,7 +22,7 @@ export function CreateColumn({ boardId, fullWidth = false }: CreateColumnProps) 
     if (!trimmed) return;
     setIsLoading(true);
     try {
-      await createColumn({ boardId, title: trimmed });
+      await createColumn({ planId, title: trimmed });
       toast.success(`Group "${trimmed}" added`);
       setTitle("");
       setIsAdding(false);

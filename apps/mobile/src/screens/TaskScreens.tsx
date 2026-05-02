@@ -7,9 +7,11 @@ import { AppBar } from "@/components/AppBar";
 import { TaskCard } from "@/components/Cards";
 import { Avatar, Mono, Screen, formatDate } from "@/components/Primitives";
 import type { AppTheme } from "@/theme/tokens";
-import { palette, tintFrom } from "@/theme/tokens";
+import { palette } from "@/theme/tokens";
 import type { MobileCard, MobileData } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
+import { RichText } from "@/components/RichText";
+import { RichEditor } from "@/components/RichEditor";
 
 export function TaskSheetScreen({ data, theme, selectedCardId }: { data: MobileData; theme: AppTheme; selectedCardId?: Id<"cards"> }) {
   const card = selectedCard(data, selectedCardId);
@@ -29,7 +31,7 @@ export function TaskFullScreen({ data, theme, selectedCardId }: { data: MobileDa
   if (!card) return <EmptyTask theme={theme} />;
   return (
     <Screen theme={theme}>
-      <AppBar title="Task" subtitle={data.selectedBoard?.name ?? ""} theme={theme} right={<MoreHorizontal color={theme.ink} />} />
+      <AppBar title="Task" subtitle={data.selectedPlan?.name ?? ""} theme={theme} right={<MoreHorizontal color={theme.ink} />} />
       <View style={styles.content}><EditableTaskDetail card={card} data={data} theme={theme} /></View>
     </Screen>
   );
@@ -61,13 +63,19 @@ function TaskDetail({ card, data, theme, compact }: { card: MobileCard; data: Mo
   return (
     <View style={styles.taskDetail}>
       <View style={[styles.sheetHandle, { backgroundColor: theme.whisperStrong }]} />
-      <Mono theme={theme}>{data.selectedBoard?.name ?? "Launch Plan"}</Mono>
+      <Mono theme={theme}>{data.selectedPlan?.name ?? "Launch Plan"}</Mono>
       <Text style={[styles.taskDetailTitle, { color: theme.ink }]}>{card.title}</Text>
       <TaskCard card={card} labels={data.labels} theme={theme} />
       <Property label="Status" value={card.isComplete ? "Done" : "In progress"} theme={theme} />
       <Property label="Due" value={formatDate(card.dueDate)} theme={theme} />
       <Property label="Priority" value={card.priority ?? "low"} theme={theme} />
-      {!compact ? <Text style={[styles.description, { color: theme.muted, backgroundColor: theme.panel, borderColor: theme.whisper }]}>{card.description ?? card.noteContent ?? "No description yet."}</Text> : null}
+      {!compact ? (
+        <View style={[styles.description, { backgroundColor: theme.panel, borderColor: theme.whisper }]}>
+          {card.descriptionHTML
+            ? <Text style={{ color: theme.ink, fontSize: 14, lineHeight: 21 }}>{card.description ?? ""}</Text>
+            : <RichText content={card.noteContent ?? card.description} theme={theme} />}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -79,7 +87,7 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
   const moveCard = useMutation(api.cards.moveToColumnEnd);
   const [draft, setDraft] = useState({
     title: card.title,
-    description: card.description ?? card.noteContent ?? "",
+    descriptionHTML: card.descriptionHTML ?? "",
     priority: card.priority ?? "low",
     dueDateText: card.dueDate ? new Date(card.dueDate).toISOString().slice(0, 10) : "",
   });
@@ -90,12 +98,12 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
   useEffect(() => {
     setDraft({
       title: card.title,
-      description: card.description ?? card.noteContent ?? "",
+      descriptionHTML: card.descriptionHTML ?? "",
       priority: card.priority ?? "low",
       dueDateText: card.dueDate ? new Date(card.dueDate).toISOString().slice(0, 10) : "",
     });
     firstRender.current = true;
-  }, [card._id, card.description, card.dueDate, card.noteContent, card.priority, card.title]);
+  }, [card._id, card.descriptionHTML, card.dueDate, card.priority, card.title]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -118,7 +126,7 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
         await updateCard({
           cardId: card._id,
           title,
-          description: draft.description,
+          descriptionHTML: draft.descriptionHTML,
           priority: draft.priority,
           ...(dueDate ? { dueDate } : {}),
         });
@@ -128,7 +136,7 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
       }
     }, 650);
     return () => clearTimeout(timer);
-  }, [card._id, draft.description, draft.dueDateText, draft.priority, draft.title, updateCard]);
+  }, [card._id, draft.descriptionHTML, draft.dueDateText, draft.priority, draft.title, updateCard]);
 
   async function toggleLabel(labelId: Id<"labels">) {
     const current = card.labelIds ?? [];
@@ -214,12 +222,14 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
         <View style={styles.wrapRow}>
           {data.labels.length ? data.labels.map((label) => {
             const selected = card.labelIds?.includes(label._id);
+            const dot = label.color || theme.subtle;
             return (
-              <TouchableOpacity key={label._id} onPress={() => void toggleLabel(label._id)} style={[styles.pill, { backgroundColor: selected ? palette.tints[tintFrom(label.color)].bg : theme.panel, borderColor: selected ? palette.tints[tintFrom(label.color)].fg : theme.whisper }]}>
-                <Text style={[styles.pillText, { color: selected ? palette.tints[tintFrom(label.color)].fg : theme.muted }]}>{label.name}</Text>
+              <TouchableOpacity key={label._id} onPress={() => void toggleLabel(label._id)} style={[styles.pill, styles.labelPill, { backgroundColor: selected ? withAlpha(dot, 0.14) : theme.panel, borderColor: selected ? dot : theme.whisper }]}>
+                <View style={[styles.labelDot, { backgroundColor: dot }]} />
+                <Text style={[styles.pillText, { color: selected ? theme.ink : theme.muted }]}>{label.name}</Text>
               </TouchableOpacity>
             );
-          }) : <Text style={[styles.mutedLine, { color: theme.subtle }]}>No labels on this board.</Text>}
+          }) : <Text style={[styles.mutedLine, { color: theme.subtle }]}>No labels on this plan.</Text>}
         </View>
       </View>
 
@@ -240,17 +250,27 @@ function EditableTaskDetail({ card, data, theme }: { card: MobileCard; data: Mob
 
       <View style={styles.fieldGroup}>
         <Mono theme={theme}>Description</Mono>
-        <TextInput
-          multiline
-          value={draft.description}
-          onChangeText={(description) => setDraft((current) => ({ ...current, description }))}
+        <RichEditor
+          value={draft.descriptionHTML}
+          editable
+          onChange={(descriptionHTML) => setDraft((current) => ({ ...current, descriptionHTML }))}
+          theme={theme}
           placeholder="Add task details"
-          placeholderTextColor={theme.subtle}
-          style={[styles.descriptionInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]}
+          minHeight={220}
         />
       </View>
     </View>
   );
+}
+
+function withAlpha(hex: string, alpha: number) {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return hex;
+  const value = match[1];
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function parseDueDate(value: string) {
@@ -299,7 +319,7 @@ function EmptyTask({ theme }: { theme: AppTheme }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 10, gap: 18 },
-  sheetScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.26)" },
+  sheetScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.26)" },
   taskSheet: { position: "absolute", left: 0, right: 0, bottom: 0, minHeight: "72%", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20 },
   taskDetail: { gap: 14 },
   sheetHandle: { width: 42, height: 4, borderRadius: 4, alignSelf: "center", marginBottom: 4 },
@@ -316,6 +336,8 @@ const styles = StyleSheet.create({
   pickerBlock: { gap: 10 },
   wrapRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: { minHeight: 36, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, alignItems: "center", justifyContent: "center" },
+  labelPill: { flexDirection: "row", gap: 8 },
+  labelDot: { width: 10, height: 10, borderRadius: 5 },
   pillText: { fontSize: 12, lineHeight: 15, fontWeight: "800", textTransform: "capitalize" },
   twoUp: { gap: 14 },
   fieldGroup: { gap: 10 },

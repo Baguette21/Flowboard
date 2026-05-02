@@ -1,6 +1,6 @@
 ---
 name: PlanThing
-description: A calm, tactile planning workspace for boards, notes, drawings, and real-time collaboration.
+description: A calm, tactile planning workspace for plans, notes, drawings, and real-time collaboration.
 colors:
   paper-bg: "#F5F3EE"
   paper-panel: "#E8E4DD"
@@ -155,7 +155,7 @@ PlanThing uses a hybrid depth model: most surfaces are separated by warm tonal c
 - **Shape:** Two grammars, chosen by surface density, never mixed within one journey.
   - **Pill (2rem radius)** is the default. Use it for standalone CTAs in spacious surfaces: auth screens, empty-state CTAs, modal confirms, workspace and detail page-header primary actions. Almost every deliberate click target should be a pill.
   - **12px radius** is the dense exception. Use it only when three or more buttons sit in a tight strip: board view chrome, formatting toolbars, inline filter rows. Pill geometry in a packed strip reads as balloons.
-  - The radius shifts on density, not category. A solitary "New Board" in a workspace header is pill; the same action embedded in a 6-button board toolbar is 12px.
+  - The radius shifts on density, not category. A solitary "New Plan" in a workspace header is pill; the same action embedded in a 6-button board toolbar is 12px.
 - **Primary:** Ink black background, paper text, 40px height, bold readable label. It is the default for create, save, and confirm actions.
 - **Hover / Focus:** Hover deepens to ink-deep. Focus uses a visible 2px ink ring. Loading uses a spinner plus disabled state.
 - **Secondary / Ghost / Danger:** Secondary uses Paper Panel with a strong border on hover. Ghost uses transparent backgrounds and text hover. Danger uses Sprout Red, reserved for destructive actions.
@@ -188,7 +188,7 @@ Workspace cards are the signature primitive. Each card contains a colored icon w
 ## 6. Do's and Don'ts
 
 ### Do:
-- **Do** keep PlanThing calm and clean even when boards, notes, and drawings grow dense.
+- **Do** keep PlanThing calm and clean even when plans, notes, and drawings grow dense.
 - **Do** use Paper Field, Paper Panel, and Ink Black as the main structural palette.
 - **Do** make customization visible through board colors, icon wells, labels, views, and flexible workspace organization.
 - **Do** provide visible focus states, reduced-motion alternatives, color-blind safe labels, and keyboard-first workflows for core actions.

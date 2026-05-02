@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Animated, PanResponder, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { generateKeyBetween } from "fractional-indexing";
-import { Check, ChevronLeft, ChevronRight, KanbanSquare, MoreHorizontal, Plus, Table2, CalendarDays, LayoutList } from "lucide-react-native";
+import { Check, ChevronLeft, ChevronRight, LayoutGrid, List, MoreHorizontal, Plus, Table2, CalendarDays } from "lucide-react-native";
 import { api } from "@convex/_generated/api";
 import { convex } from "@/lib/convexClient";
 import { AppBar } from "@/components/AppBar";
@@ -60,17 +60,10 @@ export function BoardSwipeScreen({ data, theme, setScreen, openTask, dragMode = 
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
-      <AppBar title={data.selectedBoard?.name ?? "Board"} subtitle={`${localCards.length} tasks - ${data.columns.length} columns`} theme={theme} back={() => setScreen("homeMixed")} right={<TouchableOpacity onPress={() => setScreen("boardSettings")}><MoreHorizontal size={22} color={theme.ink} /></TouchableOpacity>} />
+      <AppBar title={data.selectedPlan?.name ?? "Board"} subtitle={`${localCards.length} tasks - ${data.columns.length} columns`} theme={theme} back={() => setScreen("homeMixed")} right={<TouchableOpacity onPress={() => setScreen("boardSettings")}><MoreHorizontal size={22} color={theme.ink} /></TouchableOpacity>} />
       <View style={styles.switchOuter}>
         <BoardViewSwitch active="boardSwipe" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.columnTabs}>
-        {data.columns.map((column, index) => (
-          <View key={column._id} style={[styles.columnTab, { backgroundColor: index === 1 ? theme.ink : theme.panel }]}>
-            <Text style={[styles.columnTabText, { color: index === 1 ? theme.bg : theme.muted }]}>{column.title} - {localCards.filter((card) => card.columnId === column._id).length}</Text>
-          </View>
-        ))}
-      </ScrollView>
       <ScrollView horizontal snapToInterval={columnWidth + 12} decelerationRate="fast" showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boardColumns}>
         {data.columns.map((column, columnIndex) => {
           const columnCards = localCards.filter((card) => card.columnId === column._id).sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
@@ -109,7 +102,7 @@ export function BoardSingleScreen({ data, theme, openTask }: { data: MobileData;
   return (
     <Screen theme={theme}>
       <View style={styles.singleTop}>
-        <Mono theme={theme}>{data.selectedBoard?.name ?? "Board"} - column {index + 1} of {data.columns.length}</Mono>
+        <Mono theme={theme}>{data.selectedPlan?.name ?? "Board"} - column {index + 1} of {data.columns.length}</Mono>
         <View style={styles.columnSwitcher}>
           <TouchableOpacity onPress={() => setIndex(Math.max(0, index - 1))} style={[styles.switchButton, { backgroundColor: theme.panel }]}><ChevronLeft size={18} color={theme.muted} /></TouchableOpacity>
           <Text style={[styles.singleColumnTitle, { color: theme.ink }]}>{column?.title ?? "Column"}</Text>
@@ -124,7 +117,7 @@ export function BoardSingleScreen({ data, theme, openTask }: { data: MobileData;
 export function BoardStackedScreen({ data, theme, setScreen, openTask }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
   return (
     <Screen theme={theme}>
-      <AppBar title={data.selectedBoard?.name ?? "Board"} subtitle="All columns stacked" theme={theme} back={() => setScreen("boardSwipe")} right={<MoreHorizontal color={theme.ink} />} />
+      <AppBar title={data.selectedPlan?.name ?? "Board"} subtitle="All columns stacked" theme={theme} back={() => setScreen("boardSwipe")} right={<MoreHorizontal color={theme.ink} />} />
       <View style={styles.content}>
         {data.columns.map((column) => {
           const cards = data.cards.filter((card) => card.columnId === column._id).sort((a, b) => (a.order ?? "").localeCompare(b.order ?? ""));
@@ -166,7 +159,7 @@ export function BoardLongPressScreen({ data, theme, setScreen, viewOrder, setVie
 export function BoardListScreen({ data, theme, setScreen, openTask, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme } & BoardNavProps) {
   return (
     <Screen theme={theme}>
-      <AppBar title="List view" subtitle={data.selectedBoard?.name ?? ""} theme={theme} back={() => setScreen("boardSwipe")} right={<LayoutList color={theme.ink} />} />
+      <AppBar title="List view" subtitle={data.selectedPlan?.name ?? ""} theme={theme} back={() => setScreen("boardSwipe")} right={<List color={theme.ink} />} />
       <View style={styles.content}>
         <BoardViewSwitch active="boardList" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
         {data.columns.map((column) => {
@@ -185,20 +178,21 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
   const [busy, setBusy] = useState(false);
   const firstColumn = data.columns[0];
   const days = useMemo(() => calendarDays(monthCursor), [monthCursor]);
+  const calendarRows = useMemo(() => chunkDays(days), [days]);
   const selectedCards = data.cards.filter((card) => isSameDay(card.dueDate, selectedDate));
   const monthLabel = new Date(monthCursor).toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const selectedLabel = new Date(selectedDate).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
   async function createDatedTask() {
     const cleanTitle = title.trim();
-    if (!cleanTitle || !data.selectedBoard || !firstColumn) {
-      Alert.alert("Task needs a title", data.selectedBoard && firstColumn ? "Name the task first." : "Open a board before adding a task.");
+    if (!cleanTitle || !data.selectedPlan || !firstColumn) {
+      Alert.alert("Task needs a title", data.selectedPlan && firstColumn ? "Name the task first." : "Open a plan before adding a task.");
       return;
     }
     try {
       setBusy(true);
       const cardId = await convex.mutation(api.cards.create, {
-        boardId: data.selectedBoard._id,
+        planId: data.selectedPlan._id,
         columnId: firstColumn._id,
         title: cleanTitle,
         priority: "medium",
@@ -215,7 +209,7 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
 
   return (
     <Screen theme={theme}>
-      <AppBar title="Calendar" subtitle={data.selectedBoard?.name ?? monthLabel} theme={theme} back={() => setScreen("boardSwipe")} right={<CalendarDays color={theme.ink} />} />
+      <AppBar title="Calendar" subtitle={data.selectedPlan?.name ?? monthLabel} theme={theme} back={() => setScreen("boardSwipe")} right={<CalendarDays color={theme.ink} />} />
       <View style={styles.content}>
         <BoardViewSwitch active="boardCalendar" theme={theme} setScreen={setScreen} viewOrder={viewOrder} setViewOrder={setViewOrder} />
         <View style={[styles.calendarHero, { backgroundColor: theme.sheet, borderColor: theme.whisper }]}>
@@ -229,16 +223,20 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
           </View>
           <View style={styles.weekHeader}>{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <Text key={day} style={[styles.weekLabel, { color: theme.subtle }]}>{day}</Text>)}</View>
           <View style={styles.calendarGridLarge}>
-            {days.map((day) => {
-              const count = data.cards.filter((card) => isSameDay(card.dueDate, day.time)).length;
-              const selected = isSameDay(day.time, selectedDate);
-              return (
-                <TouchableOpacity key={day.time} onPress={() => setSelectedDate(day.time)} style={[styles.calendarDayLarge, { backgroundColor: selected ? theme.ink : day.inMonth ? theme.panel : theme.bg, borderColor: selected ? theme.ink : theme.whisper, opacity: day.inMonth ? 1 : 0.46 }]}>
-                  <Text style={[styles.calendarDayLargeText, { color: selected ? theme.bg : theme.ink }]}>{day.date}</Text>
-                  {count > 0 ? <Text style={[styles.calendarCount, { color: selected ? theme.bg : palette.accent }]}>{count}</Text> : null}
-                </TouchableOpacity>
-              );
-            })}
+            {calendarRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.calendarWeekRow}>
+                {row.map((day) => {
+                  const count = data.cards.filter((card) => isSameDay(card.dueDate, day.time)).length;
+                  const selected = isSameDay(day.time, selectedDate);
+                  return (
+                    <TouchableOpacity key={day.time} onPress={() => setSelectedDate(day.time)} style={[styles.calendarDayLarge, { backgroundColor: selected ? theme.ink : day.inMonth ? theme.panel : theme.bg, borderColor: selected ? theme.ink : theme.whisper, opacity: day.inMonth ? 1 : 0.46 }]}>
+                      <Text style={[styles.calendarDayLargeText, { color: selected ? theme.bg : theme.ink }]}>{day.date}</Text>
+                      {count > 0 ? <Text style={[styles.calendarCount, { color: selected ? theme.bg : palette.accent }]}>{count}</Text> : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
           </View>
         </View>
 
@@ -246,9 +244,9 @@ export function BoardCalendarScreen({ data, theme, setScreen, openTask, viewOrde
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder={data.selectedBoard && firstColumn ? `Add task for ${new Date(selectedDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Open a board to add dated tasks"}
+            placeholder={data.selectedPlan && firstColumn ? `Add task for ${new Date(selectedDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Open a plan to add dated tasks"}
             placeholderTextColor={theme.subtle}
-            editable={Boolean(data.selectedBoard && firstColumn)}
+            editable={Boolean(data.selectedPlan && firstColumn)}
             style={[styles.addForDateInput, { color: theme.ink }]}
           />
           <TouchableOpacity disabled={busy} onPress={createDatedTask} style={[styles.addForDateButton, { backgroundColor: theme.ink, opacity: busy ? 0.62 : 1 }]}><Plus size={18} color={theme.bg} /></TouchableOpacity>
@@ -315,9 +313,9 @@ function BoardViewSwitch({ active, theme, setScreen, viewOrder, setViewOrder }: 
   );
 }
 
-const viewMeta: Record<BoardPrimaryView, { label: string; icon: typeof KanbanSquare }> = {
-  boardSwipe: { label: "Board", icon: KanbanSquare },
-  boardList: { label: "List", icon: LayoutList },
+const viewMeta: Record<BoardPrimaryView, { label: string; icon: typeof LayoutGrid }> = {
+  boardSwipe: { label: "Board", icon: LayoutGrid },
+  boardList: { label: "List", icon: List },
   boardCalendar: { label: "Calendar", icon: CalendarDays },
   boardTable: { label: "Table", icon: Table2 },
 };
@@ -339,13 +337,13 @@ function AddCardInline({ data, columnId, theme, onCreated }: { data: MobileData;
 
   async function createCard() {
     const cleanTitle = title.trim();
-    if (!cleanTitle || !data.selectedBoard) {
-      Alert.alert("Task needs a title", data.selectedBoard ? "Name the task first." : "Open a board before adding a task.");
+    if (!cleanTitle || !data.selectedPlan) {
+      Alert.alert("Task needs a title", data.selectedPlan ? "Name the task first." : "Open a plan before adding a task.");
       return;
     }
     try {
       setBusy(true);
-      const cardId = await convex.mutation(api.cards.create, { boardId: data.selectedBoard._id, columnId, title: cleanTitle, priority: "medium" });
+      const cardId = await convex.mutation(api.cards.create, { planId: data.selectedPlan._id, columnId, title: cleanTitle, priority: "medium" });
       setTitle("");
       setOpen(false);
       onCreated?.(cardId);
@@ -407,18 +405,23 @@ function calendarDays(month: number) {
   });
 }
 
+function chunkDays(days: ReturnType<typeof calendarDays>) {
+  const rows: Array<typeof days> = [];
+  for (let index = 0; index < days.length; index += 7) {
+    rows.push(days.slice(index, index + 7));
+  }
+  return rows;
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 10, gap: 18, paddingBottom: 118 },
   stack: { gap: 10 },
-  columnTabs: { paddingHorizontal: 18, paddingVertical: 8, gap: 6 },
   switchOuter: { paddingHorizontal: 18 },
   segmentedWrap: { marginBottom: 8 },
   segmentedSwitch: { minHeight: 52, borderRadius: 14, borderWidth: 1, padding: 4, flexDirection: "row", alignItems: "center", gap: 3 },
   segmentedItem: { flex: 1, minHeight: 42, borderRadius: 11, paddingHorizontal: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderWidth: 1, borderColor: "transparent" },
   segmentedText: { fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  columnTab: { height: 30, borderRadius: 999, paddingHorizontal: 12, justifyContent: "center" },
-  columnTabText: { fontSize: 12, fontWeight: "700" },
   boardColumns: { paddingHorizontal: 18, paddingTop: 4, gap: 12, paddingBottom: 126 },
   columnHeader: { paddingHorizontal: 4, paddingVertical: 8, borderRadius: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   columnTitle: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -436,7 +439,7 @@ const styles = StyleSheet.create({
   columnSwitcher: { flexDirection: "row", alignItems: "center", gap: 10 },
   switchButton: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   singleColumnTitle: { flex: 1, textAlign: "center", fontSize: 26, lineHeight: 30, fontWeight: "800" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.44)" },
+  overlay: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.44)" },
   contextCard: { position: "absolute", top: 170, left: 30, right: 30, padding: 12, borderRadius: 14 },
   contextMenu: { position: "absolute", top: 364, left: 30, right: 30, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
   menuRow: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
@@ -449,10 +452,11 @@ const styles = StyleSheet.create({
   calendarTitleWrap: { flex: 1, alignItems: "center" },
   calendarTitle: { fontSize: 22, lineHeight: 26, fontWeight: "800" },
   calendarSubtitle: { fontSize: 12, lineHeight: 16, fontWeight: "600", marginTop: 3 },
-  weekHeader: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 2 },
-  weekLabel: { width: "13.7%", textAlign: "center", fontSize: 10, lineHeight: 12, fontWeight: "800", textTransform: "uppercase" },
-  calendarGridLarge: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  calendarDayLarge: { width: "13.6%", minHeight: 52, borderRadius: 12, borderWidth: 1, padding: 7, justifyContent: "space-between" },
+  weekHeader: { flexDirection: "row", gap: 5 },
+  weekLabel: { flex: 1, textAlign: "center", fontSize: 10, lineHeight: 12, fontWeight: "800", textTransform: "uppercase" },
+  calendarGridLarge: { gap: 5 },
+  calendarWeekRow: { flexDirection: "row", gap: 5 },
+  calendarDayLarge: { flex: 1, minHeight: 52, borderRadius: 12, borderWidth: 1, padding: 7, justifyContent: "space-between" },
   calendarDayLargeText: { fontSize: 14, lineHeight: 17, fontWeight: "800" },
   calendarCount: { fontSize: 11, lineHeight: 13, fontWeight: "900" },
   addForDate: { minHeight: 58, borderRadius: 15, borderWidth: 1, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },

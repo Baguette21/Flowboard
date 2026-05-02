@@ -30,22 +30,22 @@ import { UserAvatar } from "../ui/UserAvatar";
 interface BoardSettingsProps {
   open: boolean;
   onClose: () => void;
-  board: Doc<"boards">;
+  board: Doc<"plans">;
 }
 
-export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
+export function PlanSettings({ open, onClose, board }: BoardSettingsProps) {
   const navigate = useNavigate();
-  const updateBoard = useMutation(api.boards.update);
-  const deleteBoard = useMutation(api.boards.remove);
-  const createInvite = useMutation(api.boardInvites.create);
-  const ensureInviteLink = useMutation(api.boardInvites.ensureLink);
-  const revokeInviteLink = useMutation(api.boardInvites.revokeLink);
-  const setAssignable = useMutation(api.boardMembers.setAssignable);
-  const leaveBoard = useMutation(api.boardMembers.leaveBoard);
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId: board._id });
-  const members = useQuery(api.boardMembers.listForBoard, { boardId: board._id });
-  const invites = useQuery(api.boardInvites.listForBoard, { boardId: board._id });
-  const linkInfo = useQuery(api.boardInvites.getLinkInfo, { boardId: board._id });
+  const updatePlan = useMutation(api.plans.update);
+  const deletePlan = useMutation(api.plans.remove);
+  const createInvite = useMutation(api.planInvites.create);
+  const ensureInviteLink = useMutation(api.planInvites.ensureLink);
+  const revokeInviteLink = useMutation(api.planInvites.revokeLink);
+  const setAssignable = useMutation(api.planMembers.setAssignable);
+  const leavePlan = useMutation(api.planMembers.leavePlan);
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId: board._id });
+  const members = useQuery(api.planMembers.listForPlan, { planId: board._id });
+  const invites = useQuery(api.planInvites.listForPlan, { planId: board._id });
+  const linkInfo = useQuery(api.planInvites.getLinkInfo, { planId: board._id });
   const memberImageUrls = useProfileImageUrls(
     (members ?? []).map((member) => member.imageKey),
   );
@@ -83,16 +83,16 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await updateBoard({
-        boardId: board._id,
+      await updatePlan({
+        planId: board._id,
         name: name.trim(),
         color,
         icon: selectedIcon.id,
       });
-      toast.success("Board updated");
+      toast.success("Plan updated");
       onClose();
     } catch {
-      toast.error("Failed to update board");
+      toast.error("Failed to update plan");
     } finally {
       setIsSaving(false);
     }
@@ -101,7 +101,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const handleInvite = async () => {
     setIsInviting(true);
     try {
-      await createInvite({ boardId: board._id, email: inviteEmail.trim() });
+      await createInvite({ planId: board._id, email: inviteEmail.trim() });
       toast.success("Invite sent");
       setInviteEmail("");
     } catch (error) {
@@ -115,11 +115,11 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteBoard({ boardId: board._id });
-      toast.success("Board deleted");
+      await deletePlan({ planId: board._id });
+      toast.success("Plan deleted");
       navigate("/");
     } catch {
-      toast.error("Failed to delete board");
+      toast.error("Failed to delete plan");
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -129,12 +129,12 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const handleLeave = async () => {
     setIsLeaving(true);
     try {
-      await leaveBoard({ boardId: board._id });
-      toast.success("You left the board");
+      await leavePlan({ planId: board._id });
+      toast.success("You left the plan");
       onClose();
       navigate("/");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to leave board";
+      const message = error instanceof Error ? error.message : "Failed to leave plan";
       toast.error(message);
     } finally {
       setIsLeaving(false);
@@ -145,7 +145,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const handleGenerateLink = async () => {
     setIsGeneratingLink(true);
     try {
-      const result = await ensureInviteLink({ boardId: board._id });
+      const result = await ensureInviteLink({ planId: board._id });
       const url = `${window.location.origin}/join/${result.inviteToken}`;
       try {
         await navigator.clipboard.writeText(url);
@@ -179,7 +179,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
   const handleRevokeLink = async () => {
     setIsRevokingLink(true);
     try {
-      await revokeInviteLink({ boardId: board._id });
+      await revokeInviteLink({ planId: board._id });
       toast.success("Invite link revoked");
     } catch (error) {
       const message =
@@ -197,7 +197,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
     setUpdatingAssignableUserId(memberUserId);
     try {
       await setAssignable({
-        boardId: board._id,
+        planId: board._id,
         memberUserId,
         canBeAssigned,
       });
@@ -230,7 +230,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
         <div className="task-panel-slide absolute right-0 top-0 flex h-full w-full flex-col border-l border-brand-text/10 bg-brand-bg shadow-2xl sm:max-w-[720px]">
           <div className="flex items-center justify-between border-b border-brand-text/10 px-5 py-3">
             <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-text/48">
-              Board Settings
+              Plan Settings
             </span>
             <button
               type="button"
@@ -246,7 +246,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
             <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-widest text-brand-text/60 mb-1.5">
-                  Board Name
+                  Plan Name
                 </label>
                 <input
                   type="text"
@@ -260,7 +260,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
 
               <div>
                 <label className="block font-mono text-xs uppercase tracking-widest text-brand-text/60 mb-3">
-                  Board Icon
+                  Plan Icon
                 </label>
                 <div className="grid grid-cols-7 gap-2 sm:grid-cols-8">
                   {BOARD_ICON_OPTIONS.map((option) => (
@@ -313,7 +313,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
               <div className="border-t-2 border-brand-text/10 pt-6 space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-serif italic font-bold text-xl">Share Board</p>
+                    <p className="font-serif italic font-bold text-xl">Share Plan</p>
                     <p className="font-mono text-xs text-brand-text/50 mt-1">
                       Invite teammates by email to collaborate in real time.
                     </p>
@@ -356,7 +356,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                             </p>
                           </div>
                           <p className="font-mono text-[11px] text-brand-text/50 mt-1">
-                            Anyone signed in with this link can join the board.
+                            Anyone signed in with this link can join the plan.
                           </p>
                         </div>
                       </div>
@@ -415,7 +415,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                 ) : (
                   <div className="rounded-2xl border border-brand-text/10 bg-brand-primary px-4 py-3">
                     <p className="font-mono text-xs text-brand-text/60">
-                      Only the board owner can send or manage invites. You can still edit the board itself.
+                      Only the plan owner can send or manage invites. You can still edit the plan itself.
                     </p>
                   </div>
                 )}
@@ -514,7 +514,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                     <div className="space-y-3">
                       {!isOwner ? (
                         <p className="font-mono text-xs text-brand-text/40">
-                          Invite management is visible to the board owner only.
+                          Invite management is visible to the plan owner only.
                         </p>
                       ) : invites === undefined ? (
                         <p className="font-mono text-xs text-brand-text/40">Loading invites...</p>
@@ -557,7 +557,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                     className="flex items-center gap-2 px-4 py-2.5 border-2 border-brand-accent/20 text-brand-accent rounded-2xl font-mono font-bold text-sm hover:bg-brand-accent/10 transition-colors w-full justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete This Board
+                    Delete This Plan
                   </button>
                 </div>
               )}
@@ -573,7 +573,7 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
                     className="flex items-center gap-2 px-4 py-2.5 border-2 border-brand-text/20 text-brand-text rounded-2xl font-mono font-bold text-sm hover:bg-brand-text/5 transition-colors w-full justify-center"
                   >
                     <LogOut className="w-4 h-4" />
-                    Leave Board
+                    Leave Plan
                   </button>
                 </div>
               )}
@@ -606,9 +606,9 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
-        title="Delete board"
+        title="Delete plan"
         description={`This will permanently delete "${board.name}" and everything inside it. This action cannot be undone.`}
-        confirmLabel="Delete Board"
+        confirmLabel="Delete Plan"
         isDestructive
         isLoading={isDeleting}
       />
@@ -617,9 +617,9 @@ export function BoardSettings({ open, onClose, board }: BoardSettingsProps) {
         open={confirmLeave}
         onClose={() => setConfirmLeave(false)}
         onConfirm={handleLeave}
-        title="Leave board"
+        title="Leave plan"
         description={`You will lose access to "${board.name}" until you are invited again.`}
-        confirmLabel="Leave Board"
+        confirmLabel="Leave Plan"
         isDestructive
         isLoading={isLeaving}
       />

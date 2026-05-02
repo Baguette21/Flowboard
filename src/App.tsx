@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { useConvexAuth } from "convex/react";
 import { HomePage } from "./pages/HomePage";
-import { BoardPage } from "./pages/BoardPage";
+import { PlanPage } from "./pages/PlanPage";
 import { NotesPage } from "./pages/NotesPage";
 import { DrawPage } from "./pages/DrawPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -54,9 +54,14 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function BoardRoute() {
-  const { boardId } = useParams<{ boardId: string }>();
-  return <BoardPage key={boardId} />;
+function PlanRoute() {
+  const { planId } = useParams<{ planId: string }>();
+  return <PlanPage key={planId} />;
+}
+
+function LegacyBoardRedirect() {
+  const { planId } = useParams<{ planId: string }>();
+  return <Navigate to={planId ? `/plan/${planId}` : "/"} replace />;
 }
 
 export default function App() {
@@ -135,10 +140,18 @@ export default function App() {
         }
       />
       <Route
-        path="/board/:boardId"
+        path="/plan/:planId"
         element={
           <AuthGuard>
-            <BoardRoute />
+            <PlanRoute />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/board/:planId"
+        element={
+          <AuthGuard>
+            <LegacyBoardRedirect />
           </AuthGuard>
         }
       />

@@ -43,7 +43,7 @@ export function ProfilePage() {
   const { toggle } = useTheme();
   const { name, email, imageKey, imageUrl, role } = useProfileAvatar();
   const { enabled: privacyMode } = usePrivacyMode();
-  const boards = useQuery(api.boards.list);
+  const plans = useQuery(api.plans.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
   const setProfileImageKey = useMutation(api.users.setProfileImageKey);
@@ -54,7 +54,7 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLoadingCounts =
-    boards === undefined || notes === undefined || drawings === undefined;
+    plans === undefined || notes === undefined || drawings === undefined;
 
   const handleSignOut = async () => {
     await signOut();
@@ -248,8 +248,8 @@ export function ProfilePage() {
             <div className="space-y-2">
               <AppStat
                 icon={<LayoutGrid className="h-4 w-4" />}
-                label="Boards"
-                value={isLoadingCounts ? "..." : String(boards.length)}
+                label="Plans"
+                value={isLoadingCounts ? "..." : String(plans.length)}
               />
               <AppStat
                 icon={<FileText className="h-4 w-4" />}

@@ -6,9 +6,9 @@ import { fallbackData } from "@/data/fallback";
 import type { Id } from "@convex/_generated/dataModel";
 import type { MobileData, MobileDataStatus } from "@/types";
 
-export function useMobileData(boardId?: Id<"boards">) {
+export function useMobileData(planId?: Id<"plans">) {
   const auth = useConvexAuth();
-  const snapshot = useQuery(api.mobile.snapshot, boardId ? { boardId } : {});
+  const snapshot = useQuery(api.mobile.snapshot, planId ? { planId } : {});
 
   const status: MobileDataStatus = useMemo(() => {
     if (auth.isLoading || snapshot === undefined) return "loading";
@@ -21,8 +21,8 @@ export function useMobileData(boardId?: Id<"boards">) {
     return {
       ...fallbackData,
       ...snapshot,
-      boards: snapshot.boards,
-      selectedBoard: snapshot.selectedBoard,
+      plans: snapshot.plans,
+      selectedPlan: snapshot.selectedPlan,
       columns: snapshot.columns,
       cards: snapshot.cards,
       labels: snapshot.labels,

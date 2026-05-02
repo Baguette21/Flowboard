@@ -75,18 +75,18 @@ const ADD_COLUMN_OPTIONS: Array<{
 // Table — Main Component
 // ════════════════════════════════════════════════════════════════════════════
 export function Table({
-  boardId,
+  planId,
   cards,
   columns: boardColumns,
   labels,
   forcedMode,
   showViewModeTabs = true,
 }: TableProps) {
-  const members = useQuery(api.boardMembers.listForBoard, { boardId });
+  const members = useQuery(api.planMembers.listForPlan, { planId });
   const memberImageUrls = useProfileImageUrls(
     (members ?? []).map((member) => member.imageKey),
   );
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId });
   const createCard = useMutation(api.cards.create);
   const updateCard = useMutation(api.cards.update);
   const moveCard = useMutation(api.cards.move);
@@ -105,7 +105,7 @@ export function Table({
     getCellValue,
     getCalculation,
     navigateCell,
-  } = useTableState(boardId, cards, boardColumns);
+  } = useTableState(planId, cards, boardColumns);
 
   const [detailCardId, setDetailCardId] = useState<Id<"cards"> | null>(null);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -288,7 +288,7 @@ export function Table({
   const addRow = async () => {
     const firstColumn = sortedBoardColumns[0];
     if (!firstColumn) return;
-    await createCard({ boardId, columnId: firstColumn._id, title: "Untitled" });
+    await createCard({ planId, columnId: firstColumn._id, title: "Untitled" });
   };
 
   // ── Card mutations ─────────────────────────────────────────────────────
@@ -373,7 +373,7 @@ export function Table({
     const card = processedCards.find((c) => c._id === cardId);
     if (!card) return;
     await createCard({
-      boardId,
+      planId,
       columnId: card.columnId,
       title: `${card.title} (copy)`,
       description: card.description,
@@ -744,7 +744,7 @@ export function Table({
           />
         ) : state.viewConfig.mode === "list" ? (
           <ListView
-            boardId={boardId}
+            planId={planId}
             processedCards={processedCards}
             visibleColumns={visibleColumns}
             getCellValue={getCellValue}
@@ -879,7 +879,7 @@ export function Table({
       {detailCardId && (
         <RowDetailModal
           cardId={detailCardId}
-          boardId={boardId}
+          planId={planId}
           columns={visibleColumns}
           boardColumns={sortedBoardColumns}
           labels={labels}
@@ -2044,7 +2044,7 @@ function BoardView({
 // LIST VIEW — Simplified row list
 // ════════════════════════════════════════════════════════════════════════════
 function ListView({
-  boardId,
+  planId,
   processedCards,
   visibleColumns,
   getCellValue,
@@ -2056,7 +2056,7 @@ function ListView({
   handleRowDragEnd,
   onCardClick,
 }: {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   processedCards: Doc<"cards">[];
   visibleColumns: TableColumnDef[];
   getCellValue: (card: Doc<"cards">, col: TableColumnDef) => CellValue;
@@ -2070,7 +2070,7 @@ function ListView({
 }) {
   const priorityCol = visibleColumns.find((c) => c.builtIn === "priority");
   const creators = useQuery(api.activityLogs.creatorsByCardIds, {
-    boardId,
+    planId,
     cardIds: processedCards.map((card) => card._id),
   });
   const toggleComplete = useMutation(api.cards.toggleComplete);

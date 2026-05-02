@@ -44,7 +44,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { generateKeyBetween } from "fractional-indexing";
 import { cn } from "../../lib/utils";
-import { CreateBoardModal } from "../board/CreateBoardModal";
+import { CreatePlanModal } from "../board/CreatePlanModal";
 import { getBoardIconOption } from "../../lib/boardIcons";
 import { toast } from "sonner";
 import { useBoardTabs } from "../../hooks/useBoardTabs";
@@ -56,8 +56,8 @@ import { PlanthingMark } from "../branding/PlanthingMark";
 
 type SidebarContextItem =
   | {
-      kind: "board";
-      id: Id<"boards">;
+      kind: "plan";
+      id: Id<"plans">;
       title: string;
       isFavorite: boolean;
       canArchive: boolean;
@@ -168,7 +168,7 @@ function SortableSidebarItem({
 }
 
 interface SidebarProps {
-  activeBoardId?: Id<"boards">;
+  activeBoardId?: Id<"plans">;
   activeNoteId?: Id<"notes">;
   activeDrawId?: Id<"drawings">;
   mobileOpen?: boolean;
@@ -193,20 +193,20 @@ export function Sidebar({
   const navigate = useNavigate();
   const { openInActiveTab } = useBoardTabs();
   const { enabled: privacyMode } = usePrivacyMode();
-  const boards = useQuery(api.boards.list);
+  const plans = useQuery(api.plans.list);
   const notes = useQuery(api.notes.list);
   const drawings = useQuery(api.drawings.list);
   const me = useQuery(api.users.me);
   const createNote = useMutation(api.notes.create);
   const createDrawing = useMutation(api.drawings.create);
-  const updateBoard = useMutation(api.boards.update);
+  const updatePlan = useMutation(api.plans.update);
   const updateNote = useMutation(api.notes.update);
   const updateDrawing = useMutation(api.drawings.update);
-  const deleteBoard = useMutation(api.boards.remove);
+  const deletePlan = useMutation(api.plans.remove);
   const deleteNote = useMutation(api.notes.remove);
   const deleteDrawing = useMutation(api.drawings.remove);
-  const ensureInviteLink = useMutation(api.boardInvites.ensureLink);
-  const reorderBoards = useMutation(api.boards.reorder);
+  const ensureInviteLink = useMutation(api.planInvites.ensureLink);
+  const reorderPlans = useMutation(api.plans.reorder);
   const reorderNotes = useMutation(api.notes.reorder);
   const reorderDrawings = useMutation(api.drawings.reorder);
   const [showCreate, setShowCreate] = useState(false);
@@ -238,23 +238,23 @@ export function Sidebar({
 
   const handleBoardsDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || !boards || active.id === over.id) return;
-    const oldIndex = boards.findIndex((b) => b._id === active.id);
-    const newIndex = boards.findIndex((b) => b._id === over.id);
+    if (!over || !plans || active.id === over.id) return;
+    const oldIndex = plans.findIndex((b) => b._id === active.id);
+    const newIndex = plans.findIndex((b) => b._id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(boards, oldIndex, newIndex);
+    const reordered = arrayMove(plans, oldIndex, newIndex);
     let lastKey: string | null = null;
-    const orders: { boardId: Id<"boards">; order: string }[] = [];
+    const orders: { planId: Id<"plans">; order: string }[] = [];
     for (const board of reordered) {
       lastKey = generateKeyBetween(lastKey, null);
       if (board.role === "owner") {
-        orders.push({ boardId: board._id, order: lastKey });
+        orders.push({ planId: board._id, order: lastKey });
       }
     }
     if (orders.length > 0) {
-      void reorderBoards({ orders }).catch(() => {
-        toast.error("Failed to reorder boards");
+      void reorderPlans({ orders }).catch(() => {
+        toast.error("Failed to reorder plans");
       });
     }
   };
@@ -302,7 +302,7 @@ export function Sidebar({
   const matchesSidebarSearch = (title: string) =>
     normalizedSidebarSearch.length === 0 ||
     title.toLowerCase().includes(normalizedSidebarSearch);
-  const visibleBoards = (boards ?? []).filter(
+  const visiblePlans = (plans ?? []).filter(
     (board) => !board.isFavorite && matchesSidebarSearch(board.name),
   );
   const visibleNotes = (notes ?? []).filter(
@@ -314,12 +314,12 @@ export function Sidebar({
       !drawing.isFavorite && matchesSidebarSearch(drawing.title || "Untitled"),
   );
   const favoriteItems = [
-    ...(boards ?? [])
+    ...(plans ?? [])
       .filter((board) => board.isFavorite)
       .filter((board) => matchesSidebarSearch(board.name))
       .map((board) => ({
         key: `board-${board._id}`,
-        kind: "board" as const,
+        kind: "plan" as const,
         id: board._id,
         title: board.name,
         color: board.color,
@@ -483,8 +483,8 @@ export function Sidebar({
   const handleFavorite = async (item: SidebarContextItem) => {
     const isFavorite = !item.isFavorite;
     try {
-      if (item.kind === "board") {
-        await updateBoard({ boardId: item.id, isFavorite });
+      if (item.kind === "plan") {
+        await updatePlan({ planId: item.id, isFavorite });
       } else if (item.kind === "note") {
         await updateNote({ noteId: item.id, isFavorite });
       } else {
@@ -499,22 +499,22 @@ export function Sidebar({
   const handleShare = async (item: SidebarContextItem) => {
     try {
       let url = `${window.location.origin}${
-        item.kind === "board"
-          ? `/board/${item.id}`
+        item.kind === "plan"
+          ? `/plan/${item.id}`
           : item.kind === "note"
             ? `/notes/${item.id}`
             : `/draw/${item.id}`
       }`;
-      if (item.kind === "board") {
+      if (item.kind === "plan") {
         try {
-          const result = await ensureInviteLink({ boardId: item.id });
+          const result = await ensureInviteLink({ planId: item.id });
           url = `${window.location.origin}/join/${result.inviteToken}`;
         } catch {
-          url = `${window.location.origin}/board/${item.id}`;
+          url = `${window.location.origin}/plan/${item.id}`;
         }
       }
       await navigator.clipboard.writeText(url);
-      toast.success(item.kind === "board" ? "Share link copied" : "Link copied");
+      toast.success(item.kind === "plan" ? "Share link copied" : "Link copied");
     } catch {
       toast.error("Failed to copy link");
     }
@@ -523,15 +523,15 @@ export function Sidebar({
   const handleArchive = async (item: SidebarContextItem) => {
     try {
       const archivedAt = Date.now();
-      if (item.kind === "board") {
-        await updateBoard({ boardId: item.id, archivedAt });
+      if (item.kind === "plan") {
+        await updatePlan({ planId: item.id, archivedAt });
       } else if (item.kind === "note") {
         await updateNote({ noteId: item.id, archivedAt });
       } else {
         await updateDrawing({ drawingId: item.id, archivedAt });
       }
       if (
-        (item.kind === "board" && activeBoardId === item.id) ||
+        (item.kind === "plan" && activeBoardId === item.id) ||
         (item.kind === "note" && activeNoteId === item.id) ||
         (item.kind === "draw" && activeDrawId === item.id)
       ) {
@@ -554,8 +554,8 @@ export function Sidebar({
     const nextTitle = renameValue.trim() || "Untitled";
     setIsRenaming(true);
     try {
-      if (renameItem.kind === "board") {
-        await updateBoard({ boardId: renameItem.id, name: nextTitle });
+      if (renameItem.kind === "plan") {
+        await updatePlan({ planId: renameItem.id, name: nextTitle });
       } else if (renameItem.kind === "note") {
         await updateNote({ noteId: renameItem.id, title: nextTitle });
       } else {
@@ -574,15 +574,15 @@ export function Sidebar({
     if (!deleteItem) return;
     setIsDeleting(true);
     try {
-      if (deleteItem.kind === "board") {
-        await deleteBoard({ boardId: deleteItem.id });
+      if (deleteItem.kind === "plan") {
+        await deletePlan({ planId: deleteItem.id });
       } else if (deleteItem.kind === "note") {
         await deleteNote({ noteId: deleteItem.id });
       } else {
         await deleteDrawing({ drawingId: deleteItem.id });
       }
       if (
-        (deleteItem.kind === "board" && activeBoardId === deleteItem.id) ||
+        (deleteItem.kind === "plan" && activeBoardId === deleteItem.id) ||
         (deleteItem.kind === "note" && activeNoteId === deleteItem.id) ||
         (deleteItem.kind === "draw" && activeDrawId === deleteItem.id)
       ) {
@@ -706,7 +706,7 @@ export function Sidebar({
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
                   Favorites
                 </span>
-                {boards && notes && drawings ? (
+                {plans && notes && drawings ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
                     {favoriteItems.length}
                   </span>
@@ -714,7 +714,7 @@ export function Sidebar({
               </div>
 
               <div className="ml-2 mt-1 space-y-0.5">
-                {boards === undefined || notes === undefined || drawings === undefined ? (
+                {plans === undefined || notes === undefined || drawings === undefined ? (
                   <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
                     Loading...
                   </div>
@@ -725,11 +725,11 @@ export function Sidebar({
                 ) : (
                   favoriteItems.map((item) => {
                     const isActive =
-                      (item.kind === "board" && activeBoardId === item.id) ||
+                      (item.kind === "plan" && activeBoardId === item.id) ||
                       (item.kind === "note" && activeNoteId === item.id) ||
                       (item.kind === "draw" && activeDrawId === item.id);
                     const boardIcon =
-                      item.kind === "board"
+                      item.kind === "plan"
                         ? getBoardIconOption(item.icon, item.color)
                         : null;
 
@@ -737,9 +737,9 @@ export function Sidebar({
                       <button
                         key={item.key}
                         onContextMenu={(event) => {
-                          if (item.kind === "board") {
+                          if (item.kind === "plan") {
                             openContextMenu(event, {
-                              kind: "board",
+                              kind: "plan",
                               id: item.id,
                               title: item.title,
                               isFavorite: true,
@@ -777,7 +777,7 @@ export function Sidebar({
                             : "text-brand-sidebar-text/60 hover:bg-brand-sidebar-text/8 hover:text-brand-sidebar-text",
                         )}
                       >
-                        {item.kind === "board" && boardIcon ? (
+                        {item.kind === "plan" && boardIcon ? (
                           <span
                             className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[8px]"
                             style={{
@@ -816,11 +816,11 @@ export function Sidebar({
                   )}
                 />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
-                  Boards
+                  Plans
                 </span>
-                {boards ? (
+                {plans ? (
                   <span className="ml-0.5 font-mono text-[10px] text-brand-sidebar-text/25">
-                    {visibleBoards.length}
+                    {visiblePlans.length}
                   </span>
                 ) : null}
                 <button
@@ -829,7 +829,7 @@ export function Sidebar({
                     setShowCreate(true);
                   }}
                   className="ml-auto p-0.5 transition-colors hover:text-brand-sidebar-text"
-                  title="New board"
+                  title="New plan"
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>
@@ -837,13 +837,13 @@ export function Sidebar({
 
               {boardsExpanded ? (
                 <div className="ml-2 mt-1 space-y-0.5">
-                  {boards === undefined ? (
+                  {plans === undefined ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
                       Loading...
                     </div>
-                  ) : visibleBoards.length === 0 ? (
+                  ) : visiblePlans.length === 0 ? (
                     <div className="px-3 py-2 font-mono text-xs text-brand-sidebar-text/30">
-                      {normalizedSidebarSearch ? "No board matches" : "No boards yet"}
+                      {normalizedSidebarSearch ? "No plan matches" : "No plans yet"}
                     </div>
                   ) : (
                     <DndContext
@@ -852,10 +852,10 @@ export function Sidebar({
                       onDragEnd={handleBoardsDragEnd}
                     >
                       <SortableContext
-                        items={visibleBoards.map((b) => b._id)}
+                        items={visiblePlans.map((b) => b._id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {visibleBoards.map((board) => {
+                        {visiblePlans.map((board) => {
                           const boardIcon = getBoardIconOption(
                             board.icon,
                             board.color,
@@ -869,7 +869,7 @@ export function Sidebar({
                                 }}
                                 onContextMenu={(event) =>
                                   openContextMenu(event, {
-                                    kind: "board",
+                                    kind: "plan",
                                     id: board._id,
                                     title: board.name,
                                     isFavorite: board.isFavorite,
@@ -879,7 +879,7 @@ export function Sidebar({
                                 }
                                 onClick={() => {
                                   openInActiveTab({
-                                    kind: "board",
+                                    kind: "plan",
                                     id: board._id,
                                   });
                                   onMobileClose?.();
@@ -1165,7 +1165,7 @@ export function Sidebar({
         </div>
       </aside>
 
-      <CreateBoardModal
+      <CreatePlanModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
       />
@@ -1178,8 +1178,8 @@ export function Sidebar({
           onContextMenu={(event) => event.preventDefault()}
         >
           <div className="px-3 pb-2 pt-1 font-mono text-[11px] text-brand-sidebar-text/45">
-            {contextMenu.kind === "board"
-              ? "Board"
+            {contextMenu.kind === "plan"
+              ? "Plan"
               : contextMenu.kind === "note"
                 ? "Note"
                 : "Drawing"}
@@ -1194,7 +1194,7 @@ export function Sidebar({
           />
           <SidebarMenuButton
             icon={<Copy className="h-4 w-4" />}
-            label={contextMenu.kind === "board" ? "Copy share link" : "Copy link"}
+            label={contextMenu.kind === "plan" ? "Copy share link" : "Copy link"}
             onClick={() => {
               void handleShare(contextMenu);
               setContextMenu(null);

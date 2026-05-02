@@ -16,12 +16,14 @@ import "../notes/noteEditorTheme.css";
 interface CardNoteCanvasProps {
   cardId: Id<"cards">;
   content?: string;
+  contentHTML?: string;
   drawingDocument?: string;
 }
 
 export function CardNoteCanvas({
   cardId,
   content,
+  contentHTML,
   drawingDocument,
 }: CardNoteCanvasProps) {
   const { theme } = useTheme();
@@ -51,6 +53,24 @@ export function CardNoteCanvas({
     isInitialLoadRef.current = true;
   }, [cardId, content]);
 
+  const htmlHydratedRef = useRef(false);
+  useEffect(() => {
+    htmlHydratedRef.current = false;
+  }, [cardId]);
+  useEffect(() => {
+    if (htmlHydratedRef.current) return;
+    if (!contentHTML) return;
+    htmlHydratedRef.current = true;
+    void (async () => {
+      try {
+        const blocks = await editor.tryParseHTMLToBlocks(contentHTML);
+        if (blocks.length) editor.replaceBlocks(editor.document, blocks);
+      } catch {
+        // keep JSON-derived content
+      }
+    })();
+  }, [editor, contentHTML]);
+
   const persistCurrentContent = useCallback(() => {
     const blocks: Block[] = editor.document;
     const nextContent = JSON.stringify(blocks);
@@ -60,10 +80,19 @@ export function CardNoteCanvas({
     }
 
     latestSavedContentRef.current = nextContent;
-    void updateCard({
-      cardId,
-      noteContent: nextContent,
-    });
+    void (async () => {
+      let html = "";
+      try {
+        html = await editor.blocksToFullHTML(blocks);
+      } catch {
+        html = "";
+      }
+      void updateCard({
+        cardId,
+        noteContent: nextContent,
+        descriptionHTML: html,
+      });
+    })();
   }, [cardId, editor, updateCard]);
 
   const handleEditorChange = useCallback(() => {

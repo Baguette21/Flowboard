@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import type { AppTheme } from "@/theme/tokens";
 import { palette } from "@/theme/tokens";
@@ -53,11 +53,15 @@ export function LogoLockup({ theme, size = 28 }: { theme: AppTheme; size?: numbe
   );
 }
 
-export function Avatar({ initials = "PT", tint = "amber", size = 34 }: { initials?: string; tint?: Tint; size?: number }) {
+export function Avatar({ initials = "PT", tint = "amber", size = 34, imageUrl }: { initials?: string; tint?: Tint; size?: number; imageUrl?: string | null }) {
   const c = palette.tints[tint];
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: c.bg }]}>
-      <Text style={[styles.avatarText, { color: c.fg, fontSize: Math.max(10, size * 0.34) }]}>{initials}</Text>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" />
+      ) : (
+        <Text style={[styles.avatarText, { color: c.fg, fontSize: Math.max(10, size * 0.34) }]}>{initials}</Text>
+      )}
     </View>
   );
 }

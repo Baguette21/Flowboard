@@ -27,8 +27,8 @@ export function SearchButton({ theme }: { theme: AppTheme }) {
   return <View style={[styles.smallButton, { backgroundColor: theme.panel, borderColor: theme.whisper }]}><Search size={19} color={theme.ink} /></View>;
 }
 
-export function ProfileAvatar({ name }: { name?: string | null }) {
-  return <Avatar initials={(name ?? "PT").slice(0, 2).toUpperCase()} />;
+export function ProfileAvatar({ name, imageUrl }: { name?: string | null; imageUrl?: string | null }) {
+  return <Avatar initials={(name ?? "PT").slice(0, 2).toUpperCase()} imageUrl={imageUrl} />;
 }
 
 const styles = StyleSheet.create({

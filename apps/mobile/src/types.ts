@@ -35,8 +35,8 @@ export type ScreenKey =
   | "settings"
   | "profile";
 
-export type MobileBoard = {
-  _id: Id<"boards">;
+export type MobilePlan = {
+  _id: Id<"plans">;
   name: string;
   color?: string | null;
   isFavorite?: boolean;
@@ -54,10 +54,12 @@ export type MobileColumn = {
 
 export type MobileCard = {
   _id: Id<"cards">;
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   columnId: Id<"columns">;
   title: string;
   description?: string;
+  descriptionHTML?: string;
+  descriptionVersion?: number;
   noteContent?: string;
   labelIds?: Id<"labels">[];
   assignedUserId?: Id<"users"> | null;
@@ -76,6 +78,8 @@ export type MobileNote = {
   _id: Id<"notes">;
   title: string;
   content?: string;
+  contentHTML?: string;
+  contentVersion?: number;
   updatedAt?: number;
 };
 
@@ -87,7 +91,7 @@ export type MobileDrawing = {
 
 export type MobileLabel = {
   _id: Id<"labels">;
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   name: string;
   color: string;
 };
@@ -108,9 +112,16 @@ export type MobileNotification = {
 };
 
 export type MobileData = {
-  viewer: { name?: string | null; email?: string | null; role?: string | null } | null;
-  boards: MobileBoard[];
-  selectedBoard: MobileBoard | null;
+  viewer: {
+    id?: Id<"users">;
+    name?: string | null;
+    email?: string | null;
+    imageKey?: string | null;
+    role?: string | null;
+  } | null;
+  plans: MobilePlan[];
+  planViewOrders?: Record<string, Array<"board" | "calendar" | "table" | "list" | "draw">>;
+  selectedPlan: MobilePlan | null;
   columns: MobileColumn[];
   cards: MobileCard[];
   labels: MobileLabel[];

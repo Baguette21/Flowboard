@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { query, type QueryCtx } from "./_generated/server";
-import { getCurrentUser } from "./helpers/boardAccess";
+import { getCurrentUser } from "./helpers/planAccess";
 
 function compareOrderThenUpdated(
   a: { order?: string; updatedAt: number },
@@ -30,68 +30,68 @@ function initialsFor(user: Pick<Doc<"users">, "name" | "email"> | null) {
   return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : source.slice(0, 2)).toUpperCase();
 }
 
-async function boardOwner(ctx: QueryCtx, board: Doc<"boards">) {
-  const owner = await ctx.db.get(board.userId as Id<"users">);
+async function planOwner(ctx: QueryCtx, Plan: Doc<"plans">) {
+  const owner = await ctx.db.get(Plan.userId as Id<"users">);
   return {
     name: owner?.name ?? null,
     email: owner?.email ?? null,
   };
 }
 
-async function accessibleBoards(ctx: QueryCtx) {
+async function accessiblePlans(ctx: QueryCtx) {
   const current = await getCurrentUser(ctx);
 
-  const ownedBoards = current
+  const ownedPlans = current
     ? await ctx.db
-        .query("boards")
+        .query("plans")
         .withIndex("by_userId", (q) => q.eq("userId", current.userId))
         .take(30)
     : [];
 
   const memberships = current
     ? await ctx.db
-        .query("boardMembers")
+        .query("planMembers")
         .withIndex("by_userId", (q) => q.eq("userId", current.userId))
         .take(30)
     : [];
 
-  const ownedBoardIds = new Set(ownedBoards.map((board) => board._id));
-  const sharedBoards = current
+  const ownedPlanIds = new Set(ownedPlans.map((Plan) => Plan._id));
+  const sharedPlans = current
     ? (
         await Promise.all(
           memberships
-            .filter((membership) => !ownedBoardIds.has(membership.boardId))
-            .map(async (membership) => await ctx.db.get(membership.boardId)),
+            .filter((membership) => !ownedPlanIds.has(membership.planId))
+            .map(async (membership) => await ctx.db.get(membership.planId)),
         )
-      ).filter((board): board is Doc<"boards"> => board !== null)
+      ).filter((Plan): Plan is Doc<"plans"> => Plan !== null)
     : [];
 
-  const previewBoards = current ? [] : await ctx.db.query("boards").order("desc").take(12);
-  const boards = [...ownedBoards, ...sharedBoards, ...previewBoards]
-    .filter((board) => !board.archivedAt)
+  const previewPlans = current ? [] : await ctx.db.query("plans").order("desc").take(12);
+  const plans = [...ownedPlans, ...sharedPlans, ...previewPlans]
+    .filter((Plan) => !Plan.archivedAt)
     .sort(compareOrderThenUpdated);
 
-  return { current, boards };
+  return { current, plans };
 }
 
-async function boardPayload(ctx: QueryCtx, board: Doc<"boards"> | null) {
-  const [columns, cards, labels, memberships] = board
+async function planPayload(ctx: QueryCtx, Plan: Doc<"plans"> | null) {
+  const [columns, cards, labels, memberships] = Plan
     ? await Promise.all([
         ctx.db
           .query("columns")
-          .withIndex("by_boardId", (q) => q.eq("boardId", board._id))
+          .withIndex("by_planId", (q) => q.eq("planId", Plan._id))
           .take(30),
         ctx.db
           .query("cards")
-          .withIndex("by_boardId", (q) => q.eq("boardId", board._id))
+          .withIndex("by_planId", (q) => q.eq("planId", Plan._id))
           .take(150),
         ctx.db
           .query("labels")
-          .withIndex("by_boardId", (q) => q.eq("boardId", board._id))
+          .withIndex("by_planId", (q) => q.eq("planId", Plan._id))
           .take(80),
         ctx.db
-          .query("boardMembers")
-          .withIndex("by_boardId", (q) => q.eq("boardId", board._id))
+          .query("planMembers")
+          .withIndex("by_planId", (q) => q.eq("planId", Plan._id))
           .take(50),
       ])
     : [[], [], [], []];
@@ -133,18 +133,29 @@ async function boardPayload(ctx: QueryCtx, board: Doc<"boards"> | null) {
 
 export const snapshot = query({
   args: {
+    planId: v.optional(v.id("plans")),
     boardId: v.optional(v.id("boards")),
     search: v.optional(v.string()),
   },
-  handler: async (ctx, { boardId, search }) => {
-    const { current, boards } = await accessibleBoards(ctx);
-    const selectedBoard =
-      (boardId ? boards.find((board) => board._id === boardId) : null) ??
-      boards.find((board) => board.isFavorite) ??
-      boards[0] ??
+  handler: async (ctx, { planId, boardId, search }) => {
+    const { current, plans } = await accessiblePlans(ctx);
+    const mappedPlanId =
+      planId ??
+      (boardId
+        ? (
+            await ctx.db
+              .query("planMigrationMap")
+              .withIndex("by_oldBoardId", (q) => q.eq("oldBoardId", boardId))
+              .unique()
+          )?.newPlanId
+        : undefined);
+    const selectedPlan =
+      (mappedPlanId ? plans.find((Plan) => Plan._id === mappedPlanId) : null) ??
+      plans.find((Plan) => Plan.isFavorite) ??
+      plans[0] ??
       null;
 
-    const payload = await boardPayload(ctx, selectedBoard);
+    const payload = await planPayload(ctx, selectedPlan);
 
     const notes = current
       ? await ctx.db
@@ -170,8 +181,21 @@ export const snapshot = query({
           .take(30)
       : [];
 
-    const owners = await Promise.all(boards.map(async (board) => await boardOwner(ctx, board)));
-    const ownerByBoardId = new Map(boards.map((board, index) => [board._id, owners[index]]));
+    const owners = await Promise.all(plans.map(async (Plan) => await planOwner(ctx, Plan)));
+    const ownerByPlanId = new Map(plans.map((Plan, index) => [Plan._id, owners[index]]));
+    const viewPreferences = current
+      ? await Promise.all(
+          plans.map(async (Plan) => {
+            const preference = await ctx.db
+              .query("planViewPreferences")
+              .withIndex("by_userId_and_planId", (pref) =>
+                pref.eq("userId", current.userId).eq("planId", Plan._id),
+              )
+              .unique();
+            return [Plan._id, preference?.viewOrder ?? null] as const;
+          }),
+        )
+      : [];
     const q = search?.trim().toLowerCase() ?? "";
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -182,15 +206,19 @@ export const snapshot = query({
             id: current.userId,
             name: current.user.name ?? null,
             email: current.user.email ?? null,
+            imageKey: current.user.imageKey ?? null,
             role: current.user.role ?? "USER",
           }
         : null,
-      boards: boards.map((board) => ({
-        ...board,
-        ownerName: ownerByBoardId.get(board._id)?.name ?? null,
-        ownerEmail: ownerByBoardId.get(board._id)?.email ?? null,
+      plans: plans.map((Plan) => ({
+        ...Plan,
+        ownerName: ownerByPlanId.get(Plan._id)?.name ?? null,
+        ownerEmail: ownerByPlanId.get(Plan._id)?.email ?? null,
       })),
-      selectedBoard,
+      planViewOrders: Object.fromEntries(
+        viewPreferences.filter((entry): entry is readonly [Id<"plans">, NonNullable<(typeof entry)[1]>] => entry[1] !== null),
+      ),
+      selectedPlan,
       ...payload,
       notes: notes.filter((note) => !note.archivedAt).sort(compareOrderThenUpdated),
       drawings: drawings.filter((drawing) => !drawing.archivedAt).sort(compareOrderThenUpdated),
@@ -205,55 +233,55 @@ export const snapshot = query({
   },
 });
 
-export const boardSnapshot = query({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const { boards } = await accessibleBoards(ctx);
-    const selectedBoard = boards.find((board) => board._id === boardId) ?? null;
-    const payload = await boardPayload(ctx, selectedBoard);
-    return { selectedBoard, ...payload };
+export const planSnapshot = query({
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    const { plans } = await accessiblePlans(ctx);
+    const selectedPlan = plans.find((Plan) => Plan._id === planId) ?? null;
+    const payload = await planPayload(ctx, selectedPlan);
+    return { selectedPlan, ...payload };
   },
 });
 
 export const search = query({
   args: { query: v.string() },
   handler: async (ctx, { query }) => {
-    const { boards } = await accessibleBoards(ctx);
+    const { plans } = await accessiblePlans(ctx);
     const q = query.trim();
-    if (!q) return { boards: [], cards: [], notes: [], drawings: [] };
-    const boardIds = new Set(boards.map((board) => board._id));
-    const boardMatches = boards
-      .filter((board) => board.name.toLowerCase().includes(q.toLowerCase()))
+    if (!q) return { plans: [], cards: [], notes: [], drawings: [] };
+    const planIds = new Set(plans.map((Plan) => Plan._id));
+    const planMatches = plans
+      .filter((Plan) => Plan.name.toLowerCase().includes(q.toLowerCase()))
       .slice(0, 10);
     const cardMatches = (
       await Promise.all(
-        boards.slice(0, 12).map((board) =>
+        plans.slice(0, 12).map((Plan) =>
           ctx.db
             .query("cards")
-            .withSearchIndex("search_title", (s) => s.search("title", q).eq("boardId", board._id))
+            .withSearchIndex("search_title", (s) => s.search("title", q).eq("planId", Plan._id))
             .take(8),
         ),
       )
     )
       .flat()
-      .filter((card) => boardIds.has(card.boardId))
+      .filter((card) => planIds.has(card.planId!))
       .slice(0, 30);
-    return { boards: boardMatches, cards: cardMatches, notes: [], drawings: [] };
+    return { plans: planMatches, cards: cardMatches, notes: [], drawings: [] };
   },
 });
 
 export const today = query({
   args: {},
   handler: async (ctx) => {
-    const { boards } = await accessibleBoards(ctx);
+    const { plans } = await accessiblePlans(ctx);
     const dayEnd = new Date();
     dayEnd.setHours(23, 59, 59, 999);
     const cards = (
       await Promise.all(
-        boards.slice(0, 12).map((board) =>
+        plans.slice(0, 12).map((Plan) =>
           ctx.db
             .query("cards")
-            .withIndex("by_boardId", (q) => q.eq("boardId", board._id))
+            .withIndex("by_planId", (q) => q.eq("planId", Plan._id))
             .take(80),
         ),
       )

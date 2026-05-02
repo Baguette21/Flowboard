@@ -87,7 +87,7 @@ function App() {
                 Plans that <span style={{ color: t.accent.hex, fontStyle: 'italic' }}>grow</span><br />with you.
               </h1>
               <p style={{ font: `400 15px/1.5 ${t.fonts.sans}`, color: t.muted, margin: '8px 0 0', maxWidth: 320 }}>
-                A native take on the working garden — boards, notes, and drawings on one calm paper surface, sized for the hand.
+                A native take on the working garden — plans, notes, and drawings on one calm paper surface, sized for the hand.
               </p>
               <div style={{ flex: 1 }} />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -264,7 +264,7 @@ function App() {
           <DCArtboard id="inbox" label="Notifications" width={360} height={760}>
             <Frame label="INBOX"><ScreenNotifications t={t} /></Frame>
           </DCArtboard>
-          <DCArtboard id="settings" label="Board settings" width={360} height={760}>
+          <DCArtboard id="settings" label="Plan settings" width={360} height={760}>
             <Frame label="SETTINGS · ALLOW ASSIGN"><ScreenBoardSettings t={t} /></Frame>
           </DCArtboard>
           <DCArtboard id="profile" label="Profile" width={360} height={760}>

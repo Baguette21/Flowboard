@@ -16,9 +16,9 @@ interface BoardCardProps {
   board: BoardListItem;
 }
 
-export function BoardCard({ board }: BoardCardProps) {
-  const toggleFavorite = useMutation(api.boards.update);
-  const deleteBoard = useMutation(api.boards.remove);
+export function PlanCard({ board }: BoardCardProps) {
+  const toggleFavorite = useMutation(api.plans.update);
+  const deletePlan = useMutation(api.plans.remove);
   const { openInActiveTab } = useBoardTabs();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -28,24 +28,24 @@ export function BoardCard({ board }: BoardCardProps) {
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await toggleFavorite({ boardId: board._id, isFavorite: !board.isFavorite });
+    await toggleFavorite({ planId: board._id, isFavorite: !board.isFavorite });
     toast.success(board.isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      openInActiveTab({ kind: "board", id: board._id });
+      openInActiveTab({ kind: "plan", id: board._id });
     }
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteBoard({ boardId: board._id });
+      await deletePlan({ planId: board._id });
       toast.success(`"${board.name}" deleted`);
     } catch {
-      toast.error("Failed to delete board");
+      toast.error("Failed to delete plan");
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -56,12 +56,12 @@ export function BoardCard({ board }: BoardCardProps) {
     {
       label: board.isFavorite ? "Remove from favorites" : "Add to favorites",
       icon: <Star className="w-4 h-4" />,
-      onClick: () => void toggleFavorite({ boardId: board._id, isFavorite: !board.isFavorite }),
+      onClick: () => void toggleFavorite({ planId: board._id, isFavorite: !board.isFavorite }),
     },
     ...(board.role === "owner"
       ? [
           {
-            label: "Delete board",
+            label: "Delete plan",
             icon: <Trash2 className="w-4 h-4" />,
             onClick: () => setConfirmDelete(true),
             danger: true,
@@ -74,11 +74,11 @@ export function BoardCard({ board }: BoardCardProps) {
   return (
     <>
       <div
-        onClick={() => openInActiveTab({ kind: "board", id: board._id })}
+        onClick={() => openInActiveTab({ kind: "plan", id: board._id })}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-label={`Open board ${board.name}`}
+        aria-label={`Open plan ${board.name}`}
         className="group relative select-none cursor-pointer bg-brand-primary card-whisper card-elevation rounded-[12px] p-5 transition-all duration-150 hover:card-elevation-hover hover:border-[color:var(--color-border-whisper-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text/35"
       >
         <div className="flex items-start justify-between gap-3">
@@ -171,9 +171,9 @@ export function BoardCard({ board }: BoardCardProps) {
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
-        title="Delete board"
+        title="Delete plan"
         description={`This will permanently delete "${board.name}" and all its columns, tasks, and labels. This action cannot be undone.`}
-        confirmLabel="Delete Board"
+        confirmLabel="Delete Plan"
         isDestructive
         isLoading={isDeleting}
       />

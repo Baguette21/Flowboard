@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action, internalQuery, mutation } from "./_generated/server";
-import { requireBoardAccess } from "./helpers/boardAccess";
+import { requirePlanAccess } from "./helpers/planAccess";
 import { generateOrderKeyAfter } from "./helpers/ordering";
 import { aiTaskDraftValidator } from "./helpers/validators";
 
@@ -36,8 +36,8 @@ type AssistantResponse = {
 };
 
 type DraftContext = {
-  board: {
-    _id: Id<"boards">;
+  Plan: {
+    _id: Id<"plans">;
     name: string;
   };
   columns: { _id: Id<"columns">; title: string }[];
@@ -169,13 +169,13 @@ function buildSystemInstruction({
     .map((column, index) => `${index + 1}. ${column.title}`)
     .join("\n");
 
-  return `You are an AI assistant embedded inside a kanban board. You help the user plan and refine task cards through natural conversation.
+  return `You are an AI assistant embedded inside a kanban plan. You help the user plan and refine task cards through natural conversation.
 
-Board name: ${boardName}
+Plan name: ${boardName}
 Current date/time: ${now.toISOString()}
 Timezone for due dates: ${timezone}
 
-Existing board columns (use these names exactly when assigning tasks):
+Existing plan columns (use these names exactly when assigning tasks):
 ${columnList}
 
 Response shape:
@@ -198,7 +198,7 @@ Refining previous turns:
 Task rules:
 - At most ${MAX_TASKS} tasks per response.
 - Keep titles short and specific (under 160 characters).
-- Use existing board columns only via "columnTitle". If no column is implied, choose the first available column.
+- Use existing plan columns only via "columnTitle". If no column is implied, choose the first available column.
 - Do not invent assignees or labels.
 
 Due dates (be proactive — users want these):
@@ -453,18 +453,18 @@ function normalizeAssistantResponse({
 }
 
 export const getDraftContext = internalQuery({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const { board } = await requireBoardAccess(ctx, boardId);
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    const { plan } = await requirePlanAccess(ctx, planId);
     const columns = await ctx.db
       .query("columns")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .take(100);
 
     return {
-      board: {
-        _id: board._id,
-        name: board.name,
+      Plan: {
+        _id: plan._id,
+        name: plan.name,
       },
       columns: columns
         .sort((a, b) => a.order.localeCompare(b.order))
@@ -484,7 +484,7 @@ const chatMessageValidator = v.object({
 
 export const chat = action({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     timezone: v.string(),
     messages: v.array(chatMessageValidator),
   },
@@ -492,7 +492,7 @@ export const chat = action({
     reply: v.string(),
     proposedTasks: v.optional(v.array(aiTaskDraftValidator)),
   }),
-  handler: async (ctx, { boardId, timezone, messages }): Promise<AssistantResponse> => {
+  handler: async (ctx, { planId, timezone, messages }): Promise<AssistantResponse> => {
     if (messages.length === 0) {
       throw new Error("Send a message to the assistant.");
     }
@@ -507,7 +507,7 @@ export const chat = action({
 
     const context: DraftContext = await ctx.runQuery(
       internal.aiAssistant.getDraftContext,
-      { boardId },
+      { planId },
     );
     if (context.columns.length === 0) {
       throw new Error("Add a column before chatting with the assistant.");
@@ -519,7 +519,7 @@ export const chat = action({
     }
 
     const systemInstruction = buildSystemInstruction({
-      boardName: context.board.name,
+      boardName: context.Plan.name,
       columns: context.columns,
       timezone: timezone.trim() || "UTC",
     });
@@ -563,17 +563,17 @@ export const chat = action({
 
 export const applyTaskDraft = mutation({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     tasks: v.array(aiTaskDraftValidator),
   },
   returns: v.object({
     createdCardIds: v.array(v.id("cards")),
   }),
-  handler: async (ctx, { boardId, tasks }) => {
-    const { userId } = await requireBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, tasks }) => {
+    const { userId } = await requirePlanAccess(ctx, planId);
     const columns = await ctx.db
       .query("columns")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .take(100);
     const sortedColumns = columns.sort((a, b) => a.order.localeCompare(b.order));
     const firstColumn = sortedColumns[0];
@@ -623,7 +623,7 @@ export const applyTaskDraft = mutation({
         firstColumn;
 
       if (task.columnId && !columnById.has(task.columnId)) {
-        throw new Error("Task target column does not belong to this board.");
+        throw new Error("Task target column does not belong to this plan.");
       }
 
       const previousOrder = lastOrderByColumn.get(targetColumn._id) ?? null;
@@ -633,7 +633,7 @@ export const applyTaskDraft = mutation({
       const description = task.description?.trim() || undefined;
       const cardId = await ctx.db.insert("cards", {
         columnId: targetColumn._id,
-        boardId,
+        planId,
         title,
         description,
         assignedUserId: null,
@@ -648,7 +648,7 @@ export const applyTaskDraft = mutation({
       });
 
       await ctx.db.insert("activityLogs", {
-        boardId,
+        planId,
         cardId,
         userId,
         action: "created",

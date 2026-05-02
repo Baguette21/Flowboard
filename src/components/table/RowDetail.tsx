@@ -5,7 +5,7 @@ import type { AllCellData, CellValue, SelectOption, TableColumnDef } from "./typ
 
 interface RowDetailModalProps {
   cardId: Id<"cards">;
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   columns: TableColumnDef[];
   boardColumns: Doc<"columns">[];
   labels: Doc<"labels">[];
@@ -21,7 +21,7 @@ export function RowDetailModal(props: RowDetailModalProps) {
   return (
     <CardDetail
       cardId={props.cardId}
-      boardId={props.boardId}
+      planId={props.planId}
       columns={props.boardColumns}
       labels={props.labels}
       members={props.members}

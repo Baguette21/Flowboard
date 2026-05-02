@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireCurrentUser, requireProUser } from "./helpers/boardAccess";
+import { sanitizeHtml } from "./helpers/sanitizeHtml";
 
 export const list = query({
   args: {},
@@ -92,11 +93,13 @@ export const update = mutation({
     noteId: v.id("notes"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    contentHTML: v.optional(v.string()),
+    expectedContentVersion: v.optional(v.number()),
     drawingDocument: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
     archivedAt: v.optional(v.union(v.number(), v.null())),
   },
-  handler: async (ctx, { noteId, title, content, drawingDocument, isFavorite, archivedAt }) => {
+  handler: async (ctx, { noteId, title, content, contentHTML, expectedContentVersion, drawingDocument, isFavorite, archivedAt }) => {
     const { userId, user } = await requireCurrentUser(ctx);
     const note = await ctx.db.get(noteId);
 
@@ -118,6 +121,15 @@ export const update = mutation({
 
     if (content !== undefined) {
       patch.content = content;
+    }
+
+    if (contentHTML !== undefined) {
+      const currentVersion = note.contentVersion ?? 0;
+      if (expectedContentVersion !== undefined && expectedContentVersion !== currentVersion) {
+        throw new Error("Note was edited elsewhere — please reload");
+      }
+      patch.contentHTML = sanitizeHtml(contentHTML);
+      patch.contentVersion = currentVersion + 1;
     }
 
     if (drawingDocument !== undefined) {

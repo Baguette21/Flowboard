@@ -1,7 +1,7 @@
 import type { Id } from "../../convex/_generated/dataModel";
 
-export type BoardListItem = {
-  _id: Id<"boards">;
+export type PlanListItem = {
+  _id: Id<"plans">;
   _creationTime: number;
   name: string;
   slug: string;
@@ -15,6 +15,8 @@ export type BoardListItem = {
   ownerEmail: string | null;
   ownerImageKey: string | null;
 };
+
+export type BoardListItem = PlanListItem;
 
 export type BoardMemberSummary = {
   userId: Id<"users">;

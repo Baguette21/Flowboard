@@ -4,35 +4,39 @@ import { Edit3, Palette } from "lucide-react-native";
 import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { AppBar } from "@/components/AppBar";
+import { RichEditor } from "@/components/RichEditor";
 import { DrawingTile, NoteCard } from "@/components/Cards";
 import { Screen } from "@/components/Primitives";
+import { blockNoteToHTML } from "@/lib/blocknote";
 import type { AppTheme } from "@/theme/tokens";
 import { palette } from "@/theme/tokens";
 import type { MobileData, ScreenKey } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
 
-export function NotesListScreen({ data, theme, setScreen }: { data: MobileData; theme: AppTheme; setScreen?: (screen: ScreenKey) => void }) {
+export function NotesListScreen({ data, theme, setScreen, openNote }: { data: MobileData; theme: AppTheme; setScreen?: (screen: ScreenKey) => void; openNote?: (noteId?: Id<"notes">) => void }) {
   return (
     <Screen theme={theme}>
-      <AppBar title="Notes" subtitle={`${data.notes.length} notes`} theme={theme} right={<Edit3 color={theme.ink} />} />
-      <View style={styles.content}>{data.notes.map((note) => <TouchableOpacity key={note._id} onPress={() => setScreen?.("noteFocused")}><NoteCard note={note} theme={theme} /></TouchableOpacity>)}</View>
+      <AppBar title="Notes" subtitle={`${data.notes.length} notes`} theme={theme} back={() => setScreen?.("homeMixed")} right={<Edit3 color={theme.ink} />} />
+      <View style={styles.content}>{data.notes.map((note) => <TouchableOpacity key={note._id} onPress={() => openNote?.(note._id)}><NoteCard note={note} theme={theme} /></TouchableOpacity>)}</View>
     </Screen>
   );
 }
 
-export function NoteEditorScreen({ data, theme, focused }: { data: MobileData; theme: AppTheme; focused?: boolean }) {
-  const note = data.notes[0];
+export function NoteEditorScreen({ data, theme, focused, setScreen, selectedNoteId }: { data: MobileData; theme: AppTheme; focused?: boolean; setScreen?: (screen: ScreenKey) => void; selectedNoteId?: Id<"notes"> }) {
+  const note = (selectedNoteId ? data.notes.find((item) => item._id === selectedNoteId) : null) ?? data.notes[0];
   const updateNote = useMutation(api.notes.update);
   const removeNote = useMutation(api.notes.remove);
   const [title, setTitle] = useState(note?.title ?? "");
-  const [content, setContent] = useState(note?.content ?? "");
+  const [contentHTML, setContentHTML] = useState(noteToEditorHTML(note));
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const firstRender = useRef(true);
 
   useEffect(() => {
     setTitle(note?.title ?? "");
-    setContent(note?.content ?? "");
+    setContentHTML(noteToEditorHTML(note));
+    setSaveState("idle");
     firstRender.current = true;
-  }, [note?._id, note?.content, note?.title]);
+  }, [note?._id, note?.contentHTML, note?.title]);
 
   useEffect(() => {
     if (!focused || !note) return;
@@ -47,14 +51,14 @@ export function NoteEditorScreen({ data, theme, focused }: { data: MobileData; t
       }
       try {
         setSaveState("saving");
-        await updateNote({ noteId: note._id, title: title.trim(), content });
+        await updateNote({ noteId: note._id, title: title.trim(), contentHTML });
         setSaveState("saved");
       } catch {
         setSaveState("error");
       }
     }, 650);
     return () => clearTimeout(timer);
-  }, [content, focused, note, title, updateNote]);
+  }, [contentHTML, focused, note, title, updateNote]);
 
   async function deleteNote() {
     if (!note) return;
@@ -68,7 +72,7 @@ export function NoteEditorScreen({ data, theme, focused }: { data: MobileData; t
   if (!note) {
     return (
       <Screen theme={theme}>
-        <AppBar title="Note" subtitle="No notes yet" theme={theme} right={<Edit3 color={theme.ink} />} />
+        <AppBar title="Note" subtitle="No notes yet" theme={theme} back={() => setScreen?.("notesList")} right={<Edit3 color={theme.ink} />} />
         <View style={styles.content}>
           <Text style={[styles.noteBodyInput, { color: theme.muted, backgroundColor: theme.panel, borderColor: theme.whisper }]}>Create a note to start editing.</Text>
         </View>
@@ -76,15 +80,23 @@ export function NoteEditorScreen({ data, theme, focused }: { data: MobileData; t
     );
   }
   return (
-    <Screen theme={theme}>
-      <AppBar title={focused ? "Editing" : "Note"} subtitle={focused ? noteSaveLabel(saveState) : "Reading"} theme={theme} right={<TouchableOpacity onLongPress={deleteNote}><Edit3 color={theme.ink} /></TouchableOpacity>} />
-      <View style={styles.content}>
+    <View style={[styles.editorScreen, { backgroundColor: theme.bg }]}>
+      <AppBar title={focused ? "Editing" : "Note"} subtitle={focused ? noteSaveLabel(saveState) : "Reading"} theme={theme} back={() => setScreen?.("notesList")} right={<TouchableOpacity onLongPress={deleteNote}><Edit3 color={theme.ink} /></TouchableOpacity>} />
+      <View style={styles.editorContent}>
         <TextInput value={title} onChangeText={setTitle} editable={focused} style={[styles.noteInputTitle, { color: theme.ink }]} />
-        <TextInput multiline editable={focused} value={content} onChangeText={setContent} placeholder="No content yet." placeholderTextColor={theme.subtle} style={[styles.noteBodyInput, { color: theme.muted, backgroundColor: theme.panel, borderColor: theme.whisper }]} />
+        <View style={styles.editorBody}>
+          <RichEditor value={contentHTML} editable={!!focused} onChange={setContentHTML} theme={theme} placeholder="No content yet." />
+        </View>
       </View>
-      {focused ? <View style={[styles.formatBar, { backgroundColor: theme.ink }]}>{["B", "I", "H1", "List", "Quote"].map((item) => <Text key={item} style={[styles.formatItem, { color: theme.bg }]}>{item}</Text>)}</View> : null}
-    </Screen>
+    </View>
   );
+}
+
+function noteToEditorHTML(note: MobileData["notes"][number] | undefined) {
+  if (!note) return "";
+  if (note.contentHTML?.trim()) return note.contentHTML;
+  const jsonHTML = blockNoteToHTML(note.content);
+  return jsonHTML.trim() ? jsonHTML : "";
 }
 
 function noteSaveLabel(state: "idle" | "saving" | "saved" | "error") {
@@ -122,6 +134,9 @@ export function DrawCanvasScreen({ theme }: { theme: AppTheme }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 10, gap: 18 },
+  editorScreen: { flex: 1 },
+  editorContent: { flex: 1, paddingHorizontal: 26, paddingTop: 10, gap: 18, paddingBottom: 22 },
+  editorBody: { flex: 1 },
   grid: { paddingHorizontal: 18, paddingTop: 10, flexDirection: "row", gap: 10, flexWrap: "wrap" },
   noteInputTitle: { fontSize: 28, lineHeight: 34, fontWeight: "800", padding: 0 },
   noteBodyInput: { minHeight: 360, borderRadius: 14, borderWidth: 1, padding: 16, textAlignVertical: "top", fontSize: 15, lineHeight: 23 },

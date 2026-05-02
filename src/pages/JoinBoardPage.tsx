@@ -9,9 +9,9 @@ export function JoinBoardPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const joinViaLink = useMutation(api.boardInvites.joinViaLink);
+  const joinViaLink = useMutation(api.planInvites.joinViaLink);
   const linkInfo = useQuery(
-    api.boardInvites.lookupByToken,
+    api.planInvites.lookupByToken,
     token ? { token } : "skip",
   );
 
@@ -30,7 +30,7 @@ export function JoinBoardPage() {
         toast.success(
           result.alreadyMember ? "Welcome back to the board." : "You joined the board.",
         );
-        navigate(`/board/${result.boardId}`, { replace: true });
+        navigate(`/plan/${result.planId}`, { replace: true });
       } catch (error) {
         const raw = error instanceof Error ? error.message : "";
         let message = "We couldn't add you to the board right now.";
@@ -79,7 +79,7 @@ export function JoinBoardPage() {
               onClick={() => navigate("/")}
               className="h-11 px-6 bg-brand-text text-brand-bg rounded-2xl font-mono font-bold text-sm hover:bg-brand-dark transition-colors"
             >
-              Back to your boards
+              Back to your plans
             </button>
           </>
         ) : (

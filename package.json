@@ -42,18 +42,22 @@
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
+    "@convex-dev/migrations": "^0.3.4",
+    "@edge-runtime/vm": "^5.0.0",
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.2",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "convex-test": "^0.0.51",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "^4.1.5"
   }
 }

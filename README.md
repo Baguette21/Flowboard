@@ -19,7 +19,7 @@ It lets teams create boards, organize work into columns, manage tasks with label
 ## Permission model
 
 - Board owners can update board settings, invite members, and delete boards
-- Only board owners can assign tasks
+- Only plan owners can assign tasks
 - Members can only be assigned tasks if the owner enables `Allow assign` for that specific member
 - Users who are allowed to receive assignments cannot grant that permission to anyone else
 - Task assignment notifications are sent only when one user assigns a task to a different user

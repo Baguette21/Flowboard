@@ -4,7 +4,7 @@ import { CalendarDays, Inbox, Star, Users } from "lucide-react-native";
 import { Avatar, IconWell, Mono, formatDate } from "@/components/Primitives";
 import type { AppTheme } from "@/theme/tokens";
 import { palette, tintFrom } from "@/theme/tokens";
-import type { MobileBoard, MobileCard, MobileDrawing, MobileLabel, MobileNote } from "@/types";
+import type { MobilePlan, MobileCard, MobileDrawing, MobileLabel, MobileNote } from "@/types";
 
 export function Section({ label, count, action, onAction, theme }: { label: string; count?: number | string; action?: string; onAction?: () => void; theme: AppTheme }) {
   return (
@@ -18,7 +18,7 @@ export function Section({ label, count, action, onAction, theme }: { label: stri
   );
 }
 
-export function BoardCard({ board, theme, tile, taskCount, onPress }: { board: MobileBoard; theme: AppTheme; tile?: boolean; taskCount?: number; onPress?: () => void }) {
+export function PlanCard({ board, theme, tile, taskCount, onPress }: { board: MobilePlan; theme: AppTheme; tile?: boolean; taskCount?: number; onPress?: () => void }) {
   const tint = tintFrom(board.color);
   if (tile) {
     return (
@@ -56,7 +56,7 @@ export function TaskCard({ card, theme, dragging, labels = [], onPress }: { card
     <TouchableOpacity disabled={!onPress} onPress={onPress} activeOpacity={0.86} style={[styles.taskCard, { backgroundColor: theme.dark ? "#322D25" : "#FFFCF6", borderColor: theme.whisper }, dragging ? styles.draggingCard : null]}>
       {cardLabels.length > 0 ? (
         <View style={styles.labelRow}>
-          {cardLabels.map((label) => <View key={label._id} style={[styles.labelBar, { backgroundColor: palette.tints[tintFrom(label.color)].fg }]} />)}
+          {cardLabels.map((label) => <View key={label._id} style={[styles.labelBar, { backgroundColor: label.color || palette.tints.ink.fg }]} />)}
         </View>
       ) : null}
       <Text style={[styles.taskTitle, { color: theme.ink }, card.isComplete ? { textDecorationLine: "line-through", color: theme.muted } : null]}>{card.title}</Text>
@@ -73,7 +73,7 @@ export function TaskCard({ card, theme, dragging, labels = [], onPress }: { card
 }
 
 export function NoteCard({ note, theme }: { note: MobileNote; theme: AppTheme }) {
-  const snippet = note.content ? previewText(note.content) : "No content yet.";
+  const snippet = note.contentHTML ? previewHtml(note.contentHTML) : note.content ? previewText(note.content) : "No content yet.";
   return (
     <View style={[styles.noteCard, { backgroundColor: theme.panel, borderColor: theme.whisper, borderLeftColor: palette.tints.amber.fg }]}>
       <Text style={[styles.noteTitle, { color: theme.ink }]}>{note.title}</Text>
@@ -81,6 +81,22 @@ export function NoteCard({ note, theme }: { note: MobileNote; theme: AppTheme })
       <Mono theme={theme} style={{ color: theme.subtle }}>{formatDate(note.updatedAt)}</Mono>
     </View>
   );
+}
+
+function previewHtml(contentHTML?: string) {
+  if (!contentHTML) return "No content yet.";
+  const withImageLabels = contentHTML.replace(/<img\b[^>]*>/gi, " Image ");
+  const text = withImageLabels
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || "No content yet.";
 }
 
 function previewText(content: string) {

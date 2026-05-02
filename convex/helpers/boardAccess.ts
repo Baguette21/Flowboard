@@ -155,7 +155,7 @@ export async function requireBoardOwner(
 }> {
   const access = await requireBoardAccess(ctx, boardId);
   if (access.role !== "owner") {
-    throw new Error("Only the board owner can do that");
+    throw new Error("Only the plan owner can do that");
   }
 
   return {

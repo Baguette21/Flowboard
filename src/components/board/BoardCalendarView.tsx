@@ -26,7 +26,7 @@ import { UserAvatar } from "../ui/UserAvatar";
 import { getAssignedUserIds } from "../../lib/assignees";
 
 interface BoardCalendarViewProps {
-  boardId: Id<"boards">;
+  planId: Id<"plans">;
   cards: Doc<"cards">[] | undefined;
   boardColor: string;
   columns: Doc<"columns">[];
@@ -36,14 +36,14 @@ interface BoardCalendarViewProps {
 type DueCard = Doc<"cards"> & { dueDate: number };
 
 export function BoardCalendarView({
-  boardId,
+  planId,
   cards,
   boardColor: _boardColor,
   columns,
   labels,
 }: BoardCalendarViewProps) {
-  const members = useQuery(api.boardMembers.listForBoard, { boardId });
-  const accessInfo = useQuery(api.boards.getAccessInfo, { boardId });
+  const members = useQuery(api.planMembers.listForPlan, { planId });
+  const accessInfo = useQuery(api.plans.getAccessInfo, { planId });
   const createCard = useMutation(api.cards.create);
   const memberImageUrls = useProfileImageUrls(
     (members ?? []).map((member) => member.imageKey),
@@ -146,7 +146,7 @@ export function BoardCalendarView({
     }
     try {
       const newCardId = await createCard({
-        boardId,
+        planId,
         columnId: targetColumn._id,
         title: "New task",
         dueDate: endOfDay(day).getTime(),
@@ -401,7 +401,7 @@ export function BoardCalendarView({
       {selectedCardId && (
         <CardDetail
           cardId={selectedCardId}
-          boardId={boardId}
+          planId={planId}
           columns={columns}
           labels={labels}
           members={members ?? []}

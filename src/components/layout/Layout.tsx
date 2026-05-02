@@ -6,7 +6,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 interface LayoutProps {
   children: ReactNode;
-  boardId?: Id<"boards">;
+  planId?: Id<"plans">;
   activeNoteId?: Id<"notes">;
   activeDrawId?: Id<"drawings">;
   searchValue?: string;
@@ -18,7 +18,7 @@ const DESKTOP_SIDEBAR_STORAGE_KEY = "planthing.desktopSidebarCollapsed";
 
 export function Layout({
   children,
-  boardId,
+  planId,
   activeNoteId,
   activeDrawId,
   searchValue,
@@ -93,7 +93,7 @@ export function Layout({
         />
       ) : null}
       <Sidebar
-        activeBoardId={boardId}
+        activeBoardId={planId}
         activeNoteId={activeNoteId}
         activeDrawId={activeDrawId}
         mobileOpen={mobileSidebarOpen}

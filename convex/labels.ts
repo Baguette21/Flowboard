@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
-import { getBoardAccess, requireBoardAccess } from "./helpers/boardAccess";
+import { getPlanAccess, requirePlanAccess } from "./helpers/planAccess";
 
 function normalizeLabelName(name: string) {
   return name.trim().toLowerCase();
@@ -9,52 +9,52 @@ function normalizeLabelName(name: string) {
 
 async function findLabelByName(
   ctx: MutationCtx,
-  boardId: Id<"boards">,
+  planId: Id<"plans">,
   name: string,
 ) {
   const normalizedName = normalizeLabelName(name);
   const labels = await ctx.db
     .query("labels")
-    .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+    .withIndex("by_planId", (q) => q.eq("planId", planId))
     .collect();
 
   return labels.find((label) => normalizeLabelName(label.name) === normalizedName) ?? null;
 }
 
-export const listByBoard = query({
-  args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const access = await getBoardAccess(ctx, boardId);
+export const listByPlan = query({
+  args: { planId: v.id("plans") },
+  handler: async (ctx, { planId }) => {
+    const access = await getPlanAccess(ctx, planId);
     if (!access) {
       return [];
     }
 
     return await ctx.db
       .query("labels")
-      .withIndex("by_boardId", (q) => q.eq("boardId", boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
   },
 });
 
 export const create = mutation({
   args: {
-    boardId: v.id("boards"),
+    planId: v.id("plans"),
     name: v.string(),
     color: v.string(),
   },
-  handler: async (ctx, { boardId, name, color }) => {
-    await requireBoardAccess(ctx, boardId);
+  handler: async (ctx, { planId, name, color }) => {
+    await requirePlanAccess(ctx, planId);
     const trimmedName = name.trim();
     if (!trimmedName) {
       throw new Error("Label name is required");
     }
 
-    const existing = await findLabelByName(ctx, boardId, trimmedName);
+    const existing = await findLabelByName(ctx, planId, trimmedName);
     if (existing) {
       return existing._id;
     }
 
-    return await ctx.db.insert("labels", { boardId, name: trimmedName, color });
+    return await ctx.db.insert("labels", { planId, name: trimmedName, color });
   },
 });
 
@@ -70,7 +70,7 @@ export const update = mutation({
       throw new Error("Label not found");
     }
 
-    await requireBoardAccess(ctx, label.boardId);
+    await requirePlanAccess(ctx, label.planId!);
     const patch: Record<string, unknown> = {};
     if (name !== undefined) {
       const trimmedName = name.trim();
@@ -78,7 +78,7 @@ export const update = mutation({
         throw new Error("Label name is required");
       }
 
-      const existing = await findLabelByName(ctx, label.boardId, trimmedName);
+      const existing = await findLabelByName(ctx, label.planId!, trimmedName);
       if (existing && existing._id !== labelId) {
         throw new Error("A label with that name already exists");
       }
@@ -98,10 +98,10 @@ export const remove = mutation({
       throw new Error("Label not found");
     }
 
-    await requireBoardAccess(ctx, label.boardId);
+    await requirePlanAccess(ctx, label.planId!);
     const cards = await ctx.db
       .query("cards")
-      .withIndex("by_boardId", (q) => q.eq("boardId", label.boardId))
+      .withIndex("by_planId", (q) => q.eq("planId", label.planId!))
       .collect();
 
     for (const card of cards) {
