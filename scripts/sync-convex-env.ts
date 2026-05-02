@@ -10,9 +10,12 @@ const REQUIRED_KEYS = [
   "R2_BUCKET",
   "R2_ACCESS_KEY_ID",
   "R2_SECRET_ACCESS_KEY",
-];
+] as const;
 
-function stripInlineComment(value) {
+type RequiredKey = (typeof REQUIRED_KEYS)[number];
+type ParsedEnv = Partial<Record<RequiredKey | string, string>>;
+
+function stripInlineComment(value: string) {
   let inSingleQuotes = false;
   let inDoubleQuotes = false;
 
@@ -37,7 +40,7 @@ function stripInlineComment(value) {
   return value.trim();
 }
 
-function normalizeValue(rawValue) {
+function normalizeValue(rawValue: string) {
   const trimmed = stripInlineComment(rawValue.trim());
 
   if (
@@ -50,8 +53,8 @@ function normalizeValue(rawValue) {
   return trimmed;
 }
 
-function parseEnvFile(contents) {
-  const parsed = {};
+function parseEnvFile(contents: string) {
+  const parsed: ParsedEnv = {};
 
   for (const line of contents.split(/\r?\n/u)) {
     const trimmed = line.trim();
@@ -79,7 +82,7 @@ async function main() {
     path.join("convex", ".env"),
     path.join("convex", ".env.local"),
   ];
-  const parsedEnv = {};
+  const parsedEnv: ParsedEnv = {};
   const loadedFiles = [];
 
   for (const relativePath of candidateFiles) {
@@ -93,12 +96,12 @@ async function main() {
     loadedFiles.push(relativePath);
   }
 
-  const resolvedEnv = {
+  const resolvedEnv: NodeJS.ProcessEnv & ParsedEnv = {
     ...process.env,
     ...parsedEnv,
   };
 
-  const missingKeys = REQUIRED_KEYS.filter((key) => !resolvedEnv[key]);
+  const missingKeys = REQUIRED_KEYS.filter((key: RequiredKey) => !resolvedEnv[key]);
   if (missingKeys.length > 0) {
     throw new Error(
       `Missing required values in env files or shell env: ${missingKeys.join(", ")}`,

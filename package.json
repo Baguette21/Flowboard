@@ -6,8 +6,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
-    "convex:dev": "node scripts/sync-convex-env.mjs && npx convex dev",
-    "convex:env:sync": "node scripts/sync-convex-env.mjs",
+    "convex:dev": "node --experimental-strip-types scripts/sync-convex-env.ts && npx convex dev",
+    "convex:env:sync": "node --experimental-strip-types scripts/sync-convex-env.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
