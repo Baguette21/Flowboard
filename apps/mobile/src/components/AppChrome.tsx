@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { Bell, CalendarDays, Home, LayoutGrid, List, Plus, Search, Table2, User } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AppTheme } from "@/theme/tokens";
@@ -15,14 +17,29 @@ const BOARD_VIEW_META: Record<BoardView, { label: string; icon: typeof Home }> =
 };
 
 export function BoardBottomNav({ active, viewOrder, setScreen, setViewOrder, theme }: { active: BoardView; viewOrder: BoardView[]; setScreen: (screen: ScreenKey) => void; setViewOrder: (order: BoardView[]) => void; theme: AppTheme }) {
-  function reorder(target: BoardView) {
-    const index = viewOrder.indexOf(target);
+  const [movedView, setMovedView] = useState<BoardView | null>(null);
+  const movedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const orderRef = useRef(viewOrder);
+  useEffect(() => {
+    orderRef.current = viewOrder;
+  }, [viewOrder]);
+  useEffect(() => () => {
+    if (movedTimer.current) clearTimeout(movedTimer.current);
+  }, []);
+
+  const reorder = useCallback((target: BoardView) => {
+    const current = orderRef.current;
+    const index = current.indexOf(target);
     if (index <= 0) return;
-    const next = [...viewOrder];
+    const next = [...current];
     next[index - 1] = target;
-    next[index] = viewOrder[index - 1];
+    next[index] = current[index - 1];
     setViewOrder(next);
-  }
+    setMovedView(target);
+    if (movedTimer.current) clearTimeout(movedTimer.current);
+    movedTimer.current = setTimeout(() => setMovedView(null), 1100);
+  }, [setViewOrder]);
+
   return (
     <SafeAreaView edges={["bottom"]} style={[styles.bottomNav, { backgroundColor: theme.dark ? "rgba(21,19,15,0.98)" : "rgba(250,247,240,0.98)", borderTopColor: theme.whisper }]}>
       <View style={styles.navInner}>
@@ -30,22 +47,71 @@ export function BoardBottomNav({ active, viewOrder, setScreen, setViewOrder, the
           const meta = BOARD_VIEW_META[view];
           const Icon = meta.icon;
           const isActive = view === active;
+          const moved = view === movedView;
           return (
-            <TouchableOpacity
+            <BoardNavItem
               key={view}
-              onPress={() => setScreen(view)}
-              onLongPress={() => reorder(view)}
-              delayLongPress={280}
-              style={[styles.navItem, { flex: 1 }]}
-            >
-              {isActive ? <View style={[styles.navActiveDot, { backgroundColor: theme.ink }]} /> : null}
-              <Icon size={22} color={isActive ? theme.ink : theme.subtle} />
-              <Text style={[styles.navLabel, { color: isActive ? theme.ink : theme.subtle }]}>{meta.label}</Text>
-            </TouchableOpacity>
+              view={view}
+              meta={meta}
+              Icon={Icon}
+              isActive={isActive}
+              moved={moved}
+              theme={theme}
+              setScreen={setScreen}
+              reorder={reorder}
+            />
           );
         })}
       </View>
     </SafeAreaView>
+  );
+}
+
+function BoardNavItem({
+  view,
+  meta,
+  Icon,
+  isActive,
+  moved,
+  theme,
+  setScreen,
+  reorder,
+}: {
+  view: BoardView;
+  meta: { label: string; icon: typeof Home };
+  Icon: typeof Home;
+  isActive: boolean;
+  moved: boolean;
+  theme: AppTheme;
+  setScreen: (screen: ScreenKey) => void;
+  reorder: (view: BoardView) => void;
+}) {
+  const gesture = useMemo(() => {
+    const longPress = Gesture.LongPress()
+      .minDuration(280)
+      .maxDistance(20)
+      .onStart(() => {
+        "worklet";
+        runOnJS(reorder)(view);
+      });
+    const tap = Gesture.Tap()
+      .maxDuration(220)
+      .onEnd((_e, success) => {
+        "worklet";
+        if (success) runOnJS(setScreen)(view);
+      });
+    return Gesture.Exclusive(longPress, tap);
+  }, [view, reorder, setScreen]);
+
+  const labelColor = isActive || moved ? theme.ink : theme.subtle;
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={[styles.navItem, { flex: 1 }, moved ? { backgroundColor: theme.whisper, borderRadius: 10 } : null]}>
+        {isActive ? <View style={[styles.navActiveDot, { backgroundColor: theme.ink }]} /> : null}
+        <Icon size={22} color={labelColor} />
+        <Text style={[styles.navLabel, { color: labelColor }]}>{meta.label}</Text>
+      </View>
+    </GestureDetector>
   );
 }
 

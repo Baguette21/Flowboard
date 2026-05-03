@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Bell, Camera, Check, ChevronDown, ChevronRight, FileText, KanbanSquare, Palette, PencilRuler, Plus, Search, Settings, SquarePen, Trash2, User } from "lucide-react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Bell, Camera, Check, ChevronDown, ChevronRight, FileText, KanbanSquare, LogOut, Palette, PencilRuler, Plus, Search, Settings, SquarePen, Trash2, User } from "lucide-react-native";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex, useMutation, useQuery } from "convex/react";
-import { launchImageLibrary } from "react-native-image-picker";
+import * as ImagePicker from "expo-image-picker";
 import { api } from "@convex/_generated/api";
 import { AppBar } from "@/components/AppBar";
 import { TaskCard } from "@/components/Cards";
@@ -231,16 +232,19 @@ type ProfileScreenProps = {
   setAppearancePresetId: (id: string) => void;
   customPalette: MobilePalette;
   setCustomPalette: (palette: MobilePalette) => void;
+  onSignedOut: () => void;
 };
 
-export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, setAppearancePresetId, customPalette, setCustomPalette }: ProfileScreenProps) {
+export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, setAppearancePresetId, customPalette, setCustomPalette, onSignedOut }: ProfileScreenProps) {
   const convex = useConvex();
+  const { signOut } = useAuthActions();
   const updateProfile = useMutation(api.users.updateProfile);
   const setProfileImageKey = useMutation(api.users.setProfileImageKey);
   const profile = useMobileProfileAvatar(data.viewer ?? undefined);
   const [name, setName] = useState(profile.name ?? "");
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [customizationOpen, setCustomizationOpen] = useState(false);
   const [customColorsOpen, setCustomColorsOpen] = useState(false);
   const imageKey = profile.imageKey;
@@ -286,14 +290,18 @@ export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, 
 
   async function replaceProfilePicture() {
     try {
-      const result = await launchImageLibrary({
-        mediaType: "photo",
-        selectionLimit: 1,
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Photos permission required", "Allow photo access to choose a profile picture.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: false,
         quality: 0.8,
-        maxWidth: 1400,
-        maxHeight: 1400,
+        exif: false,
       });
-      if (result.didCancel) return;
+      if (result.canceled) return;
       const asset = result.assets?.[0];
       if (!asset?.uri) {
         Alert.alert("No image selected", "Choose an image from your library.");
@@ -304,7 +312,7 @@ export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, 
         return;
       }
 
-      const contentType = asset.type ?? "image/jpeg";
+      const contentType = asset.mimeType ?? "image/jpeg";
       if (!contentType.startsWith("image/")) {
         Alert.alert("Unsupported file", "Choose an image file.");
         return;
@@ -339,6 +347,25 @@ export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, 
       Alert.alert("Could not update profile photo", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setAvatarBusy(false);
+    }
+  }
+
+  function confirmSignOut() {
+    Alert.alert("Log out?", "You will return to the welcome screen.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: () => void handleSignOut() },
+    ]);
+  }
+
+  async function handleSignOut() {
+    try {
+      setSigningOut(true);
+      await signOut();
+      onSignedOut();
+    } catch (error) {
+      Alert.alert("Could not log out", error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setSigningOut(false);
     }
   }
 
@@ -429,6 +456,13 @@ export function ProfileScreen({ data, theme, dark, setDark, appearancePresetId, 
         <SettingRow theme={theme} label="Plans" value={String(data.plans.length)} />
         <SettingRow theme={theme} label="Notes" value={String(data.notes.length)} />
         <SettingRow theme={theme} label="Drawings" value={String(data.drawings.length)} />
+        <TouchableOpacity disabled={signingOut} onPress={confirmSignOut} style={[styles.logoutRow, { backgroundColor: theme.panel, borderColor: theme.whisper, opacity: signingOut ? 0.62 : 1 }]}>
+          <View style={styles.logoutTitle}>
+            <LogOut size={17} color={theme.accent} />
+            <Text style={[styles.logoutText, { color: theme.accent }]}>Log out</Text>
+          </View>
+          {signingOut ? <ActivityIndicator color={theme.accent} /> : <Text style={[styles.logoutMeta, { color: theme.muted }]}>Exit</Text>}
+        </TouchableOpacity>
       </View>
     </Screen>
   );
@@ -502,6 +536,10 @@ const styles = StyleSheet.create({
   settingRow: { minHeight: 56, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14 },
   rowTitle: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: "800" },
   rowMeta: { maxWidth: "46%", fontSize: 12, lineHeight: 16, fontWeight: "600", marginTop: 4, textAlign: "right" },
+  logoutRow: { minHeight: 56, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14 },
+  logoutTitle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  logoutText: { fontSize: 16, lineHeight: 19, fontWeight: "800" },
+  logoutMeta: { fontSize: 12, lineHeight: 16, fontWeight: "700" },
   profileHero: { minHeight: 92, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
   avatarReplaceButton: { position: "relative" },
   avatarCameraBadge: { position: "absolute", right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: "center", justifyContent: "center" },

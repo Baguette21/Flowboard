@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Edit3, Palette } from "lucide-react-native";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { AppBar } from "@/components/AppBar";
 import { RichEditor } from "@/components/RichEditor";
@@ -23,7 +23,9 @@ export function NotesListScreen({ data, theme, setScreen, openNote }: { data: Mo
 }
 
 export function NoteEditorScreen({ data, theme, focused, setScreen, selectedNoteId }: { data: MobileData; theme: AppTheme; focused?: boolean; setScreen?: (screen: ScreenKey) => void; selectedNoteId?: Id<"notes"> }) {
-  const note = (selectedNoteId ? data.notes.find((item) => item._id === selectedNoteId) : null) ?? data.notes[0];
+  const summaryNote = (selectedNoteId ? data.notes.find((item) => item._id === selectedNoteId) : null) ?? data.notes[0];
+  const fullNote = useQuery(api.notes.get, summaryNote ? { noteId: summaryNote._id } : "skip");
+  const note = fullNote ?? summaryNote;
   const updateNote = useMutation(api.notes.update);
   const removeNote = useMutation(api.notes.remove);
   const [title, setTitle] = useState(note?.title ?? "");

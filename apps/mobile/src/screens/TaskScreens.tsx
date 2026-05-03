@@ -454,7 +454,7 @@ function EmptyTask({ theme }: { theme: AppTheme }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 10, gap: 18 },
-  sheetScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.26)" },
+  sheetScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.26)" },
   taskSheet: { position: "absolute", left: 0, right: 0, bottom: 0, minHeight: "72%", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20 },
   taskDetail: { gap: 14 },
   sheetHandle: { width: 42, height: 4, borderRadius: 4, alignSelf: "center", marginBottom: 4 },

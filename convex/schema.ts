@@ -203,6 +203,15 @@ export default defineSchema({
       filterFields: ["boardId", "planId"],
     }),
 
+  cardDetails: defineTable({
+    cardId: v.id("cards"),
+    descriptionHTML: v.optional(v.string()),
+    noteContent: v.optional(v.string()),
+    drawingDocument: v.optional(v.string()),
+    descriptionVersion: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_cardId", ["cardId"]),
+
   labels: defineTable({
     boardId: v.optional(v.id("boards")),
     planId: v.optional(v.id("plans")),
@@ -256,6 +265,15 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_updatedAt", ["userId", "updatedAt"]),
+
+  noteDetails: defineTable({
+    noteId: v.id("notes"),
+    content: v.optional(v.string()),
+    contentHTML: v.optional(v.string()),
+    contentVersion: v.optional(v.number()),
+    drawingDocument: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_noteId", ["noteId"]),
 
   drawings: defineTable({
     userId: v.id("users"),

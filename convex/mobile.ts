@@ -137,6 +137,9 @@ async function planPayload(
     columns: columns.sort((a, b) => a.order.localeCompare(b.order)),
     cards: cards.sort(compareCardOrder).map((card) => ({
       ...card,
+      descriptionHTML: undefined,
+      noteContent: undefined,
+      drawingDocument: undefined,
       commentsCount: 0,
       assignees: assigneeUsers
         .filter(({ user }) => user && card.assignedUserIds?.includes(user._id))
@@ -250,8 +253,16 @@ export const snapshot = query({
       ),
       selectedPlan,
       ...payload,
-      notes: notes.filter((note) => !note.archivedAt).sort(compareOrderThenUpdated),
-      drawings: drawings.filter((drawing) => !drawing.archivedAt).sort(compareOrderThenUpdated),
+      notes: notes.filter((note) => !note.archivedAt).sort(compareOrderThenUpdated).map((note) => ({
+        ...note,
+        content: undefined,
+        contentHTML: undefined,
+        drawingDocument: undefined,
+      })),
+      drawings: drawings.filter((drawing) => !drawing.archivedAt).sort(compareOrderThenUpdated).map((drawing) => ({
+        ...drawing,
+        drawingDocument: undefined,
+      })),
       notifications,
       searchResults: q
         ? payload.cards.filter((card) => card.title.toLowerCase().includes(q)).slice(0, 20)

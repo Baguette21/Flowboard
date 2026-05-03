@@ -6,8 +6,11 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
-    "convex:dev": "node --experimental-strip-types scripts/sync-convex-env.ts && npx convex dev",
-    "convex:env:sync": "node --experimental-strip-types scripts/sync-convex-env.ts",
+    "mobile:start": "pnpm --filter mobile start",
+    "mobile:android": "pnpm --filter mobile android",
+    "mobile:ios": "pnpm --filter mobile ios",
+    "convex:dev": "node scripts/sync-convex-env.mjs && npx convex dev",
+    "convex:env:sync": "node scripts/sync-convex-env.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
