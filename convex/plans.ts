@@ -325,6 +325,13 @@ export const remove = mutation({
       .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
     for (const card of cards) {
+      const details = await ctx.db
+        .query("cardDetails")
+        .withIndex("by_cardId", (q) => q.eq("cardId", card._id))
+        .collect();
+      for (const detail of details) {
+        await ctx.db.delete(detail._id);
+      }
       await ctx.db.delete(card._id);
     }
 

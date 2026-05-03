@@ -1,6 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Layout } from "../components/layout/Layout";
@@ -19,6 +34,65 @@ import { PlanthingLoading } from "../components/branding/PlanthingLoading";
 type BoardMode = "board" | "calendar" | "table" | "list" | "draw";
 
 const DEFAULT_VIEW_ORDER: BoardMode[] = ["board", "calendar", "table", "list", "draw"];
+
+const PLAN_VIEWS = {
+  board: { key: "board" as const, label: "Board", icon: LayoutGrid },
+  calendar: { key: "calendar" as const, label: "Calendar", icon: CalendarDays },
+  table: { key: "table" as const, label: "Table", icon: Table2 },
+  list: { key: "list" as const, label: "List", icon: List },
+  draw: { key: "draw" as const, label: "Draw", icon: PencilLine },
+} satisfies Record<BoardMode, { key: BoardMode; label: string; icon: typeof LayoutGrid }>;
+
+function sameViewOrder(left: BoardMode[], right: BoardMode[]) {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
+}
+
+interface SortablePlanViewButtonProps {
+  viewKey: BoardMode;
+  activeMode: BoardMode;
+  onSelect: (viewKey: BoardMode) => void;
+}
+
+function SortablePlanViewButton({
+  viewKey,
+  activeMode,
+  onSelect,
+}: SortablePlanViewButtonProps) {
+  const view = PLAN_VIEWS[viewKey];
+  const Icon = view.icon;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: view.key });
+
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      onClick={() => onSelect(view.key)}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        "inline-flex touch-none select-none items-center gap-2 px-2 py-2 font-sans text-base font-medium transition-colors sm:px-3",
+        activeMode === view.key
+          ? "rounded-[18px] bg-brand-text/10 px-4 text-brand-text"
+          : "text-brand-text/60 hover:text-brand-text",
+        isDragging && "relative z-10 opacity-70",
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {view.label}
+    </button>
+  );
+}
 
 function getViewOrderStorageKey(planId: Id<"plans">) {
   return `planthing-view-order-${planId}`;
@@ -61,9 +135,17 @@ export function PlanPage() {
   const [mode, setMode] = useState<BoardMode>(() => getInitialViewOrder(typedPlanId)[0]);
   const [showSettings, setShowSettings] = useState(false);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [draggedView, setDraggedView] = useState<BoardMode | null>(null);
+  const [isReorderingViews, setIsReorderingViews] = useState(false);
+  const pendingViewOrderRef = useRef<string | null>(null);
   const updatePlan = useMutation(api.plans.update);
   const savePlanViewPreference = useMutation(api.planViewPreferences.set);
+  const viewSortSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+  );
   const boardViewPreference = useQuery(
     api.planViewPreferences.get,
     typedPlanId ? { planId: typedPlanId } : "skip",
@@ -88,6 +170,10 @@ export function PlanPage() {
   const labels = useQuery(
     api.labels.listByPlan,
     typedPlanId ? { planId: typedPlanId } : "skip",
+  );
+  const visibleViewOrder = useMemo(
+    () => viewOrder.filter((viewKey) => viewKey !== "draw" || isPro),
+    [isPro, viewOrder],
   );
 
   useEffect(() => {
@@ -122,15 +208,20 @@ export function PlanPage() {
       return;
     }
     if (!boardViewPreference.hasPreference) {
-      if (typedPlanId) {
-        void savePlanViewPreference({
-          planId: typedPlanId,
-          viewOrder,
-        }).catch(() => {});
-      }
       return;
     }
     const nextViewOrder = boardViewPreference.viewOrder;
+    const nextViewOrderKey = JSON.stringify(nextViewOrder);
+    if (pendingViewOrderRef.current) {
+      if (pendingViewOrderRef.current === nextViewOrderKey) {
+        pendingViewOrderRef.current = null;
+      } else {
+        return;
+      }
+    }
+    if (isReorderingViews || sameViewOrder(viewOrder, nextViewOrder)) {
+      return;
+    }
     queueMicrotask(() => {
       setViewOrder(nextViewOrder);
       setMode((currentMode) =>
@@ -139,7 +230,7 @@ export function PlanPage() {
           : nextViewOrder[0] ?? DEFAULT_VIEW_ORDER[0],
       );
     });
-  }, [boardViewPreference, savePlanViewPreference, typedPlanId, viewOrder]);
+  }, [boardViewPreference, isReorderingViews, savePlanViewPreference, typedPlanId, viewOrder]);
 
   useEffect(() => {
     if (!typedPlanId) {
@@ -154,19 +245,9 @@ export function PlanPage() {
       return;
     }
 
-    window.localStorage.setItem(
-      getViewOrderStorageKey(typedPlanId),
-      JSON.stringify(viewOrder),
-    );
-    if (boardViewPreference !== undefined) {
-      void savePlanViewPreference({
-        planId: typedPlanId,
-        viewOrder,
-      }).catch(() => {
-        // Local storage keeps the UI usable if syncing this preference fails.
-      });
-    }
-  }, [boardViewPreference, savePlanViewPreference, typedPlanId, viewOrder]);
+    const viewOrderKey = JSON.stringify(viewOrder);
+    window.localStorage.setItem(getViewOrderStorageKey(typedPlanId), viewOrderKey);
+  }, [typedPlanId, viewOrder]);
 
   if (!typedPlanId) {
     return null;
@@ -207,21 +288,33 @@ export function PlanPage() {
     toast.success(plan.isFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
-  const reorderViews = (targetView: BoardMode) => {
-    if (!draggedView || draggedView === targetView) {
+  const handleViewDragEnd = (event: DragEndEvent) => {
+    setIsReorderingViews(false);
+
+    const activeView = event.active.id as BoardMode;
+    const overView = event.over?.id as BoardMode | undefined;
+    if (!overView || activeView === overView) {
       return;
     }
 
     setViewOrder((current) => {
-      const fromIndex = current.indexOf(draggedView);
-      const toIndex = current.indexOf(targetView);
+      const fromIndex = current.indexOf(activeView);
+      const toIndex = current.indexOf(overView);
       if (fromIndex === -1 || toIndex === -1) {
         return current;
       }
 
-      const next = [...current];
-      next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, draggedView);
+      const next = arrayMove(current, fromIndex, toIndex);
+      const nextKey = JSON.stringify(next);
+      pendingViewOrderRef.current = nextKey;
+      void savePlanViewPreference({
+        planId: typedPlanId,
+        viewOrder: next,
+      }).catch(() => {
+        if (pendingViewOrderRef.current === nextKey) {
+          pendingViewOrderRef.current = null;
+        }
+      });
       return next;
     });
   };
@@ -230,42 +323,27 @@ export function PlanPage() {
     <Layout key={typedPlanId} planId={typedPlanId}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-text/10 bg-brand-bg/60 px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
-          {viewOrder.filter((viewKey) => viewKey !== "draw" || isPro).map((viewKey) => {
-            const view = ({
-              board: { key: "board" as const, label: "Board", icon: LayoutGrid },
-              calendar: { key: "calendar" as const, label: "Calendar", icon: CalendarDays },
-              table: { key: "table" as const, label: "Table", icon: Table2 },
-              list: { key: "list" as const, label: "List", icon: List },
-              draw: { key: "draw" as const, label: "Draw", icon: PencilLine },
-            } satisfies Record<BoardMode, { key: BoardMode; label: string; icon: typeof LayoutGrid }>)[
-              viewKey
-            ];
-            const Icon = view.icon;
-
-            return (
-              <button
-                key={view.key}
-                draggable
-                onDragStart={() => setDraggedView(view.key)}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  reorderViews(view.key);
-                }}
-                onDragEnd={() => setDraggedView(null)}
-                onClick={() => setMode(view.key)}
-                className={cn(
-                  "inline-flex items-center gap-2 px-2 py-2 font-sans text-base font-medium transition-colors sm:px-3",
-                  activeMode === view.key
-                    ? "rounded-[18px] bg-brand-text/10 px-4 text-brand-text"
-                    : "text-brand-text/60 hover:text-brand-text",
-                  draggedView === view.key && "opacity-40",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {view.label}
-              </button>
-            );
-          })}
+          <DndContext
+            sensors={viewSortSensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => setIsReorderingViews(true)}
+            onDragCancel={() => setIsReorderingViews(false)}
+            onDragEnd={handleViewDragEnd}
+          >
+            <SortableContext
+              items={visibleViewOrder}
+              strategy={horizontalListSortingStrategy}
+            >
+              {visibleViewOrder.map((viewKey) => (
+                <SortablePlanViewButton
+                  key={viewKey}
+                  viewKey={viewKey}
+                  activeMode={activeMode}
+                  onSelect={setMode}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
 
         <div className="flex items-center gap-2">

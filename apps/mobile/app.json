@@ -1,4 +1,10 @@
 {
-  "name": "PlanThing",
-  "displayName": "PlanThing"
+  "expo": {
+    "name": "PlanThing",
+    "slug": "planthing",
+    "version": "0.0.0",
+    "platforms": ["ios", "android"],
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"]
+  }
 }

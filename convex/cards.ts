@@ -174,7 +174,12 @@ export const listByPlan = query({
       .withIndex("by_planId", (q) => q.eq("planId", planId))
       .collect();
 
-    return cards.sort(compareCardOrder);
+    return cards.sort(compareCardOrder).map((card) => ({
+      ...card,
+      descriptionHTML: undefined,
+      noteContent: undefined,
+      drawingDocument: undefined,
+    }));
   },
 });
 
@@ -196,7 +201,12 @@ export const listByColumn = query({
       .withIndex("by_columnId", (q) => q.eq("columnId", columnId))
       .collect();
 
-    return cards.sort(compareCardOrder);
+    return cards.sort(compareCardOrder).map((card) => ({
+      ...card,
+      descriptionHTML: undefined,
+      noteContent: undefined,
+      drawingDocument: undefined,
+    }));
   },
 });
 
@@ -209,9 +219,51 @@ export const get = query({
     }
 
     const access = await getPlanAccess(ctx, card.planId!);
-    return access ? card : null;
+    if (!access) {
+      return null;
+    }
+
+    const details = await ctx.db
+      .query("cardDetails")
+      .withIndex("by_cardId", (q) => q.eq("cardId", cardId))
+      .first();
+
+    return {
+      ...card,
+      descriptionHTML: details?.descriptionHTML ?? card.descriptionHTML,
+      noteContent: details?.noteContent ?? card.noteContent,
+      drawingDocument: details?.drawingDocument ?? card.drawingDocument,
+      descriptionVersion: details?.descriptionVersion ?? card.descriptionVersion,
+    };
   },
 });
+
+async function patchCardDetails(
+  ctx: MutationCtx,
+  cardId: Id<"cards">,
+  patch: {
+    descriptionHTML?: string;
+    noteContent?: string;
+    drawingDocument?: string;
+    descriptionVersion?: number;
+  },
+) {
+  const existing = await ctx.db
+    .query("cardDetails")
+    .withIndex("by_cardId", (q) => q.eq("cardId", cardId))
+    .first();
+  const next = { ...patch, updatedAt: Date.now() };
+
+  if (existing) {
+    await ctx.db.patch(existing._id, next);
+    return;
+  }
+
+  await ctx.db.insert("cardDetails", {
+    cardId,
+    ...next,
+  });
+}
 
 export const search = query({
   args: {
@@ -391,6 +443,13 @@ export const update = mutation({
       requireProUser(access.user);
     }
 
+    const detailPatch: {
+      descriptionHTML?: string;
+      noteContent?: string;
+      drawingDocument?: string;
+      descriptionVersion?: number;
+    } = {};
+
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;
     if (fields.descriptionHTML !== undefined) {
@@ -399,16 +458,20 @@ export const update = mutation({
         throw new Error("Description was edited elsewhere — please reload");
       }
       const cleaned = sanitizeHtml(fields.descriptionHTML);
-      patch.descriptionHTML = cleaned;
+      detailPatch.descriptionHTML = cleaned;
+      patch.descriptionHTML = undefined;
       patch.descriptionVersion = currentVersion + 1;
+      detailPatch.descriptionVersion = currentVersion + 1;
       patch.description = htmlToPlainText(cleaned);
     }
     if (fields.noteContent !== undefined) {
-      patch.noteContent = fields.noteContent;
+      detailPatch.noteContent = fields.noteContent;
+      patch.noteContent = undefined;
       patch.description = deriveDescriptionPreview(fields.noteContent);
     }
     if (fields.drawingDocument !== undefined) {
-      patch.drawingDocument = fields.drawingDocument;
+      detailPatch.drawingDocument = fields.drawingDocument;
+      patch.drawingDocument = undefined;
     }
     if (fields.priority !== undefined) patch.priority = fields.priority ?? undefined;
     if (fields.dueDate !== undefined) patch.dueDate = fields.dueDate;
@@ -433,6 +496,10 @@ export const update = mutation({
     }
 
     await ctx.db.patch(cardId, patch);
+
+    if (Object.keys(detailPatch).length > 0) {
+      await patchCardDetails(ctx, cardId, detailPatch);
+    }
 
     if (hasAssigneeUpdate) {
       const previousAssigneeIds = normalizeAssigneeIds(
@@ -620,6 +687,14 @@ export const remove = mutation({
       await ctx.db.delete(notification._id);
     }
 
+    const details = await ctx.db
+      .query("cardDetails")
+      .withIndex("by_cardId", (q) => q.eq("cardId", cardId))
+      .collect();
+    for (const detail of details) {
+      await ctx.db.delete(detail._id);
+    }
+
     await ctx.db.insert("activityLogs", {
       planId: card.planId!,
       userId,
@@ -629,5 +704,34 @@ export const remove = mutation({
     });
 
     await ctx.db.delete(cardId);
+  },
+});
+
+export const migrateDetailsBatch = mutation({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit = 1000 }) => {
+    const cards = await ctx.db.query("cards").take(limit);
+    let migrated = 0;
+
+    for (const card of cards) {
+      if (!card.descriptionHTML && !card.noteContent && !card.drawingDocument) {
+        continue;
+      }
+
+      await patchCardDetails(ctx, card._id, {
+        descriptionHTML: card.descriptionHTML,
+        noteContent: card.noteContent,
+        drawingDocument: card.drawingDocument,
+        descriptionVersion: card.descriptionVersion,
+      });
+      await ctx.db.patch(card._id, {
+        descriptionHTML: undefined,
+        noteContent: undefined,
+        drawingDocument: undefined,
+      });
+      migrated += 1;
+    }
+
+    return { migrated };
   },
 });

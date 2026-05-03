@@ -84,6 +84,14 @@ function sharedToMobileViewOrder(value: unknown): BoardPrimaryView[] {
   );
 }
 
+function sameBoardViewOrder(left: BoardPrimaryView[], right: BoardPrimaryView[]) {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
+}
+
+function sharedViewOrderKey(order: BoardPrimaryView[]) {
+  return JSON.stringify(order.map((view) => MOBILE_TO_SHARED_VIEW[view]));
+}
+
 export function RootApp() {
   const [screen, setScreen] = useState<ScreenKey>("welcome");
   const [selectedPlanId, setSelectedPlanId] = useState<Id<"plans"> | undefined>();
@@ -93,7 +101,7 @@ export function RootApp() {
   const [appearancePresetId, setAppearancePresetId] = useState("classic");
   const [customPalette, setCustomPalette] = useState<MobilePalette>(mobileAppearancePresets[0].light);
   const [boardViewOrder, setBoardViewOrder] = useState<BoardPrimaryView[]>(DEFAULT_BOARD_VIEW_ORDER);
-  const [boardViewOrderDirty, setBoardViewOrderDirty] = useState(false);
+  const [pendingBoardViewOrderKey, setPendingBoardViewOrderKey] = useState<string | null>(null);
   const [taskBackScreen, setTaskBackScreen] = useState<ScreenKey>("boardSwipe");
   const activePalette = useMemo(() => {
     const preset = mobileAppearancePresets.find((item) => item.id === appearancePresetId) ?? mobileAppearancePresets[0];
@@ -147,23 +155,34 @@ export function RootApp() {
   }, [boardViewOrder]);
 
   useEffect(() => {
-    if (!selectedPlanId || !boardViewOrderDirty) return;
+    if (!selectedPlanId || pendingBoardViewOrderKey === null) return;
     void savePlanViewPreference({
       planId: selectedPlanId,
       viewOrder: boardViewOrder.map((view) => MOBILE_TO_SHARED_VIEW[view]),
-    }).then(() => setBoardViewOrderDirty(false)).catch(() => {});
-  }, [boardViewOrder, boardViewOrderDirty, savePlanViewPreference, selectedPlanId]);
+    }).catch(() => setPendingBoardViewOrderKey(null));
+  }, [boardViewOrder, pendingBoardViewOrderKey, savePlanViewPreference, selectedPlanId]);
 
   useEffect(() => {
-    if (!selectedPlanId || boardViewOrderDirty) return;
+    if (!selectedPlanId) return;
     const syncedOrder = data.planViewOrders?.[selectedPlanId];
     if (!syncedOrder) return;
-    setBoardViewOrder(sharedToMobileViewOrder(syncedOrder));
-  }, [boardViewOrderDirty, data.planViewOrders, selectedPlanId]);
+    const nextOrder = sharedToMobileViewOrder(syncedOrder);
+    const nextKey = sharedViewOrderKey(nextOrder);
+    if (pendingBoardViewOrderKey !== null) {
+      if (pendingBoardViewOrderKey === nextKey) {
+        setPendingBoardViewOrderKey(null);
+      }
+      return;
+    }
+    if (!sameBoardViewOrder(boardViewOrder, nextOrder)) {
+      setBoardViewOrder(nextOrder);
+    }
+  }, [boardViewOrder, data.planViewOrders, pendingBoardViewOrderKey, selectedPlanId]);
 
   function setUserBoardViewOrder(order: BoardPrimaryView[]) {
-    setBoardViewOrder(order);
-    setBoardViewOrderDirty(true);
+    const nextOrder = sanitizeBoardViewOrder(order);
+    setBoardViewOrder(nextOrder);
+    setPendingBoardViewOrderKey(sharedViewOrderKey(nextOrder));
   }
 
   useEffect(() => {
@@ -192,7 +211,7 @@ export function RootApp() {
     const targetOrder = syncedOrder ? sharedToMobileViewOrder(syncedOrder) : boardViewOrder;
     setSelectedPlanId(planId);
     setBoardViewOrder(targetOrder);
-    setBoardViewOrderDirty(false);
+    setPendingBoardViewOrderKey(null);
     setScreen(targetOrder[0] ?? "boardSwipe");
   }
 
@@ -207,6 +226,14 @@ export function RootApp() {
   function openNote(noteId?: Id<"notes">) {
     setSelectedNoteId(noteId);
     setScreen("noteFocused");
+  }
+
+  function handleSignedOut() {
+    setSelectedPlanId(undefined);
+    setSelectedCardId(undefined);
+    setSelectedNoteId(undefined);
+    setPendingBoardViewOrderKey(null);
+    setScreen("welcome");
   }
 
   let body: React.ReactNode;
@@ -235,7 +262,7 @@ export function RootApp() {
   else if (screen === "inbox") body = <InboxScreen data={data} theme={theme} />;
   else if (screen === "boardSettings") body = <BoardSettingsScreen data={data} theme={theme} dark={dark} setDark={setDark} setScreen={setScreen} firstBoardView={boardViewOrder[0] ?? "boardSwipe"} />;
   else if (screen === "settings") body = <SettingsScreen data={data} theme={theme} dark={dark} setDark={setDark} />;
-  else if (screen === "profile") body = <ProfileScreen data={data} theme={theme} dark={dark} setDark={setDark} appearancePresetId={appearancePresetId} setAppearancePresetId={setAppearancePresetId} customPalette={customPalette} setCustomPalette={setCustomPalette} />;
+  else if (screen === "profile") body = <ProfileScreen data={data} theme={theme} dark={dark} setDark={setDark} appearancePresetId={appearancePresetId} setAppearancePresetId={setAppearancePresetId} customPalette={customPalette} setCustomPalette={setCustomPalette} onSignedOut={handleSignedOut} />;
   else body = <HomeMixedScreen data={data} theme={theme} setScreen={setScreen} openPlan={openPlan} openTask={openTask} openNote={openNote} />;
 
   if (status === "loading") {

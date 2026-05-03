@@ -33,7 +33,7 @@ function ActionableTaskCard({ card, data, theme, dragging, onPress }: { card: Mo
 export function BoardSwipeScreen({ data, theme, setScreen, openTask, dragMode = false, viewOrder, setViewOrder }: { data: MobileData; theme: AppTheme; setScreen: (screen: ScreenKey) => void; openTask?: (cardId?: MobileCard["_id"]) => void; dragMode?: boolean; viewOrder: BoardPrimaryView[]; setViewOrder: (order: BoardPrimaryView[]) => void }) {
   const [localCards, setLocalCards] = useState(data.cards);
   const { width } = useWindowDimensions();
-  const columnWidth = Math.max(220, Math.min(286, Math.round(width * 0.72)));
+  const columnWidth = Math.max(204, Math.min(248, Math.round(width * 0.62)));
 
   useEffect(() => setLocalCards(data.cards), [data.cards]);
 
@@ -437,21 +437,16 @@ function ColumnHeader({ column, count, theme }: { column: MobileData["columns"][
 }
 
 function AddCardInline({ data, columnId, theme, onCreated }: { data: MobileData; columnId: MobileData["columns"][number]["_id"]; theme: AppTheme; onCreated?: (cardId?: MobileCard["_id"]) => void }) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function createCard() {
-    const cleanTitle = title.trim();
-    if (!cleanTitle || !data.selectedPlan) {
-      Alert.alert("Task needs a title", data.selectedPlan ? "Name the task first." : "Open a plan before adding a task.");
+    if (!data.selectedPlan) {
+      Alert.alert("Open a plan", "Open a plan before adding a task.");
       return;
     }
     try {
       setBusy(true);
-      const cardId = await convex.mutation(api.cards.create, { planId: data.selectedPlan._id, columnId, title: cleanTitle, priority: "medium" });
-      setTitle("");
-      setOpen(false);
+      const cardId = await convex.mutation(api.cards.create, { planId: data.selectedPlan._id, columnId, title: "New task", priority: "medium" });
       onCreated?.(cardId);
     } catch (error) {
       Alert.alert("Could not create task", error instanceof Error ? error.message : "Please try again.");
@@ -460,19 +455,7 @@ function AddCardInline({ data, columnId, theme, onCreated }: { data: MobileData;
     }
   }
 
-  if (!open) {
-    return <TouchableOpacity onPress={() => setOpen(true)} style={[styles.addCard, { borderColor: theme.whisperStrong }]}><Text style={[styles.addCardText, { color: theme.muted }]}>+ Add card</Text></TouchableOpacity>;
-  }
-
-  return (
-    <View style={[styles.addCardPanel, { backgroundColor: theme.sheet, borderColor: theme.whisper }]}>
-      <TextInput autoFocus value={title} onChangeText={setTitle} placeholder="Task title" placeholderTextColor={theme.subtle} style={[styles.addCardInput, { color: theme.ink, borderBottomColor: theme.whisper }]} />
-      <View style={styles.addCardActions}>
-        <TouchableOpacity onPress={() => setOpen(false)}><Text style={[styles.addCardText, { color: theme.muted }]}>Cancel</Text></TouchableOpacity>
-        <TouchableOpacity disabled={busy} onPress={createCard} style={[styles.addCardButton, { backgroundColor: theme.ink, opacity: busy ? 0.62 : 1 }]}><Text style={[styles.addCardButtonText, { color: theme.bg }]}>{busy ? "Adding" : "Add"}</Text></TouchableOpacity>
-      </View>
-    </View>
-  );
+  return <TouchableOpacity disabled={busy} onPress={createCard} style={[styles.addCard, { borderColor: theme.whisperStrong, opacity: busy ? 0.62 : 1 }]}><Text style={[styles.addCardText, { color: theme.muted }]}>{busy ? "Adding..." : "+ Add card"}</Text></TouchableOpacity>;
 }
 
 function startOfDay(value: number) {
@@ -548,7 +531,7 @@ const styles = StyleSheet.create({
   columnSwitcher: { flexDirection: "row", alignItems: "center", gap: 10 },
   switchButton: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   singleColumnTitle: { flex: 1, textAlign: "center", fontSize: 26, lineHeight: 30, fontWeight: "800" },
-  overlay: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.44)" },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.44)" },
   contextCard: { position: "absolute", top: 170, left: 30, right: 30, padding: 12, borderRadius: 14 },
   contextMenu: { position: "absolute", top: 364, left: 30, right: 30, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
   menuRow: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },

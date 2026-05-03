@@ -1,14 +1,26 @@
 {
-  "extends": "@react-native/typescript-config",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
-    "types": ["react", "react-native"],
     "paths": {
-      "@/*": ["src/*"],
-      "@convex/*": ["../../convex/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@convex/*": [
+        "../../convex/*"
+      ]
     }
   },
-  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "../../convex/_generated/**/*.ts"],
-  "exclude": ["android", "node_modules"]
+  "include": [
+    "App.tsx",
+    "index.js",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../convex/_generated/**/*.ts"
+  ],
+  "exclude": [
+    "android",
+    "node_modules"
+  ]
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Dimensions, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   LinearTransition,
@@ -106,26 +106,59 @@ export function KanbanBoard<C, K>({
   }, [cardsByColumn, getCardId, orderByCol]);
 
   const measureColumns = useCallback(() => {
-    colRefs.current.forEach((view, id) => {
+    const ids = Array.from(colRefs.current.keys());
+    if (ids.length === 0) return;
+    const acc: Record<string, Layout> = { ...colLayouts.value };
+    let pending = ids.length;
+    ids.forEach((id) => {
+      const view = colRefs.current.get(id);
+      if (!view) {
+        pending--;
+        if (pending === 0) colLayouts.value = acc;
+        return;
+      }
       view.measureInWindow((x, y, width, height) => {
-        if (!width && !height) return;
-        const next = { ...colLayouts.value };
-        next[id] = { x, y, width, height };
-        colLayouts.value = next;
+        if (width || height) acc[id] = { x, y, width, height };
+        pending--;
+        if (pending === 0) colLayouts.value = acc;
       });
     });
   }, [colLayouts]);
 
   const measureCards = useCallback(() => {
-    cardRefs.current.forEach((view, id) => {
+    const ids = Array.from(cardRefs.current.keys());
+    if (ids.length === 0) return;
+    const acc: Record<string, Layout> = { ...cardLayouts.value };
+    let pending = ids.length;
+    ids.forEach((id) => {
+      const view = cardRefs.current.get(id);
+      if (!view) {
+        pending--;
+        if (pending === 0) cardLayouts.value = acc;
+        return;
+      }
       view.measureInWindow((x, y, width, height) => {
-        if (!width && !height) return;
-        const next = { ...cardLayouts.value };
-        next[id] = { x, y, width, height };
-        cardLayouts.value = next;
+        if (width || height) acc[id] = { x, y, width, height };
+        pending--;
+        if (pending === 0) cardLayouts.value = acc;
       });
     });
   }, [cardLayouts]);
+
+  const shiftLayoutsX = useCallback(
+    (dx: number) => {
+      if (dx === 0) return;
+      const cols = colLayouts.value;
+      const nextCols: Record<string, Layout> = {};
+      for (const id in cols) nextCols[id] = { ...cols[id], x: cols[id].x + dx };
+      colLayouts.value = nextCols;
+      const cards = cardLayouts.value;
+      const nextCards: Record<string, Layout> = {};
+      for (const id in cards) nextCards[id] = { ...cards[id], x: cards[id].x + dx };
+      cardLayouts.value = nextCards;
+    },
+    [colLayouts, cardLayouts],
+  );
 
   const measureAll = useCallback(() => {
     boardRef.current?.measureInWindow((x, y) => {
@@ -212,20 +245,25 @@ export function KanbanBoard<C, K>({
         dx = SCROLL_SPEED_MAX * intensity;
       }
       if (dx !== 0) {
-        scrollX.current = Math.max(0, scrollX.current + dx);
-        scrollViewRef.current?.scrollTo({ x: scrollX.current, animated: false });
-        measureColumns();
+        const prev = scrollX.current;
+        const nextX = Math.max(0, prev + dx);
+        const applied = nextX - prev;
+        scrollX.current = nextX;
+        scrollViewRef.current?.scrollTo({ x: nextX, animated: false });
+        if (applied !== 0) shiftLayoutsX(-applied);
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [drag, pointerX, measureColumns]);
+  }, [drag, pointerX, shiftLayoutsX]);
 
   const handleScroll = useCallback((e: any) => {
-    scrollX.current = e.nativeEvent.contentOffset.x;
-    measureColumns();
-  }, [measureColumns]);
+    const newX = e.nativeEvent.contentOffset.x;
+    const dx = newX - scrollX.current;
+    scrollX.current = newX;
+    if (dx !== 0) shiftLayoutsX(-dx);
+  }, [shiftLayoutsX]);
 
   const handleDragStart = useCallback((info: DragState<K>) => {
     setDrag(info);
@@ -464,9 +502,11 @@ function CardItem<K>({
             const destX = state.cardOriginX.value + state.fingerOffsetX.value;
             const destY = state.cardOriginY.value + state.fingerOffsetY.value;
             state.pointerX.value = withTiming(destX, TIMING);
-            state.pointerY.value = withTiming(destY, TIMING);
+            state.pointerY.value = withTiming(destY, TIMING, (finished) => {
+              "worklet";
+              if (finished) runOnJS(onDragEnd)();
+            });
             state.dragCardId.value = null;
-            runOnJS(onDragEnd)();
             return;
           }
           const cols = state.colLayouts.value;
@@ -499,10 +539,12 @@ function CardItem<K>({
           const finalPointerX = destX + state.fingerOffsetX.value;
           const finalPointerY = destY + state.fingerOffsetY.value;
           state.pointerX.value = withTiming(finalPointerX, TIMING);
-          state.pointerY.value = withTiming(finalPointerY, TIMING);
+          state.pointerY.value = withTiming(finalPointerY, TIMING, (finished) => {
+            "worklet";
+            if (finished) runOnJS(onDragEnd)();
+          });
           runOnJS(onCommit)(id, t.col, t.idx);
           state.dragCardId.value = null;
-          runOnJS(onDragEnd)();
         })
         .onFinalize((_e, success) => {
           "worklet";
@@ -522,6 +564,7 @@ function CardItem<K>({
         ref={setRef as any}
         onLayout={measureAll}
         layout={LAYOUT_TX}
+        pointerEvents="box-only"
         style={dragging ? styles.hiddenDragSource : null}
       >
         {children}

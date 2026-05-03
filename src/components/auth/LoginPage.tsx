@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
+import { useConvexAuth } from "convex/react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react";
@@ -26,6 +27,22 @@ const primaryButtonClass =
 
 const secondaryButtonClass =
   "flex h-14 w-full cursor-pointer items-center justify-center rounded-[2rem] border-2 border-brand-text/15 bg-brand-primary/80 font-mono text-sm font-bold text-brand-text transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-brand-text/40 hover:bg-brand-primary hover:shadow-[0_14px_24px_rgba(17,17,17,0.06)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none";
+
+function clearStoredConvexAuthTokens() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  for (const key of Object.keys(window.localStorage)) {
+    if (
+      key.includes("__convexAuthJWT") ||
+      key.includes("__convexAuthRefreshToken") ||
+      key.includes("__convexAuthServerStateFetchTime")
+    ) {
+      window.localStorage.removeItem(key);
+    }
+  }
+}
 
 function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boolean) {
   if (error instanceof Error && error.message) {
@@ -65,6 +82,8 @@ function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boole
 
 export function LoginPage() {
   const { signIn } = useAuthActions();
+  const authToken = useAuthToken();
+  const { isAuthenticated } = useConvexAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = resolveRedirectPath(searchParams.get("redirect"));
@@ -79,10 +98,32 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(false);
   const otpDigits = useMemo(
     () => Array.from({ length: 6 }, (_, index) => verificationCode[index] ?? ""),
     [verificationCode],
   );
+
+  useEffect(() => {
+    if (!pendingRedirect) {
+      return;
+    }
+
+    if (isAuthenticated || authToken) {
+      navigate(redirectPath, { replace: true });
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setPendingRedirect(false);
+      setIsLoading(false);
+      setError(
+        "Password accepted, but Convex did not accept the new session. Check the Convex Auth environment for this deployment.",
+      );
+    }, 8000);
+
+    return () => window.clearTimeout(timeout);
+  }, [authToken, isAuthenticated, navigate, pendingRedirect, redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +131,10 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (!awaitingVerification) {
+        clearStoredConvexAuthTokens();
+      }
+
       if (flow === "signUp" && !awaitingVerification) {
         try {
           const result = await signIn("password", {
@@ -133,7 +178,7 @@ export function LoginPage() {
           throw new Error("Invalid verification code");
         }
 
-        navigate(redirectPath);
+        setPendingRedirect(true);
         toast.success("Email verified.");
         return;
       }
@@ -151,14 +196,17 @@ export function LoginPage() {
         return;
       }
 
-      navigate(redirectPath);
+      setPendingRedirect(true);
       toast.success(flow === "signIn" ? "Welcome back." : "Account created.");
     } catch (error: unknown) {
+      setPendingRedirect(false);
       setError(getErrorMessage(error, flow, awaitingVerification));
     } finally {
       setIsLoading(false);
     }
   };
+
+  const isSubmitting = isLoading || pendingRedirect;
 
   const handleResendCode = async () => {
     setError("");
@@ -389,11 +437,13 @@ export function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className={primaryButtonClass}
             >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {awaitingVerification
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {pendingRedirect
+                ? "Signing In..."
+                : awaitingVerification
                 ? "Verify Email"
                 : flow === "signIn"
                   ? "Sign In"
@@ -406,7 +456,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => void handleResendCode()}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={secondaryButtonClass}
               >
                 Send Another Code
@@ -418,7 +468,7 @@ export function LoginPage() {
                   setVerificationCode("");
                   setError("");
                 }}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="w-full cursor-pointer text-center font-mono text-sm text-brand-text/60 transition-colors hover:text-brand-text disabled:cursor-not-allowed"
               >
                 Back
