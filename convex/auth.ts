@@ -8,10 +8,19 @@ import type {
 import { Email } from "@convex-dev/auth/providers/Email";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { internal } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
+import type { DataModel, Doc } from "./_generated/dataModel";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function isValidNewPassword(password: string) {
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
 }
 
 function generateOtpCode() {
@@ -26,6 +35,17 @@ type VerificationRequestParams = {
   token: string;
   theme: Theme;
   request: Request;
+};
+
+type UsersByEmailQuery = {
+  query(table: "users"): {
+    withIndex(
+      index: "email",
+      callback: (q: { eq(field: "email", value: string): unknown }) => unknown,
+    ): {
+      unique(): Promise<Doc<"users"> | null>;
+    };
+  };
 };
 
 function buildUserData(
@@ -86,6 +106,13 @@ const authConfig: ConvexAuthConfig = {
           throw new Error("Email is required");
         }
 
+        if (params.flow === "signUp") {
+          const password = params.password;
+          if (typeof password !== "string" || !isValidNewPassword(password)) {
+            throw new Error("PasswordRuleViolation");
+          }
+        }
+
         const name =
           typeof params.name === "string" && params.name.trim().length > 0
             ? params.name.trim()
@@ -127,9 +154,11 @@ const authConfig: ConvexAuthConfig = {
       }
 
       if (typeof args.profile.email === "string") {
-        const existingUserByEmail = await (ctx.db as any)
+        const email = args.profile.email;
+        const usersByEmail = ctx.db as unknown as UsersByEmailQuery;
+        const existingUserByEmail = await usersByEmail
           .query("users")
-          .withIndex("email", (q: any) => q.eq("email", args.profile.email!))
+          .withIndex("email", (q) => q.eq("email", email))
           .unique();
 
         if (existingUserByEmail) {

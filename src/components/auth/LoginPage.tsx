@@ -16,6 +16,9 @@ function resolveRedirectPath(raw: string | null): string {
 
 type Flow = "signIn" | "signUp";
 
+const passwordRuleMessage =
+  "Please have at least 8 characters, 1 uppercase letter, 1 number, and 1 symbol in your password.";
+
 const fieldShellClass =
   "group flex h-14 items-center rounded-[2rem] border-2 border-brand-text/15 bg-brand-primary/90 px-5 shadow-[0_12px_30px_rgba(17,17,17,0.03)] transition-[border-color,box-shadow,background-color] duration-200 hover:border-brand-text/35 focus-within:border-brand-text/45 focus-within:bg-brand-primary focus-within:shadow-[0_0_0_4px_rgba(17,17,17,0.06)]";
 
@@ -49,11 +52,15 @@ function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boole
     const message = error.message;
 
     if (message.includes("InvalidAccountId")) {
-      return "Invalid username";
+      return "Invalid email or password";
     }
 
     if (message.includes("InvalidSecret") || message.includes("Invalid credentials")) {
-      return "Invalid password";
+      return "Invalid email or password";
+    }
+
+    if (message.includes("PasswordRuleViolation")) {
+      return passwordRuleMessage;
     }
 
     if (message.includes("EmailDeliveryFailed")) {
@@ -80,6 +87,26 @@ function getErrorMessage(error: unknown, flow: Flow, awaitingVerification: boole
   return "Authentication failed. Please try again.";
 }
 
+function getPasswordRuleError(password: string) {
+  if (password.length < 8) {
+    return passwordRuleMessage;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return passwordRuleMessage;
+  }
+
+  if (!/\d/.test(password)) {
+    return passwordRuleMessage;
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return passwordRuleMessage;
+  }
+
+  return "";
+}
+
 export function LoginPage() {
   const { signIn } = useAuthActions();
   const authToken = useAuthToken();
@@ -92,8 +119,10 @@ export function LoginPage() {
   const [flow, setFlow] = useState<Flow>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -131,6 +160,17 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (flow === "signUp" && !awaitingVerification) {
+        const passwordError = getPasswordRuleError(password);
+        if (passwordError) {
+          throw new Error(passwordError);
+        }
+
+        if (password !== confirmPassword) {
+          throw new Error("Please make sure both passwords match.");
+        }
+      }
+
       if (!awaitingVerification) {
         clearStoredConvexAuthTokens();
       }
@@ -426,6 +466,40 @@ export function LoginPage() {
                     </Link>
                   </div>
                 )}
+                {flow === "signUp" && (
+                  <p className="mt-2 font-mono text-[11px] leading-5 text-brand-text/45">
+                    Use at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {flow === "signUp" && !awaitingVerification && (
+              <div>
+                <label className="block font-mono text-xs uppercase tracking-widest text-brand-text/60 mb-1.5">
+                  Confirm Password
+                </label>
+                <div className={cn(fieldShellClass, "pr-3")}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    required
+                    className={cn(textInputClass, "pr-4 font-sans")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-brand-text/40 transition-colors hover:bg-brand-text/6 hover:text-brand-text"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -484,6 +558,7 @@ export function LoginPage() {
                   setError("");
                   setVerificationCode("");
                   setAwaitingVerification(false);
+                  setConfirmPassword("");
                 }}
                 className="cursor-pointer text-brand-text font-bold underline underline-offset-2 transition-colors hover:text-brand-accent"
               >

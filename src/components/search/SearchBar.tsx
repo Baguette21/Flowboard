@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { isTextEditingTarget } from "../../lib/dom";
 
 interface SearchBarProps {
   value: string;
@@ -20,11 +21,7 @@ export function SearchBar({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (
-        e.key === "/" &&
-        document.activeElement?.tagName !== "INPUT" &&
-        document.activeElement?.tagName !== "TEXTAREA"
-      ) {
+      if (e.key === "/" && !isTextEditingTarget(e.target)) {
         e.preventDefault();
         inputRef.current?.focus();
       }

@@ -55,16 +55,22 @@ function tokenize(input: string): Token[] {
   return tokens;
 }
 
+// Only escape ampersands that aren't already part of a valid HTML entity.
+// Inputs to this sanitizer are already-encoded HTML (e.g. from BlockNote's
+// blocksToFullHTML or TenTap's getHTML), so naively replacing every `&` with
+// `&amp;` would turn `&amp;` into `&amp;amp;` and cascade on every save.
+const BARE_AMP = /&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)/g;
+
 function escapeText(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
+    .replace(BARE_AMP, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
 
 function escapeAttr(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
+    .replace(BARE_AMP, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;");
 }
