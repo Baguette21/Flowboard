@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useTheme } from "../../hooks/useTheme";
-import { fileToBase64, parseBlockNoteContent } from "../../lib/blocknote";
+import { fileToBase64, healAmpCascadeInHTML, parseBlockNoteContent } from "../../lib/blocknote";
 import { ExcalidrawCanvas } from "../drawing/ExcalidrawCanvas";
 
 import "@blocknote/core/fonts/inter.css";
@@ -63,7 +63,8 @@ export function CardNoteCanvas({
     htmlHydratedRef.current = true;
     void (async () => {
       try {
-        const blocks = await editor.tryParseHTMLToBlocks(contentHTML);
+        const healed = healAmpCascadeInHTML(contentHTML);
+        const blocks = await editor.tryParseHTMLToBlocks(healed);
         if (blocks.length) editor.replaceBlocks(editor.document, blocks);
       } catch {
         // keep JSON-derived content

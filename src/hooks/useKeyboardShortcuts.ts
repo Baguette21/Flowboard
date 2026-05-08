@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isTextEditingTarget } from "../lib/dom";
 
 interface Shortcut {
   key: string;
@@ -11,9 +12,8 @@ interface Shortcut {
 export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Skip if user is typing in an input
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // Skip if user is typing in a native field or rich text editor.
+      if (isTextEditingTarget(e.target)) return;
 
       for (const shortcut of shortcuts) {
         const keyMatch = e.key.toLowerCase() === shortcut.key.toLowerCase();

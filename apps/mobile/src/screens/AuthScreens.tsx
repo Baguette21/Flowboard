@@ -13,10 +13,52 @@ const copy: Record<"welcome" | "signin" | "signup" | "otp" | "empty", string[]> 
   empty: ["Nothing planted yet.", "Create a board to start growing your plan."],
 };
 
+const passwordRuleMessage =
+  "Please have at least 8 characters, 1 uppercase letter, 1 number, and 1 symbol in your password.";
+
+function getPasswordRuleError(password: string) {
+  if (
+    password.length < 8 ||
+    !/[A-Z]/.test(password) ||
+    !/\d/.test(password) ||
+    !/[^A-Za-z0-9]/.test(password)
+  ) {
+    return passwordRuleMessage;
+  }
+
+  return null;
+}
+
+function getAuthErrorMessage(err: unknown) {
+  if (!(err instanceof Error)) {
+    return "Could not complete sign-in. Please try again.";
+  }
+
+  const message = err.message;
+  if (
+    message.includes("InvalidAccountId") ||
+    message.includes("InvalidSecret") ||
+    message.includes("Invalid credentials")
+  ) {
+    return "Invalid email or password";
+  }
+
+  if (message.includes("PasswordRuleViolation")) {
+    return passwordRuleMessage;
+  }
+
+  if (message.includes("Server Error") || message.includes("Uncaught Error:") || message.includes("[CONVEX")) {
+    return "Could not complete sign-in right now. Please try again.";
+  }
+
+  return message;
+}
+
 export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy; theme: AppTheme; setScreen: (screen: ScreenKey) => void }) {
   const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +77,13 @@ export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy
     setPending(true);
     try {
       if (type === "signup") {
+        const passwordError = getPasswordRuleError(password);
+        if (passwordError) {
+          throw new Error(passwordError);
+        }
+        if (password !== confirmPassword) {
+          throw new Error("Please make sure both passwords match.");
+        }
         await signIn("password", { flow: "signUp", email, password, name });
         setScreen("otp");
       } else if (type === "signin") {
@@ -45,7 +94,7 @@ export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy
         setScreen("homeMixed");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not complete sign-in.");
+      setError(getAuthErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -62,6 +111,7 @@ export function AuthScreen({ type, theme, setScreen }: { type: keyof typeof copy
           {type === "signup" ? <TextInput value={name} onChangeText={setName} placeholder="Name" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
           {type !== "welcome" && type !== "empty" ? <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
           {type === "signin" || type === "signup" || type === "otp" ? <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={theme.subtle} secureTextEntry style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
+          {type === "signup" ? <TextInput value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" placeholderTextColor={theme.subtle} secureTextEntry style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
           {type === "otp" ? <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" placeholder="Verification code" placeholderTextColor={theme.subtle} style={[styles.authInput, { color: theme.ink, backgroundColor: theme.panel, borderColor: theme.whisper }]} /> : null}
         </View>
         {error ? <Text style={[styles.errorText, { color: theme.accent }]}>{error}</Text> : null}

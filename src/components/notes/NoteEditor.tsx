@@ -8,7 +8,7 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
-import { fileToBase64, parseBlockNoteContent } from "../../lib/blocknote";
+import { fileToBase64, healAmpCascadeInHTML, parseBlockNoteContent } from "../../lib/blocknote";
 
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
@@ -50,7 +50,8 @@ export function NoteEditor({ note, onTitleChange, actions }: NoteEditorProps) {
     htmlHydratedRef.current = true;
     void (async () => {
       try {
-        const blocks = await editor.tryParseHTMLToBlocks(note.contentHTML ?? "");
+        const healed = healAmpCascadeInHTML(note.contentHTML ?? "");
+        const blocks = await editor.tryParseHTMLToBlocks(healed);
         if (blocks.length) editor.replaceBlocks(editor.document, blocks);
       } catch {
         // keep JSON-derived content

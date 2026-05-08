@@ -1,5 +1,34 @@
 import type { PartialBlock } from "@blocknote/core";
 
+// Older saves were processed by a sanitizer that re-encoded already-encoded
+// HTML on every write, so `&` cascaded into `&amp;`, then `&amp;amp;`, etc.
+// These helpers collapse that cascade back down for display. New saves no
+// longer cascade, but existing notes still need to render properly.
+const AMP_CASCADE_TEXT = /&(?:amp;)+/g;
+const AMP_CASCADE_HTML = /&amp;(?:amp;)+/g;
+
+export function healAmpCascadeInText(value: string): string {
+  return value.replace(AMP_CASCADE_TEXT, "&");
+}
+
+export function healAmpCascadeInHTML(value: string): string {
+  return value.replace(AMP_CASCADE_HTML, "&amp;");
+}
+
+function healBlocksInPlace(node: unknown) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const child of node) healBlocksInPlace(child);
+    return;
+  }
+  const record = node as Record<string, unknown>;
+  if (typeof record.text === "string") {
+    record.text = healAmpCascadeInText(record.text);
+  }
+  if (record.content !== undefined) healBlocksInPlace(record.content);
+  if (record.children !== undefined) healBlocksInPlace(record.children);
+}
+
 function collectText(node: unknown, fragments: string[]) {
   if (typeof node === "string") {
     fragments.push(node);
@@ -64,6 +93,7 @@ export function parseBlockNoteContent(content?: string): PartialBlock[] | undefi
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     if (Array.isArray(parsed)) {
+      healBlocksInPlace(parsed);
       return parsed as PartialBlock[];
     }
   } catch {
