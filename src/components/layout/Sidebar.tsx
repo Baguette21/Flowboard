@@ -355,6 +355,7 @@ export function Sidebar({
     const handler = (event: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName;
       if (
+        event.ctrlKey &&
         event.key === "/" &&
         activeTag !== "INPUT" &&
         activeTag !== "TEXTAREA"
